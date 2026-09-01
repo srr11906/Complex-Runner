@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>COMPLEX RUNNER</title>
+  <meta name="description" content="Collect 1 Million Units to unlock entry to the Complex!">
+
+  <!-- Clean, Modern Sans-Serif Font: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Master Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app-root">
+    <!-- WebGL 3D Canvas Viewport -->
+    <div id="canvas-container"></div>
+
+    <!-- Heads-Up Display (HUD) -->
+    <header id="game-hud" class="hud-layer">
+      <div class="hud-center">
+        <!-- Squircle Score Pill -->
+        <div class="hud-pill">
+          <div class="hud-stat">
+            <span class="hud-stat-label">SCORE</span>
+            <span id="hud-score-val" class="hud-stat-num">000000</span>
+          </div>
+          <div class="hud-sep"></div>
+          <div class="hud-stat">
+            <span class="hud-stat-label">BEST</span>
+            <span id="hud-high-val" class="hud-stat-num text-sub">000000</span>
+          </div>
+          <div class="hud-sep"></div>
+          <div class="hud-stat">
+            <span class="hud-stat-label">UNITS</span>
+            <span id="hud-units-val" class="hud-stat-num text-amber">0 / 1,000,000</span>
+          </div>
+        </div>
+
+        <!-- Progress Bar Squircle -->
+        <div class="goal-pill" title="1,000,000 Units Goal">
+          <div class="goal-pill-header">
+            <span class="goal-pill-title">GOAL PROGRESS</span>
+            <span id="hud-goal-pct" class="goal-pill-pct">0%</span>
+          </div>
+          <div class="goal-track">
+            <div id="hud-goal-fill" class="goal-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Power-Up Chip -->
+        <div id="hud-powerup-badge" class="powerup-chip" style="display: none;">
+          <span id="powerup-name" class="powerup-chip-label">JETPACK</span>
+          <div class="powerup-track">
+            <div id="powerup-timer-fill" class="powerup-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sound & Pause Action Buttons -->
+      <div class="hud-right">
+        <button id="btn-sound-toggle" class="squircle-icon-btn interactive-ui" aria-label="Sound" title="Sound">
+          <img id="sound-icon-img" src="assets/ui/sound-on.svg" alt="Sound">
+        </button>
+        <button id="btn-pause-toggle" class="squircle-icon-btn interactive-ui" aria-label="Pause" title="Pause">
+          <img src="assets/ui/pause.svg" alt="Pause">
+        </button>
+      </div>
+    </header>
+
+    <!-- 1. Main Menu Screen (Warm Desert Sand Light Theme) -->
+    <section id="start-screen" class="game-modal-screen active">
+      <div class="squircle-card desert-theme">
+        <div class="card-header">
+          <h1 class="game-title">COMPLEX RUNNER</h1>
+          <p class="game-tagline">Reach 1,000,000 Units</p>
+        </div>
+
+        <div class="card-actions">
+          <button id="btn-start-run" class="btn-squircle-primary">
+            <span>Play</span>
+          </button>
+        </div>
+
+        <!-- Restored Previous Clean Game Controls Description -->
+        <div class="controls-hint-box">
+          <span class="key-pill">A / D / ← / →</span> SWITCH LANE &bull; <span class="key-pill">W / ↑ / SPACE</span> JUMP &bull; <span class="key-pill">S / ↓</span> SLIDE
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Pause Screen (Warm Desert Sand Light Theme) -->
+    <section id="pause-screen" class="game-modal-screen">
+      <div class="squircle-card desert-theme">
+        <div class="card-header">
+          <h2 class="game-title">Paused</h2>
+        </div>
+
+        <div class="card-actions">
+          <button id="btn-resume" class="btn-squircle-primary">
+            <span>Resume</span>
+          </button>
+          <button id="btn-restart" class="btn-squircle-secondary">
+            <span>Restart</span>
+          </button>
+          <button id="btn-pause-menu" class="btn-squircle-secondary">
+            <span>Menu</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Game Over Screen (Warm Desert Sand Light Theme) -->
+    <section id="game-over-screen" class="game-modal-screen">
+      <div class="squircle-card desert-theme">
+        <div class="card-header">
+          <h2 class="game-title">Run Over</h2>
+        </div>
+
+        <div class="stats-squircle-grid">
+          <div class="stat-card">
+            <span class="stat-card-title">SCORE</span>
+            <span id="final-score-val" class="stat-card-val">000000</span>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-card-title">BEST</span>
+            <span id="final-high-val" class="stat-card-val text-sub">000000</span>
+          </div>
+
+          <div class="stat-card full-span">
+            <span class="stat-card-title">UNITS COLLECTED</span>
+            <span id="final-units-val" class="stat-card-val text-amber">0 UNITS</span>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button id="btn-run-again" class="btn-squircle-primary">
+            <span>Play Again</span>
+          </button>
+          <button id="btn-gameover-menu" class="btn-squircle-secondary">
+            <span>Menu</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Victory Screen (Warm Desert Sand Light Theme) -->
+    <section id="victory-screen" class="game-modal-screen">
+      <div class="squircle-card desert-theme victory-highlight">
+        <div class="card-header">
+          <h2 class="game-title">1,000,000 Units!</h2>
+          <p class="game-tagline text-amber">Complex Unlocked</p>
+        </div>
+
+        <div class="card-actions">
+          <button id="btn-victory-again" class="btn-squircle-primary">
+            <span>Play Again</span>
+          </button>
+          <button id="btn-victory-menu" class="btn-squircle-secondary">
+            <span>Menu</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Main ES Module Script -->
+  <script type="module" src="js/script.js"></script>
+</body>
+</html>
