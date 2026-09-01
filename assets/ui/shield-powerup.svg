@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <!-- Radiant Shield Orb Gradient -->
+    <radialGradient id="shieldOrbGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF59D" stop-opacity="1.0" />
+      <stop offset="50%" stop-color="#F59E0B" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#D97706" stop-opacity="0.2" />
+    </radialGradient>
+    <linearGradient id="shieldPlate" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="40%" stop-color="#FFE07D" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer Energy Halo -->
+  <circle cx="32" cy="32" r="30" fill="url(#shieldOrbGlow)" />
+  <circle cx="32" cy="32" r="28" fill="rgba(14, 10, 20, 0.4)" stroke="#FFE07D" stroke-width="2.5" />
+
+  <!-- Royal Golden Shield Crest -->
+  <path d="M 32 14 L 46 20 C 46 34 38 46 32 50 C 26 46 18 34 18 20 Z" fill="url(#shieldPlate)" stroke="#8B5E14" stroke-width="2" />
+  
+  <!-- Royal Lion/Sun Inlay -->
+  <circle cx="32" cy="29" r="6" fill="#8B5E14" />
+  <circle cx="32" cy="29" r="4" fill="#FFE07D" />
+  <line x1="32" y1="36" x2="32" y2="44" stroke="#8B5E14" stroke-width="2.5" />
+</svg>
