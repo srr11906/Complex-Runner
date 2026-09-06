@@ -1,6 +1,7 @@
 /**
  * PRABHAS: KASI 2898 AD (3D Runner - AAA Next-Gen)
- * High-Performance Track Pool with 4 Distinct Shanty Architectures & Optimized 60 FPS Draw Calls
+ * High-Performance Track Pool with 5 Distinct Dystopian Shanty & Container Architectures
+ * Grounded Utility Pylons, Mounted AC Units, Truss Signboards & Zero Allocation Loop
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
@@ -18,8 +19,27 @@ export class TrackSegmentPool3D {
     this.activeChunks = [];
     this.nextChunkZ = 0;
 
-    // High-Fidelity PBR Track & Multi-Architecture Materials
+    // Pre-allocated active query arrays to eliminate Garbage Collection churn
+    this._activeObstaclesList = [];
+    this._activeCollectiblesList = [];
+
+    // High-Fidelity Materials with Procedural PBR Maps
     this.materials = {
+      sandTerrain: new THREE.MeshStandardMaterial({
+        map: textureGen.getSandTerrainTexture(),
+        roughness: 0.94,
+        metalness: 0.05
+      }),
+      stoneMat: new THREE.MeshStandardMaterial({
+        color: CONFIG.COLORS.ANCIENT_STONE,
+        roughness: 0.85,
+        metalness: 0.15
+      }),
+      rustScrapMat: new THREE.MeshStandardMaterial({
+        color: 0x4D2A18,
+        roughness: 0.75,
+        metalness: 0.45
+      }),
       ground: new THREE.MeshStandardMaterial({
         map: textureGen.getRoadTexture(),
         roughness: 0.85,
@@ -41,20 +61,20 @@ export class TrackSegmentPool3D {
         roughness: 0.8,
         metalness: 0.25
       }),
-      rustContainer: new THREE.MeshStandardMaterial({
-        color: 0x8C3B1E,
-        roughness: 0.7,
-        metalness: 0.4
-      }),
-      cyanContainer: new THREE.MeshStandardMaterial({
-        color: 0x2A6A78,
+      containerRust: new THREE.MeshStandardMaterial({
+        map: textureGen.getContainerTexture("rust"),
         roughness: 0.65,
-        metalness: 0.45
+        metalness: 0.5
       }),
-      yellowContainer: new THREE.MeshStandardMaterial({
-        color: 0xB8860B,
+      containerCyan: new THREE.MeshStandardMaterial({
+        map: textureGen.getContainerTexture("cyan"),
         roughness: 0.6,
-        metalness: 0.4
+        metalness: 0.55
+      }),
+      containerYellow: new THREE.MeshStandardMaterial({
+        map: textureGen.getContainerTexture("yellow"),
+        roughness: 0.6,
+        metalness: 0.5
       }),
       tinRoof: new THREE.MeshStandardMaterial({
         color: 0x554B42,
@@ -69,8 +89,83 @@ export class TrackSegmentPool3D {
         color: 0x475569,
         roughness: 0.5,
         metalness: 0.8
+      }),
+      gantryFrame: new THREE.MeshStandardMaterial({
+        color: 0x1E293B,
+        roughness: 0.4,
+        metalness: 0.85
+      }),
+      hazardStripe: new THREE.MeshBasicMaterial({
+        color: 0xF59E0B
+      }),
+      beaconMat: new THREE.MeshBasicMaterial({
+        color: 0xFF2222
+      }),
+      dishMat: new THREE.MeshStandardMaterial({
+        color: 0xCBD5E1,
+        roughness: 0.4,
+        metalness: 0.7,
+        side: THREE.DoubleSide
+      }),
+      bracketMat: new THREE.MeshStandardMaterial({
+        color: 0x334155,
+        roughness: 0.5,
+        metalness: 0.85
       })
     };
+
+    const length = CONFIG.CHUNK_LENGTH;
+    const roadWidth = 13.6;
+
+    // Shared Track & Architecture Geometries
+    this.geometries = {
+      terrainSand: new THREE.PlaneGeometry(280, length),
+      duneGeo: new THREE.SphereGeometry(24, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+      driftGeo: new THREE.CylinderGeometry(1.6, 2.8, 0.16, 8, 1, false),
+      rockGeo: new THREE.DodecahedronGeometry(4.5, 0),
+      pipeGeo: new THREE.CylinderGeometry(1.2, 1.2, 24.0, 8),
+      slab: new THREE.BoxGeometry(roadWidth, 0.6, length),
+      road: new THREE.PlaneGeometry(roadWidth, length),
+      curb: new THREE.CylinderGeometry(0.28, 0.28, length, 8),
+      container: new THREE.BoxGeometry(6.5, 4.2, 12.0),
+      shanty1: new THREE.BoxGeometry(9.0, 10.0, 15.0),
+      roof1: new THREE.PlaneGeometry(12.0, 17.0),
+      acUnit: new THREE.BoxGeometry(1.6, 1.4, 1.2),
+      acShelf: new THREE.BoxGeometry(1.8, 0.12, 1.4),
+      acStrut: new THREE.CylinderGeometry(0.04, 0.04, 1.2, 4),
+      shanty2: new THREE.BoxGeometry(10.0, 18.0, 16.0),
+      mast: new THREE.CylinderGeometry(0.16, 0.3, 14, 6),
+      beacon: new THREE.SphereGeometry(0.38, 6, 6),
+      signBoard: new THREE.PlaneGeometry(5.4, 2.7),
+      signFrame: new THREE.BoxGeometry(5.6, 0.15, 0.15),
+      signArm: new THREE.BoxGeometry(2.4, 0.15, 0.15),
+      shanty3: new THREE.BoxGeometry(8.5, 12.0, 14.0),
+      cistern: new THREE.CylinderGeometry(2.0, 2.0, 3.5, 10),
+      pylonPole: new THREE.CylinderGeometry(0.18, 0.26, 15.0, 6),
+      pylonArm: new THREE.BoxGeometry(2.4, 0.18, 0.18),
+      insulator: new THREE.CylinderGeometry(0.08, 0.08, 0.35, 6),
+      cable: this.buildCableGeometry(),
+      dish: new THREE.CylinderGeometry(1.4, 0.2, 0.5, 10, 1, true),
+      gantryPillar: new THREE.BoxGeometry(1.2, 16.0, 1.2),
+      gantryTop: new THREE.BoxGeometry(32.0, 1.4, 1.4),
+      gantryCross: new THREE.BoxGeometry(0.25, 16.0, 0.25)
+    };
+
+    this.signMaterials = {
+      lassi: new THREE.MeshBasicMaterial({ map: textureGen.getNeonSignTexture("lassi"), side: THREE.DoubleSide }),
+      complex: new THREE.MeshBasicMaterial({ map: textureGen.getNeonSignTexture("complex"), side: THREE.DoubleSide }),
+      ore: new THREE.MeshBasicMaterial({ map: textureGen.getNeonSignTexture("ore"), side: THREE.DoubleSide })
+    };
+  }
+
+  buildCableGeometry() {
+    // Realistic catenary curve spanning between road utility poles at x = -8.5 to x = 8.5
+    const curve = new THREE.QuadraticBezierCurve3(
+      new THREE.Vector3(-8.5, 13.5, 0),
+      new THREE.Vector3(0, 10.5, 1.8),
+      new THREE.Vector3(8.5, 13.5, 0)
+    );
+    return new THREE.TubeGeometry(curve, 10, 0.045, 4, false);
   }
 
   init() {
@@ -101,35 +196,42 @@ export class TrackSegmentPool3D {
     const length = CONFIG.CHUNK_LENGTH;
     const roadWidth = 13.6;
 
-    // 1. Solid 3D Concrete Base Slab
-    const slabGeo = new THREE.BoxGeometry(roadWidth, 0.6, length);
-    const slab = new THREE.Mesh(slabGeo, this.materials.roadSlab);
+    // 0. Continuous Ground Sand Terrain (280m wide segment locked to chunk, zero sliding)
+    const sandPlane = new THREE.Mesh(this.geometries.terrainSand, this.materials.sandTerrain);
+    sandPlane.rotation.x = -Math.PI / 2;
+    sandPlane.position.set(0, -0.05, length / 2);
+    sandPlane.receiveShadow = true;
+    chunkRoot.add(sandPlane);
+
+    // 1. Concrete Base Slab
+    const slab = new THREE.Mesh(this.geometries.slab, this.materials.roadSlab);
     slab.position.set(0, -0.3, length / 2);
     slab.receiveShadow = true;
     chunkRoot.add(slab);
 
-    // 2. High-Res PBR Sand-Dusted Road
-    const roadGeo = new THREE.PlaneGeometry(roadWidth, length);
-    const road = new THREE.Mesh(roadGeo, this.materials.ground);
+    // 2. Road
+    const road = new THREE.Mesh(this.geometries.road, this.materials.ground);
     road.rotation.x = -Math.PI / 2;
     road.position.set(0, 0.01, length / 2);
     road.receiveShadow = true;
     chunkRoot.add(road);
 
-    // 3. Bronze Highway Guard Curbs
+    // 3. Bronze Curbs
     for (let side of [-1, 1]) {
-      const curbGeo = new THREE.CylinderGeometry(0.28, 0.28, length, 10);
-      const curb = new THREE.Mesh(curbGeo, this.materials.roadBorder);
+      const curb = new THREE.Mesh(this.geometries.curb, this.materials.roadBorder);
       curb.rotation.x = Math.PI / 2;
       curb.position.set(side * (roadWidth / 2), 0.14, length / 2);
       chunkRoot.add(curb);
     }
 
-    // 4. Optimized Roadside Shanties
+    // 4. Shanties & Stacked Containers
     this.buildDiverseRoadsideShanties(chunkRoot, length);
 
-    // 5. Overhead High-Voltage Catenary Power Cables
+    // 5. Overhead Cables with Grounded Utility Pylons
     this.buildOverheadCables(chunkRoot, length);
+
+    // 6. Roadside Desert Dunes & Crags (Attached to chunk for zero pop-in / no sliding)
+    this.buildRoadsideDunes(chunkRoot, length);
 
     const chunkData = {
       root: chunkRoot,
@@ -149,147 +251,218 @@ export class TrackSegmentPool3D {
     this.nextChunkZ += length;
   }
 
-  /**
-   * 4 Distinct Dystopian Shanty Architectures (Optimized for 60 FPS)
-   */
   buildDiverseRoadsideShanties(chunkRoot, length) {
-    const signTypes = ["lassi", "complex", "ore"];
+    const signKeys = ["lassi", "complex", "ore"];
 
     for (let side of [-1, 1]) {
       const posX = side * (14.0 + Math.random() * 2.0);
-      const archType = Math.floor(Math.random() * 4);
+      const archType = Math.floor(Math.random() * 5);
       const bZ = (length / 2) + (Math.random() - 0.5) * 20;
 
       if (archType === 0) {
-        // ARCHETYPE 1: Staggered Multi-Color Cargo Containers
-        const containerMats = [this.materials.rustContainer, this.materials.cyanContainer, this.materials.yellowContainer];
-        const numContainers = 3;
-
+        // ARCHETYPE 0: Multi-Tier Cargo Container Stacks
+        const containerMats = [this.materials.containerRust, this.materials.containerCyan, this.materials.containerYellow];
+        const numContainers = 4;
         for (let c = 0; c < numContainers; c++) {
           const cMat = containerMats[c % containerMats.length];
-          const cBox = new THREE.Mesh(
-            new THREE.BoxGeometry(6.5, 4.2, 12.0),
-            cMat
-          );
+          const cBox = new THREE.Mesh(this.geometries.container, cMat);
+          const tier = c < 2 ? c : 1.5;
+          const offsetX = side * (c * 1.6);
           cBox.position.set(
-            posX + (side * (c * 1.8)),
-            (c * 4.2) + 2.1,
-            bZ + ((c % 2 === 0) ? -2 : 2)
+            posX + offsetX,
+            (tier * 4.2) + 1.8,
+            bZ + ((c % 2 === 0) ? -2.5 : 2.5)
           );
+          cBox.rotation.y = (c % 2 === 0) ? 0.05 : -0.05;
           cBox.receiveShadow = true;
           chunkRoot.add(cBox);
         }
-
       } else if (archType === 1) {
-        // ARCHETYPE 2: Slanted Corrugated Tin Shanty with Overhang Roof
-        const bWidth = 9.0;
+        // ARCHETYPE 1: Cantilevered Tin Shanty with Mounted AC Unit & Solar Dish
         const bHeight = 10.0;
-        const bDepth = 15.0;
-
-        const mainShanty = new THREE.Mesh(
-          new THREE.BoxGeometry(bWidth, bHeight, bDepth),
-          this.materials.shantyBuilding
-        );
-        mainShanty.position.set(posX + side * (bWidth / 2), bHeight / 2, bZ);
+        const mainShanty = new THREE.Mesh(this.geometries.shanty1, this.materials.shantyBuilding);
+        mainShanty.position.set(posX + side * 4.5, bHeight / 2 - 0.3, bZ);
         mainShanty.receiveShadow = true;
         chunkRoot.add(mainShanty);
 
-        // Slanted Corrugated Overhang Tin Roof
-        const roof = new THREE.Mesh(
-          new THREE.PlaneGeometry(bWidth + 3.0, bDepth + 2.0),
-          this.materials.tinRoof
-        );
+        const roof = new THREE.Mesh(this.geometries.roof1, this.materials.tinRoof);
         roof.rotation.x = -Math.PI / 2;
         roof.rotation.z = side * 0.18;
-        roof.position.set(mainShanty.position.x - (side * 0.8), bHeight + 0.4, bZ);
+        roof.position.set(mainShanty.position.x - (side * 0.8), bHeight + 0.1, bZ);
         chunkRoot.add(roof);
 
-        // AC Unit Box on side
-        const acUnit = new THREE.Mesh(
-          new THREE.BoxGeometry(1.6, 1.4, 1.2),
-          this.materials.scaffoldMat
-        );
-        acUnit.position.set(side * 8.5, bHeight * 0.65, bZ + 3.0);
-        chunkRoot.add(acUnit);
+        // Solid Wall-Mounted AC Unit on Steel Shelf Bracket
+        const acGroup = new THREE.Group();
+        acGroup.position.set(posX - side * 0.2, bHeight * 0.65 - 0.3, bZ + 3.0);
 
+        const acUnit = new THREE.Mesh(this.geometries.acUnit, this.materials.scaffoldMat);
+        acGroup.add(acUnit);
+
+        const acShelf = new THREE.Mesh(this.geometries.acShelf, this.materials.bracketMat);
+        acShelf.position.y = -0.72;
+        acGroup.add(acShelf);
+
+        for (let sx of [-0.6, 0.6]) {
+          const strut = new THREE.Mesh(this.geometries.acStrut, this.materials.bracketMat);
+          strut.rotation.z = side * 0.45;
+          strut.position.set(sx, -1.1, 0);
+          acGroup.add(strut);
+        }
+        chunkRoot.add(acGroup);
+
+        const dish = new THREE.Mesh(this.geometries.dish, this.materials.dishMat);
+        dish.position.set(mainShanty.position.x, bHeight + 1.3, bZ - 3.0);
+        dish.rotation.x = 0.4;
+        dish.rotation.y = side > 0 ? -0.5 : 0.5;
+        chunkRoot.add(dish);
       } else if (archType === 2) {
-        // ARCHETYPE 3: Multi-Tier Concrete Tenement Tower with Antenna & Neon Billboard
-        const bWidth = 10.0;
+        // ARCHETYPE 2: Multi-Tier Tenement Tower with Solid Truss-Mounted Neon Billboard
         const bHeight = 18.0;
-        const bDepth = 16.0;
-
-        const tower = new THREE.Mesh(
-          new THREE.BoxGeometry(bWidth, bHeight, bDepth),
-          this.materials.shantyBuilding
-        );
-        tower.position.set(posX + side * (bWidth / 2), bHeight / 2, bZ);
+        const tower = new THREE.Mesh(this.geometries.shanty2, this.materials.shantyBuilding);
+        tower.position.set(posX + side * 5.0, bHeight / 2 - 0.3, bZ);
         tower.receiveShadow = true;
         chunkRoot.add(tower);
 
-        // Communication Antenna Mast
-        const mast = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.16, 0.3, 14, 6),
-          this.materials.scaffoldMat
-        );
-        mast.position.set(tower.position.x, bHeight + 7, bZ);
+        const mast = new THREE.Mesh(this.geometries.mast, this.materials.scaffoldMat);
+        mast.position.set(tower.position.x, bHeight + 6.7, bZ);
         chunkRoot.add(mast);
 
-        const beacon = new THREE.Mesh(
-          new THREE.SphereGeometry(0.38, 6, 6),
-          new THREE.MeshBasicMaterial({ color: 0xFF2222 })
-        );
-        beacon.position.set(mast.position.x, bHeight + 14.2, mast.position.z);
+        const beacon = new THREE.Mesh(this.geometries.beacon, this.materials.beaconMat);
+        beacon.position.set(mast.position.x, bHeight + 13.9, mast.position.z);
         chunkRoot.add(beacon);
 
-        // Holographic Neon Sign
-        const chosenSign = signTypes[Math.floor(Math.random() * signTypes.length)];
-        const signTex = textureGen.getNeonSignTexture(chosenSign);
-        const signBoard = new THREE.Mesh(
-          new THREE.PlaneGeometry(5.4, 2.7),
-          new THREE.MeshBasicMaterial({ map: signTex, side: THREE.DoubleSide })
-        );
-        signBoard.position.set(side * 7.5, bHeight * 0.55, bZ);
-        signBoard.rotation.y = side > 0 ? -Math.PI / 2 + 0.12 : Math.PI / 2 - 0.12;
-        chunkRoot.add(signBoard);
+        // Truss-Mounted Signboard projecting from the wall
+        const signGroup = new THREE.Group();
+        const signX = posX - (side * 0.5);
+        signGroup.position.set(signX, bHeight * 0.55 - 0.3, bZ);
+        signGroup.rotation.y = side > 0 ? -Math.PI / 2 + 0.08 : Math.PI / 2 - 0.08;
 
-      } else {
-        // ARCHETYPE 4: Heavy Steel Structure & Rooftop Cistern
-        const bWidth = 8.5;
+        const chosenSign = signKeys[Math.floor(Math.random() * signKeys.length)];
+        const signBoard = new THREE.Mesh(this.geometries.signBoard, this.signMaterials[chosenSign]);
+        signGroup.add(signBoard);
+
+        // Horizontal Iron Support Frame
+        for (let fy of [-1.35, 1.35]) {
+          const frame = new THREE.Mesh(this.geometries.signFrame, this.materials.bracketMat);
+          frame.position.y = fy;
+          signGroup.add(frame);
+        }
+
+        // Cantilever Wall Arm connecting sign to building
+        const arm = new THREE.Mesh(this.geometries.signArm, this.materials.bracketMat);
+        arm.position.set(side * 1.2, 0, -0.2);
+        signGroup.add(arm);
+
+        chunkRoot.add(signGroup);
+      } else if (archType === 3) {
+        // ARCHETYPE 3: Heavy Steel Structure & Rooftop Cistern
         const bHeight = 12.0;
-        const bDepth = 14.0;
-
-        const baseBuilding = new THREE.Mesh(
-          new THREE.BoxGeometry(bWidth, bHeight, bDepth),
-          this.materials.shantyBuilding
-        );
-        baseBuilding.position.set(posX + side * (bWidth / 2), bHeight / 2, bZ);
+        const baseBuilding = new THREE.Mesh(this.geometries.shanty3, this.materials.shantyBuilding);
+        baseBuilding.position.set(posX + side * 4.25, bHeight / 2 - 0.3, bZ);
         baseBuilding.receiveShadow = true;
         chunkRoot.add(baseBuilding);
 
-        // Rooftop Water Tank Cistern
-        const cistern = new THREE.Mesh(
-          new THREE.CylinderGeometry(2.0, 2.0, 3.5, 12),
-          this.materials.rustContainer
-        );
-        cistern.position.set(baseBuilding.position.x, bHeight + 1.8, bZ);
+        const cistern = new THREE.Mesh(this.geometries.cistern, this.materials.containerRust);
+        cistern.position.set(baseBuilding.position.x, bHeight + 1.5, bZ);
         chunkRoot.add(cistern);
+      } else {
+        // ARCHETYPE 4: Overhead Industrial Gantry Crane Superstructure
+        if (side === 1) {
+          const gantryGroup = new THREE.Group();
+          gantryGroup.position.set(0, 0, bZ);
+
+          for (let gx of [-14.5, 14.5]) {
+            const pillar = new THREE.Mesh(this.geometries.gantryPillar, this.materials.gantryFrame);
+            pillar.position.set(gx, 7.5, 0);
+            pillar.receiveShadow = true;
+            gantryGroup.add(pillar);
+          }
+
+          const topBeam = new THREE.Mesh(this.geometries.gantryTop, this.materials.gantryFrame);
+          topBeam.position.set(0, 15.2, 0);
+          gantryGroup.add(topBeam);
+
+          const hazard = new THREE.Mesh(this.geometries.beacon, this.materials.hazardStripe);
+          hazard.position.set(0, 13.9, 0);
+          gantryGroup.add(hazard);
+
+          chunkRoot.add(gantryGroup);
+        }
       }
     }
   }
 
   /**
-   * Overhead Catenary Power Cables
+   * Grounded Overhead Catenary Power Cables with Highway Utility Pylons
    */
   buildOverheadCables(chunkRoot, length) {
     for (let cZ = 15; cZ < length; cZ += 30) {
-      const curve = new THREE.QuadraticBezierCurve3(
-        new THREE.Vector3(-9.5, 12.0, cZ),
-        new THREE.Vector3(0, 8.8, cZ + 2),
-        new THREE.Vector3(9.5, 12.0, cZ)
-      );
-      const tubeGeo = new THREE.TubeGeometry(curve, 10, 0.045, 4, false);
-      const cable = new THREE.Mesh(tubeGeo, this.materials.cableMat);
+      // 1. Concrete & Steel Utility Pylon Posts firmly rooted in the roadside ground
+      for (let side of [-1, 1]) {
+        const poleX = side * 8.5;
+        const pylon = new THREE.Mesh(this.geometries.pylonPole, this.materials.scaffoldMat);
+        pylon.position.set(poleX, 7.0, cZ);
+        pylon.receiveShadow = true;
+        chunkRoot.add(pylon);
+
+        // Crossarm Beam at top
+        const arm = new THREE.Mesh(this.geometries.pylonArm, this.materials.bracketMat);
+        arm.position.set(poleX - (side * 0.6), 14.2, cZ);
+        chunkRoot.add(arm);
+
+        // Ceramic Insulator
+        const ins = new THREE.Mesh(this.geometries.insulator, this.materials.dishMat);
+        ins.position.set(poleX, 13.8, cZ);
+        chunkRoot.add(ins);
+      }
+
+      // 2. High-Voltage Catenary Cable draped between the two insulators
+      const cable = new THREE.Mesh(this.geometries.cable, this.materials.cableMat);
+      cable.position.z = cZ;
       chunkRoot.add(cable);
+    }
+  }
+
+  /**
+   * Roadside Desert Dunes, Crags & Sunken Salvage firmly anchored to the chunk
+   */
+  buildRoadsideDunes(chunkRoot, length) {
+    for (let side of [-1, 1]) {
+      // 1. Primary Rolling Sand Dune Wave placed far enough to never overlap running lanes
+      const dune = new THREE.Mesh(this.geometries.duneGeo, this.materials.sandTerrain);
+      const duneX = side * (46.0 + Math.random() * 10.0);
+      const duneZ = (length / 2) + (Math.random() - 0.5) * 22.0;
+      dune.scale.set(1.2 + Math.random() * 0.4, 0.35 + Math.random() * 0.08, 1.3 + Math.random() * 0.4);
+      dune.position.set(duneX, -2.5, duneZ);
+      dune.rotation.y = Math.random() * Math.PI;
+      dune.receiveShadow = true;
+      chunkRoot.add(dune);
+
+      // 2. Weathered Desert Rock Formations in roadside margin
+      const rock = new THREE.Mesh(this.geometries.rockGeo, this.materials.stoneMat);
+      rock.position.set(side * (28.0 + Math.random() * 8.0), 1.2, duneZ + (Math.random() - 0.5) * 12);
+      rock.rotation.set(Math.random(), Math.random(), Math.random());
+      rock.scale.set(1.2, 0.8, 1.4);
+      rock.receiveShadow = true;
+      chunkRoot.add(rock);
+
+      // 3. Low-Profile Windblown Sand Drifts lapping subtly against outer curbs (Never blocking lanes)
+      const drift = new THREE.Mesh(this.geometries.driftGeo, this.materials.sandTerrain);
+      const driftZ = (length * 0.3) + (Math.random() * length * 0.4);
+      drift.position.set(side * 7.1, 0.06, driftZ);
+      drift.rotation.z = side * 0.06;
+      drift.scale.set(1.0 + Math.random() * 0.3, 1.0, 1.5 + Math.random() * 0.5);
+      drift.receiveShadow = true;
+      chunkRoot.add(drift);
+
+      // 4. Sunken Industrial Scrap Conduit emerging from sand
+      if (Math.random() > 0.4) {
+        const pipe = new THREE.Mesh(this.geometries.pipeGeo, this.materials.rustScrapMat);
+        pipe.position.set(side * (32.0 + Math.random() * 10.0), 1.0, duneZ);
+        pipe.rotation.set(0.3, 0.6 * side, 0.8 * side);
+        pipe.receiveShadow = true;
+        chunkRoot.add(pipe);
+      }
     }
   }
 
@@ -303,81 +476,79 @@ export class TrackSegmentPool3D {
       const trainLane = Math.floor(Math.random() * 3);
       const train = this.obstacleFactory.createMaglevTrain(true, false, 24.0);
       train.position.set(lanes[trainLane], 0, 26);
-      chunkRoot.add(train);
-      chunkData.obstacles.push(train);
+      this.registerObstacle(chunkData, train);
 
       this.spawnCoinLine(chunkData, lanes[trainLane], 14, 38, 6, trainRooftopCoinY, false);
 
       const sideLane = (trainLane + 1) % 3;
       const hurdle = this.obstacleFactory.createLowHurdle();
       hurdle.position.set(lanes[sideLane], 0, 20);
-      chunkRoot.add(hurdle);
-      chunkData.obstacles.push(hurdle);
+      this.registerObstacle(chunkData, hurdle);
 
       const pLane = (trainLane + 2) % 3;
       this.spawnRandomPowerup(chunkData, lanes[pLane], 28);
-
     } else if (patternType === 1) {
-      const moveLane = 0;
       const movingTrain = this.obstacleFactory.createMaglevTrain(false, true, 22.0);
-      movingTrain.position.set(lanes[moveLane], 0, 32);
-      chunkRoot.add(movingTrain);
-      chunkData.obstacles.push(movingTrain);
+      movingTrain.position.set(lanes[0], 0, 32);
+      this.registerObstacle(chunkData, movingTrain);
 
       const rampTrain = this.obstacleFactory.createMaglevTrain(true, false, 22.0);
       rampTrain.position.set(lanes[2], 0, 25);
-      chunkRoot.add(rampTrain);
-      chunkData.obstacles.push(rampTrain);
+      this.registerObstacle(chunkData, rampTrain);
+
       this.spawnCoinLine(chunkData, lanes[2], 14, 36, 5, trainRooftopCoinY, false);
-
       this.spawnCoinLine(chunkData, lanes[1], 10, 48, 6, 0.85, false);
-
     } else if (patternType === 2) {
       for (let l of [0, 2]) {
         const train = this.obstacleFactory.createMaglevTrain(l === 2, false, 24.0);
         train.position.set(lanes[l], 0, 28);
-        chunkRoot.add(train);
-        chunkData.obstacles.push(train);
+        this.registerObstacle(chunkData, train);
       }
       this.spawnCoinLine(chunkData, lanes[1], 8, 50, 7, 0.85, false);
       this.spawnRandomPowerup(chunkData, lanes[1], 28);
-
     } else if (patternType === 3) {
       const train1 = this.obstacleFactory.createMaglevTrain(true, false, 22.0);
       train1.position.set(lanes[0], 0, 24);
-      chunkRoot.add(train1);
-      chunkData.obstacles.push(train1);
+      this.registerObstacle(chunkData, train1);
 
       const train2 = this.obstacleFactory.createMaglevTrain(false, false, 22.0);
       train2.position.set(lanes[1], 0, 28);
-      chunkRoot.add(train2);
-      chunkData.obstacles.push(train2);
+      this.registerObstacle(chunkData, train2);
 
       this.spawnCoinLine(chunkData, lanes[0], 12, 34, 5, trainRooftopCoinY, false);
 
       const gate = this.obstacleFactory.createPlasmaGate();
       gate.position.set(lanes[2], 0, 26);
-      chunkRoot.add(gate);
-      chunkData.obstacles.push(gate);
-
+      this.registerObstacle(chunkData, gate);
     } else {
       const train = this.obstacleFactory.createMaglevTrain(true, false, 26.0);
       train.position.set(lanes[1], 0, 26);
-      chunkRoot.add(train);
-      chunkData.obstacles.push(train);
+      this.registerObstacle(chunkData, train);
       this.spawnCoinLine(chunkData, lanes[1], 12, 40, 6, trainRooftopCoinY, false);
 
       for (let side of [0, 2]) {
         const hurdle = this.obstacleFactory.createLowHurdle();
         hurdle.position.set(lanes[side], 0, 18);
-        chunkRoot.add(hurdle);
-        chunkData.obstacles.push(hurdle);
+        this.registerObstacle(chunkData, hurdle);
       }
     }
 
     // Sky Coins for Jetpack Flight
     const skyLane = Math.floor(Math.random() * 3);
     this.spawnCoinLine(chunkData, lanes[skyLane], 8, 52, 7, CONFIG.JETPACK_ALTITUDE, true);
+  }
+
+  registerObstacle(chunkData, obstacle) {
+    obstacle.userData.cachedCollisionData = {
+      mesh: obstacle,
+      chunkStartZ: chunkData.startZ,
+      worldPos: new THREE.Vector3(obstacle.position.x, obstacle.position.y, chunkData.startZ + obstacle.position.z),
+      type: obstacle.userData.type,
+      requiresSlide: !!obstacle.userData.requiresSlide,
+      requiresJump: !!obstacle.userData.requiresJump
+    };
+    chunkData.root.add(obstacle);
+    chunkData.obstacles.push(obstacle);
   }
 
   spawnCoinLine(chunkData, laneX, startZ, endZ, count, yHeight, isSkyCoin = false) {
@@ -387,8 +558,20 @@ export class TrackSegmentPool3D {
       coin.position.set(laneX, yHeight, startZ + i * step);
       coin.userData.isSky = isSkyCoin;
       coin.visible = !isSkyCoin;
-      chunkData.root.add(coin);
 
+      coin.userData.cachedCollisionData = {
+        mesh: coin,
+        chunkRoot: chunkData.root,
+        worldPos: new THREE.Vector3(laneX, yHeight, chunkData.startZ + coin.position.z),
+        type: "coin",
+        powerupType: null,
+        radius: 0.55,
+        points: CONFIG.UNITS_PER_COIN,
+        duration: 0,
+        itemRef: coin
+      };
+
+      chunkData.root.add(coin);
       if (isSkyCoin) {
         chunkData.skyCollectibles.push(coin);
       } else {
@@ -409,6 +592,19 @@ export class TrackSegmentPool3D {
 
     powerup.position.set(laneX, 1.2, z);
     powerup.userData.isSky = false;
+
+    powerup.userData.cachedCollisionData = {
+      mesh: powerup,
+      chunkRoot: chunkData.root,
+      worldPos: new THREE.Vector3(laneX, 1.2, chunkData.startZ + z),
+      type: powerup.userData.type,
+      powerupType: powerup.userData.powerupType || null,
+      radius: 0.85,
+      points: 10000,
+      duration: powerup.userData.duration || 0,
+      itemRef: powerup
+    };
+
     chunkData.root.add(powerup);
     chunkData.groundCollectibles.push(powerup);
   }
@@ -420,8 +616,10 @@ export class TrackSegmentPool3D {
       this.spawnChunk(false);
     }
 
-    for (const chunk of this.activeChunks) {
-      for (const obs of chunk.obstacles) {
+    for (let c = 0; c < this.activeChunks.length; c++) {
+      const chunk = this.activeChunks[c];
+      for (let o = 0; o < chunk.obstacles.length; o++) {
+        const obs = chunk.obstacles[o];
         if (obs.userData.isMoving) {
           obs.position.z -= obs.userData.moveSpeed * dt;
         }
@@ -429,18 +627,20 @@ export class TrackSegmentPool3D {
     }
 
     const time = performance.now() * 0.003;
-    for (const chunk of this.activeChunks) {
-      for (const item of chunk.groundCollectibles) {
+    for (let c = 0; c < this.activeChunks.length; c++) {
+      const chunk = this.activeChunks[c];
+      const groundList = chunk.groundCollectibles;
+      for (let i = 0; i < groundList.length; i++) {
+        const item = groundList[i];
         if (!item.userData.collected) {
           item.visible = !isJetpack;
           item.rotation.y = time * 2.2;
-          if (item.userData.type === "powerup") {
-            item.position.y += Math.sin(time * 3 + item.position.z) * 0.004;
-          }
         }
       }
 
-      for (const item of chunk.skyCollectibles) {
+      const skyList = chunk.skyCollectibles;
+      for (let i = 0; i < skyList.length; i++) {
+        const item = skyList[i];
         if (!item.userData.collected) {
           item.visible = isJetpack;
           item.rotation.y = time * 2.5;
@@ -449,51 +649,42 @@ export class TrackSegmentPool3D {
     }
   }
 
-  getAllActiveObstacles() {
-    const list = [];
-    for (const chunk of this.activeChunks) {
-      for (const obs of chunk.obstacles) {
-        list.push({
-          mesh: obs,
-          chunkStartZ: chunk.startZ,
-          worldPos: new THREE.Vector3(
-            obs.position.x,
-            obs.position.y,
-            chunk.startZ + obs.position.z
-          ),
-          type: obs.userData.type,
-          requiresSlide: !!obs.userData.requiresSlide,
-          requiresJump: !!obs.userData.requiresJump
-        });
-      }
-    }
-    return list;
-  }
+  getAllActiveObstacles(playerZ = 0) {
+    this._activeObstaclesList.length = 0;
+    for (let c = 0; c < this.activeChunks.length; c++) {
+      const chunk = this.activeChunks[c];
+      if (chunk.endZ < playerZ - 30 || chunk.startZ > playerZ + 80) continue;
 
-  getAllActiveCollectibles(isJetpack = false) {
-    const list = [];
-    for (const chunk of this.activeChunks) {
-      const targetGroup = isJetpack ? chunk.skyCollectibles : chunk.groundCollectibles;
-      for (const item of targetGroup) {
-        if (!item.userData.collected && item.visible) {
-          list.push({
-            mesh: item,
-            chunkRoot: chunk.root,
-            worldPos: new THREE.Vector3(
-              item.position.x,
-              item.position.y,
-              chunk.startZ + item.position.z
-            ),
-            type: item.userData.type,
-            powerupType: item.userData.powerupType || null,
-            radius: item.userData.radius || 0.6,
-            points: item.userData.points || 10000,
-            duration: item.userData.duration || 0,
-            itemRef: item
-          });
+      for (let o = 0; o < chunk.obstacles.length; o++) {
+        const obs = chunk.obstacles[o];
+        const data = obs.userData.cachedCollisionData;
+        if (data) {
+          data.worldPos.set(obs.position.x, obs.position.y, chunk.startZ + obs.position.z);
+          this._activeObstaclesList.push(data);
         }
       }
     }
-    return list;
+    return this._activeObstaclesList;
+  }
+
+  getAllActiveCollectibles(isJetpack = false, playerZ = 0) {
+    this._activeCollectiblesList.length = 0;
+    for (let c = 0; c < this.activeChunks.length; c++) {
+      const chunk = this.activeChunks[c];
+      if (chunk.endZ < playerZ - 20 || chunk.startZ > playerZ + 80) continue;
+
+      const targetGroup = isJetpack ? chunk.skyCollectibles : chunk.groundCollectibles;
+      for (let i = 0; i < targetGroup.length; i++) {
+        const item = targetGroup[i];
+        if (!item.userData.collected && item.visible) {
+          const data = item.userData.cachedCollisionData;
+          if (data) {
+            data.worldPos.set(item.position.x, item.position.y, chunk.startZ + item.position.z);
+            this._activeCollectiblesList.push(data);
+          }
+        }
+      }
+    }
+    return this._activeCollectiblesList;
   }
 }

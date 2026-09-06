@@ -6,7 +6,7 @@
 export const CONFIG = {
   // Goal: 1 Million Units to Unlock the Complex!
   TARGET_UNITS: 1000000,
-  UNITS_PER_COIN: 10000, // 10,000 Units per token
+  UNITS_PER_COIN: 1000, // 1,000 Units per token
 
   // World Metrics (Extended 420m Track View Distance - Optimized for 60 FPS)
   LANES: [-3.0, 0.0, 3.0],
@@ -47,13 +47,13 @@ export const CONFIG = {
 
   // Rich Dark Brown Desert & Cinematic Golden Amber Palette
   COLORS: {
-    SKY_TOP: 0x3A2616,        // Dark Amber-Bronze Desert Sky (No blue water!)
-    SKY_HORIZON: 0xD97706,    // Warm Golden Desert Horizon
+    SKY_TOP: 0x2E1D11,        // Dark Amber-Bronze Desert Sky
+    SKY_HORIZON: 0xB4681E,    // Warm Golden Desert Horizon
     SUN_LIGHT: 0xFFFBEB,      // Radiant Sunlight
-    HEMI_SKY: 0x8C5627,       // Warm Amber Atmosphere Bounce
-    HEMI_GROUND: 0x4D2E14,    // Dark Brown Sand Ground Bounce
-    FOG: 0x6E4420,            // Warm Atmospheric Desert Dust Haze
-    SAND_GROUND: 0x54351B,    // Rich Dark Brown Desert Wasteland
+    HEMI_SKY: 0x7A481E,       // Warm Amber Atmosphere Bounce
+    HEMI_GROUND: 0x3D230F,    // Dark Brown Sand Ground Bounce
+    FOG: 0x4D3017,            // Rich Dark Brown Desert Dust Haze
+    SAND_GROUND: 0x4A2E16,    // Rich Dark Amber-Brown Desert Wasteland
     ROAD_SURFACE: 0x2E241B,   // Weathered Dark Asphalt
     ROAD_TRIM: 0xD97706,      // Luminous Amber Trim
     COMPLEX_WHITE: 0x1E293B,  // Monolithic Complex Alloy

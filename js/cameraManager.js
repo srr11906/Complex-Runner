@@ -1,6 +1,7 @@
 /**
  * PRABHAS: KASI 2898 AD (3D Runner - AAA Level 100)
  * Smooth 3D Third-Person Follow Camera (Direct Tracking, Responsive Portrait FOV & Ground Clamp)
+ * OPTIMIZATION: Zero Allocation in update loop
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
@@ -13,6 +14,7 @@ export class CameraManager3D {
     this.shakeIntensity = 0;
     this.offset = new THREE.Vector3(0, 3.2, -6.2);
     this.lookOffset = new THREE.Vector3(0, 1.2, 16.0);
+    this.lookTarget = new THREE.Vector3();
   }
 
   shake(intensity = 0.5) {
@@ -36,13 +38,13 @@ export class CameraManager3D {
       this.shakeIntensity = Math.max(0, this.shakeIntensity - dt * 2.5);
     }
 
-    // 3. Dynamic Look-At Target (Centered on lane forward down the track)
-    const lookTarget = new THREE.Vector3(
+    // 3. Dynamic Look-At Target (Zero-allocation)
+    this.lookTarget.set(
       this.camera.position.x,
       playerPosition.y + this.lookOffset.y,
       playerPosition.z + this.lookOffset.z
     );
-    this.camera.lookAt(lookTarget);
+    this.camera.lookAt(this.lookTarget);
 
     // 4. Responsive Portrait / Landscape FOV + Speed Dilation
     const aspect = this.camera.aspect || 1.0;
@@ -50,7 +52,9 @@ export class CameraManager3D {
 
     const speedRatio = (currentSpeed - CONFIG.INITIAL_SPEED) / (CONFIG.MAX_SPEED - CONFIG.INITIAL_SPEED);
     const targetFov = responsiveBaseFov + speedRatio * 10;
-    this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, 5 * dt);
-    this.camera.updateProjectionMatrix();
+    if (Math.abs(this.camera.fov - targetFov) > 0.02) {
+      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, 5 * dt);
+      this.camera.updateProjectionMatrix();
+    }
   }
 }
