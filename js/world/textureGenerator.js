@@ -1,7 +1,7 @@
 /**
  * PRABHAS: KASI 2898 AD (3D Runner - AAA Next-Gen)
  * Procedural PBR High-Resolution Texture & Surface Shader Generator
- * Creates cached, highly detailed Canvas Textures for PBR Materials
+ * Creates cached, highly detailed Canvas Textures for PBR Materials & Shanty Architecture
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
@@ -12,7 +12,8 @@ class TextureGenerator {
   }
 
   /**
-   * 1. Sand-Dusted Weathered Asphalt / Highway Road Texture
+   * 1. 2898 AD Dystopian Electromagnetic Highway Trackway
+   * Monolithic titanium-composite slabs, embedded linear induction maglev rails, sleek optical guideways
    */
   getRoadTexture() {
     if (this.cache.has("road")) return this.cache.get("road");
@@ -22,57 +23,63 @@ class TextureGenerator {
     canvas.height = 1024;
     const ctx = canvas.getContext("2d");
 
-    // Dark weathered asphalt base
-    ctx.fillStyle = "#1E1B18";
+    // 1. Dark Monolithic Titanium-Alloy Base
+    ctx.fillStyle = "#1A1410";
     ctx.fillRect(0, 0, 1024, 1024);
 
-    // Fine asphalt grit noise
+    // 2. Heavy Composite Slab Expansion Seams (Every 256px)
+    ctx.strokeStyle = "#0D0907";
+    ctx.lineWidth = 8;
+    for (let y = 0; y <= 1024; y += 256) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(1024, y);
+      ctx.stroke();
+
+      // Heavy interlocking steel dowel anchors on seams
+      ctx.fillStyle = "#382F26";
+      for (let x = 32; x < 1024; x += 64) {
+        ctx.fillRect(x - 6, y - 5, 12, 10);
+      }
+    }
+
+    // 3. Fine Industrial Alloy Micro-Grit Noise
     const imgData = ctx.getImageData(0, 0, 1024, 1024);
     const data = imgData.data;
     for (let i = 0; i < data.length; i += 4) {
-      const noise = (Math.random() - 0.5) * 32;
+      const noise = (Math.random() - 0.5) * 22;
       data[i] = Math.max(0, Math.min(255, data[i] + noise));
-      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise * 0.9));
-      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise * 0.7));
+      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise * 0.85));
+      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise * 0.65));
     }
     ctx.putImageData(imgData, 0, 0);
 
-    // Drifting sand dust patches & weathered streaks
-    for (let i = 0; i < 60; i++) {
-      const sx = Math.random() * 1024;
-      const sy = Math.random() * 1024;
-      const rad = 40 + Math.random() * 120;
-      const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, rad);
-      grad.addColorStop(0, "rgba(180, 140, 90, 0.22)");
-      grad.addColorStop(0.6, "rgba(160, 120, 70, 0.1)");
-      grad.addColorStop(1, "rgba(160, 120, 70, 0)");
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(sx, sy, rad, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    // 4. Embedded Linear Maglev Induction Rails (3 Lanes: Center at X=170, 512, 854)
+    const laneCenters = [170, 512, 854];
+    for (const lx of laneCenters) {
+      // Recessed magnetic trench
+      ctx.fillStyle = "rgba(10, 7, 5, 0.92)";
+      ctx.fillRect(lx - 26, 0, 52, 1024);
 
-    // Road Cracks
-    ctx.strokeStyle = "rgba(10, 8, 6, 0.65)";
-    ctx.lineWidth = 2.5;
-    for (let c = 0; c < 8; c++) {
-      ctx.beginPath();
-      let cx = Math.random() * 1024;
-      let cy = Math.random() * 1024;
-      ctx.moveTo(cx, cy);
-      for (let s = 0; s < 7; s++) {
-        cx += (Math.random() - 0.5) * 80;
-        cy += (Math.random() - 0.5) * 80;
-        ctx.lineTo(cx, cy);
+      // Outer guide rail strips
+      ctx.fillStyle = "#2D241C";
+      ctx.fillRect(lx - 26, 0, 4, 1024);
+      ctx.fillRect(lx + 22, 0, 4, 1024);
+
+      // Glowing Maglev Power Conduit Rail Core
+      ctx.fillStyle = "rgba(0, 229, 255, 0.55)";
+      ctx.fillRect(lx - 4, 0, 8, 1024);
+
+      // Embedded Electromagnetic Coils
+      ctx.fillStyle = "#F59E0B";
+      for (let y = 8; y < 1024; y += 32) {
+        ctx.fillRect(lx - 18, y, 36, 12);
       }
-      ctx.stroke();
     }
 
-    // Weathered Lane Divider Dashes (3 Lanes: lines at X = 341 and X = 682)
-    ctx.strokeStyle = "rgba(245, 158, 11, 0.75)"; // Weathered Amber Gold
-    ctx.lineWidth = 14;
-    ctx.setLineDash([70, 60]);
-
+    // 5. High-Tech Optical Guideway Lane Boundaries (Solid thin laser guideways, NO asphalt dashed lines)
+    ctx.strokeStyle = "rgba(217, 119, 6, 0.5)";
+    ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(341, 0);
     ctx.lineTo(341, 1024);
@@ -80,11 +87,28 @@ class TextureGenerator {
     ctx.lineTo(682, 1024);
     ctx.stroke();
 
-    // Road Edge Curbs
-    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-    ctx.setLineDash([]);
-    ctx.fillRect(10, 0, 12, 1024);
-    ctx.fillRect(1002, 0, 12, 1024);
+    // 6. Futuristic Sector Stencils
+    ctx.fillStyle = "rgba(203, 213, 225, 0.35)";
+    ctx.font = "900 22px monospace";
+    ctx.fillText("KASI MAGLEV // CORRIDOR-01", 50, 130);
+    ctx.fillText("KASI MAGLEV // CORRIDOR-01", 50, 642);
+    ctx.fillText("INDUCTION 750V // ACTIVE", 390, 380);
+    ctx.fillText("INDUCTION 750V // ACTIVE", 390, 892);
+
+    // 7. Desert Sand Weathering along Highway Margins
+    for (let i = 0; i < 40; i++) {
+      const edge = Math.random() > 0.5 ? 0 : 1024;
+      const sy = Math.random() * 1024;
+      const rad = 45 + Math.random() * 80;
+      const grad = ctx.createRadialGradient(edge, sy, 0, edge, sy, rad);
+      grad.addColorStop(0, "rgba(58, 35, 15, 0.7)");
+      grad.addColorStop(0.6, "rgba(58, 35, 15, 0.25)");
+      grad.addColorStop(1, "rgba(58, 35, 15, 0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(edge, sy, rad, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
@@ -182,7 +206,7 @@ class TextureGenerator {
   }
 
   /**
-   * 3. Dystopian Kasi Shanty Megastructure Facade
+   * 3. Dystopian Kasi Shanty Megastructure Facade (Weathered Corrugated Metal, Neon Windows, AC Vents)
    */
   getShantyBuildingTexture() {
     if (this.cache.has("shantyBuilding")) return this.cache.get("shantyBuilding");
@@ -218,7 +242,7 @@ class TextureGenerator {
     // Illuminated Window Grids (Warm amber and cyber cyan lights)
     for (let wy = 40; wy < 1000; wy += 80) {
       for (let wx = 30; wx < 500; wx += 70) {
-        if (Math.random() > 0.4) {
+        if (Math.random() > 0.35) {
           const isCyan = Math.random() > 0.7;
           ctx.fillStyle = isCyan ? "#00E5FF" : "#F59E0B";
           ctx.shadowColor = ctx.fillStyle;
@@ -234,12 +258,12 @@ class TextureGenerator {
       }
     }
 
-    // Weathering grunge streaks
-    ctx.fillStyle = "rgba(15, 10, 8, 0.5)";
-    for (let s = 0; s < 30; s++) {
+    // Weathering grunge streaks & rain drips
+    ctx.fillStyle = "rgba(15, 10, 8, 0.55)";
+    for (let s = 0; s < 35; s++) {
       const gx = Math.random() * 512;
-      const gw = 10 + Math.random() * 30;
-      const gh = 100 + Math.random() * 300;
+      const gw = 8 + Math.random() * 25;
+      const gh = 100 + Math.random() * 320;
       ctx.fillRect(gx, Math.random() * 600, gw, gh);
     }
 
@@ -251,7 +275,97 @@ class TextureGenerator {
   }
 
   /**
-   * 4. Inverted Pyramid Complex Monolith Texture (Obsidian Alloy & Gold Circuits)
+   * 4. Realistic Corrugated Cargo Container Texture with Stencils
+   */
+  getContainerTexture(colorType = "rust") {
+    const key = `container_${colorType}`;
+    if (this.cache.has(key)) return this.cache.get(key);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext("2d");
+
+    let baseColor = "#8C3B1E";
+    let darkColor = "#5A2310";
+    let lightColor = "#B04E28";
+
+    if (colorType === "cyan") {
+      baseColor = "#2A6A78";
+      darkColor = "#1B444D";
+      lightColor = "#398B9E";
+    } else if (colorType === "yellow") {
+      baseColor = "#B8860B";
+      darkColor = "#7A5907";
+      lightColor = "#E0A30D";
+    } else if (colorType === "dark") {
+      baseColor = "#27272A";
+      darkColor = "#18181B";
+      lightColor = "#3F3F46";
+    }
+
+    // Base background
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Corrugated vertical ridges
+    const ridgeWidth = 32;
+    for (let x = 0; x < 512; x += ridgeWidth) {
+      ctx.fillStyle = lightColor;
+      ctx.fillRect(x, 0, ridgeWidth / 2, 512);
+      ctx.fillStyle = darkColor;
+      ctx.fillRect(x + ridgeWidth / 2, 0, ridgeWidth / 2, 512);
+    }
+
+    // Steel Frame Border
+    ctx.fillStyle = "#1E293B";
+    ctx.fillRect(0, 0, 512, 24);
+    ctx.fillRect(0, 488, 512, 24);
+    ctx.fillRect(0, 0, 24, 512);
+    ctx.fillRect(488, 0, 24, 512);
+
+    // Corner Castings (Twist Lock holes)
+    ctx.fillStyle = "#0F172A";
+    for (let cx of [4, 480]) {
+      for (let cy of [4, 480]) {
+        ctx.fillRect(cx, cy, 28, 28);
+        ctx.fillStyle = "#000000";
+        ctx.beginPath();
+        ctx.arc(cx + 14, cy + 14, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#0F172A";
+      }
+    }
+
+    // Stenciled Logistics Text & Serial Codes
+    ctx.fillStyle = "rgba(244, 244, 245, 0.85)";
+    ctx.font = "bold 26px monospace";
+    ctx.fillText("KASI-LOGISTICS // 2898", 45, 230);
+    ctx.font = "bold 18px monospace";
+    ctx.fillText("SECTOR 7-G • FREIGHT CONTAINER", 45, 260);
+    ctx.fillText("MAX PAYLOAD 45,000 KG", 45, 285);
+
+    // Hazard Stripes
+    ctx.fillStyle = "#F59E0B";
+    ctx.fillRect(24, 460, 464, 28);
+    ctx.fillStyle = "#111827";
+    for (let h = 0; h < 464; h += 30) {
+      ctx.beginPath();
+      ctx.moveTo(24 + h, 488);
+      ctx.lineTo(24 + h + 15, 460);
+      ctx.lineTo(24 + h + 25, 460);
+      ctx.lineTo(24 + h + 10, 488);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    this.cache.set(key, texture);
+    return texture;
+  }
+
+  /**
+   * 5. Inverted Pyramid Complex Monolith Texture (Obsidian Alloy & Gold Circuits)
    */
   getComplexMonolithTexture() {
     if (this.cache.has("complexMonolith")) return this.cache.get("complexMonolith");
@@ -307,7 +421,7 @@ class TextureGenerator {
   }
 
   /**
-   * 5. Holographic Neon Billboard Sign Textures
+   * 6. Holographic Neon Billboard Sign Textures
    */
   getNeonSignTexture(type = "lassi") {
     const key = `neon_${type}`;
@@ -318,7 +432,6 @@ class TextureGenerator {
     canvas.height = 256;
     const ctx = canvas.getContext("2d");
 
-    // Dark background box
     ctx.fillStyle = "#0A0D14";
     ctx.fillRect(0, 0, 512, 256);
 
@@ -326,7 +439,6 @@ class TextureGenerator {
     ctx.textBaseline = "middle";
 
     if (type === "lassi") {
-      // Magenta/Pink Neon "ALMOST REAL LASSI" (Matching movie scene)
       ctx.strokeStyle = "#FF007F";
       ctx.lineWidth = 6;
       ctx.strokeRect(16, 16, 480, 224);
@@ -340,7 +452,6 @@ class TextureGenerator {
       ctx.fillStyle = "#FFFFFF";
       ctx.fillText("LASSI", 256, 165);
     } else if (type === "complex") {
-      // Amber Gold "1,000,000 UNITS COMPLEX ACCESS"
       ctx.strokeStyle = "#F59E0B";
       ctx.lineWidth = 6;
       ctx.strokeRect(16, 16, 480, 224);
@@ -354,7 +465,6 @@ class TextureGenerator {
       ctx.fillStyle = "#FFFFFF";
       ctx.fillText("1,000,000 U", 256, 160);
     } else if (type === "ore") {
-      // Cyan Neon "NO WATER • BUY ORE"
       ctx.strokeStyle = "#00E5FF";
       ctx.lineWidth = 6;
       ctx.strokeRect(16, 16, 480, 224);
@@ -371,6 +481,68 @@ class TextureGenerator {
 
     const texture = new THREE.CanvasTexture(canvas);
     this.cache.set(key, texture);
+    return texture;
+  }
+
+  /**
+   * 7. Procedural Dark Brown Desert Sand & Volcanic Crag Ground Texture
+   */
+  getSandTerrainTexture() {
+    if (this.cache.has("sandTerrain")) return this.cache.get("sandTerrain");
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext("2d");
+
+    // Rich Dark Amber-Brown Desert Sand Base (#3D2411 / #4A2E16)
+    ctx.fillStyle = "#3D2411";
+    ctx.fillRect(0, 0, 1024, 1024);
+
+    // Fine Dark Earth Grain Noise
+    const imgData = ctx.getImageData(0, 0, 1024, 1024);
+    const data = imgData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const noise = (Math.random() - 0.5) * 24;
+      data[i] = Math.max(0, Math.min(255, data[i] + noise));
+      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise * 0.85));
+      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise * 0.65));
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    // Windblown Dark Sand Dunes & Ripples
+    ctx.lineWidth = 16;
+    for (let y = 0; y < 1024; y += 32) {
+      ctx.strokeStyle = (y % 64 === 0) ? "rgba(85, 48, 23, 0.45)" : "rgba(35, 18, 8, 0.4)";
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      for (let x = 0; x <= 1024; x += 128) {
+        const waveY = y + Math.sin((x / 1024) * Math.PI * 4 + y) * 12;
+        ctx.lineTo(x, waveY);
+      }
+      ctx.stroke();
+    }
+
+    // Rocky Basalt Gravel & Sunken Ancient Earth Formations
+    for (let i = 0; i < 40; i++) {
+      const rx = Math.random() * 1024;
+      const ry = Math.random() * 1024;
+      const rrad = 30 + Math.random() * 80;
+      const rGrad = ctx.createRadialGradient(rx, ry, 0, rx, ry, rrad);
+      rGrad.addColorStop(0, "rgba(25, 12, 5, 0.65)");
+      rGrad.addColorStop(0.7, "rgba(65, 36, 17, 0.25)");
+      rGrad.addColorStop(1, "rgba(75, 42, 20, 0)");
+      ctx.fillStyle = rGrad;
+      ctx.beginPath();
+      ctx.arc(rx, ry, rrad, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(6, 6);
+    this.cache.set("sandTerrain", texture);
     return texture;
   }
 }

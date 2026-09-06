@@ -24,6 +24,7 @@ export const GameState3D = {
 export class GameEngine3D {
   constructor() {
     this.state = GameState3D.MENU;
+    this.gameMode = localStorage.getItem("prabhas3DGameMode") || "heist"; // "heist" | "endless"
     this.score = 0;
     this.units = 0;
     this.highScore = parseInt(localStorage.getItem("prabhas3DHighScore") || "0", 10);
@@ -73,6 +74,7 @@ export class GameEngine3D {
     });
 
     this.bindUi();
+    this.setGameMode(this.gameMode);
     this.updateHud();
     this.showScreen(GameState3D.MENU);
 
@@ -96,11 +98,11 @@ export class GameEngine3D {
     this.camera.position.set(0, 3.4, -6.5);
 
     // WebGL Renderer (Optimized for consistent 60 FPS)
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "default" });
     this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     container.appendChild(this.renderer.domElement);
@@ -122,13 +124,23 @@ export class GameEngine3D {
     this.dom = {
       hud: document.getElementById("game-hud"),
       hudScore: document.getElementById("hud-score-val"),
-      hudHighScore: document.getElementById("hud-high-val"),
       hudUnits: document.getElementById("hud-units-val"),
+      hudGoalPill: document.getElementById("hud-goal-pill"),
       hudGoalPct: document.getElementById("hud-goal-pct"),
       hudGoalFill: document.getElementById("hud-goal-fill"),
-      powerupBadge: document.getElementById("hud-powerup-badge"),
-      powerupName: document.getElementById("powerup-name"),
-      powerupFill: document.getElementById("powerup-timer-fill"),
+
+      // Stacked Power-Up Badges (Bottom Left)
+      badgeJetpack: document.getElementById("badge-jetpack"),
+      fillJetpack: document.getElementById("jetpack-timer-fill"),
+      badgeMagnet: document.getElementById("badge-magnet"),
+      fillMagnet: document.getElementById("magnet-timer-fill"),
+      badgeMultiplier: document.getElementById("badge-multiplier"),
+      fillMultiplier: document.getElementById("multiplier-timer-fill"),
+      badgeShield: document.getElementById("badge-shield"),
+
+      // Mission Mode Selectors
+      btnModeHeist: document.getElementById("mode-btn-heist"),
+      btnModeEndless: document.getElementById("mode-btn-endless"),
 
       startScreen: document.getElementById("start-screen"),
       pauseScreen: document.getElementById("pause-screen"),
@@ -154,6 +166,12 @@ export class GameEngine3D {
   }
 
   bindUi() {
+    if (this.dom.btnModeHeist) {
+      this.dom.btnModeHeist.addEventListener("click", () => this.setGameMode("heist"));
+    }
+    if (this.dom.btnModeEndless) {
+      this.dom.btnModeEndless.addEventListener("click", () => this.setGameMode("endless"));
+    }
     if (this.dom.btnStartRun) {
       this.dom.btnStartRun.addEventListener("click", () => this.startNewGame());
     }
@@ -189,6 +207,18 @@ export class GameEngine3D {
         }
       });
     }
+  }
+
+  setGameMode(mode) {
+    this.gameMode = mode;
+    localStorage.setItem("prabhas3DGameMode", mode);
+    if (this.dom.btnModeHeist) {
+      this.dom.btnModeHeist.classList.toggle("active", mode === "heist");
+    }
+    if (this.dom.btnModeEndless) {
+      this.dom.btnModeEndless.classList.toggle("active", mode === "endless");
+    }
+    this.updateHud();
   }
 
   handleResize() {
@@ -350,40 +380,95 @@ export class GameEngine3D {
   }
 
   updateHud() {
-    if (this.dom.hudScore) this.dom.hudScore.textContent = Math.floor(this.score).toString().padStart(6, "0");
-    if (this.dom.hudHighScore) this.dom.hudHighScore.textContent = this.highScore.toString().padStart(6, "0");
+    // OPTIMIZATION: Memoize DOM updates to prevent layout thrashing & battery drain
+    const scoreStr = Math.floor(this.score).toString().padStart(6, "0");
+    if (this._lastScore !== scoreStr) {
+      if (this.dom.hudScore) this.dom.hudScore.textContent = scoreStr;
+      this._lastScore = scoreStr;
+    }
     
-    // 1M Units Progress
-    const goalPct = Math.min(100, (this.units / CONFIG.TARGET_UNITS) * 100);
-    if (this.dom.hudUnits) this.dom.hudUnits.textContent = `${this.units.toLocaleString()} / 1,000,000`;
-    if (this.dom.hudGoalPct) this.dom.hudGoalPct.textContent = `${Math.floor(goalPct)}%`;
-    if (this.dom.hudGoalFill) this.dom.hudGoalFill.style.width = `${goalPct}%`;
-
-    // Active Power-Up Badge Display (Clean text, no emojis)
-    if (this.dom.powerupBadge) {
-      let activeName = "";
-      let pct = 0;
-
-      if (this.player && this.player.hasJetpack) {
-        activeName = "JETPACK";
-        pct = (this.player.jetpackTimer / CONFIG.JETPACK_DURATION) * 100;
-      } else if (this.player && this.player.hasMagnet) {
-        activeName = "MAGNET";
-        pct = (this.player.magnetTimer / CONFIG.MAGNET_DURATION) * 100;
-      } else if (this.player && this.player.hasMultiplier) {
-        activeName = "2X UNITS";
-        pct = (this.player.multiplierTimer / CONFIG.DOUBLE_POINTS_DURATION) * 100;
-      } else if (this.player && this.player.hasShield) {
-        activeName = "SHIELD";
-        pct = 100;
+    // Mode-Aware Units & Complex Goal Progress Bar
+    if (this.gameMode === "heist") {
+      if (this.dom.hudGoalPill && this._lastGoalPillDisplay !== "flex") {
+        this.dom.hudGoalPill.style.display = "flex";
+        this._lastGoalPillDisplay = "flex";
       }
 
-      if (activeName) {
-        this.dom.powerupBadge.style.display = "flex";
-        if (this.dom.powerupName) this.dom.powerupName.textContent = activeName;
-        if (this.dom.powerupFill) this.dom.powerupFill.style.width = `${Math.max(0, pct)}%`;
-      } else {
-        this.dom.powerupBadge.style.display = "none";
+      if (this._lastUnits !== this.units) {
+        if (this.dom.hudUnits) this.dom.hudUnits.textContent = `${this.units.toLocaleString()} / 1M`;
+        this._lastUnits = this.units;
+      }
+
+      const rawPct = (this.units / CONFIG.TARGET_UNITS) * 100;
+      const goalPct = Math.min(100, rawPct);
+      const goalPctStr = Math.floor(goalPct);
+      if (this._lastGoalPct !== goalPctStr) {
+        if (this.dom.hudGoalPct) this.dom.hudGoalPct.textContent = `${goalPctStr}%`;
+        if (this.dom.hudGoalFill) this.dom.hudGoalFill.style.width = `${goalPct}%`;
+        this._lastGoalPct = goalPctStr;
+      }
+    } else {
+      // Endless Survival Mode
+      if (this.dom.hudGoalPill && this._lastGoalPillDisplay !== "none") {
+        this.dom.hudGoalPill.style.display = "none";
+        this._lastGoalPillDisplay = "none";
+      }
+
+      if (this._lastUnits !== this.units) {
+        if (this.dom.hudUnits) this.dom.hudUnits.textContent = `${this.units.toLocaleString()} UNITS`;
+        this._lastUnits = this.units;
+      }
+    }
+
+    // Active Power-Up Badges Stacked Vertically (Bottom Left)
+    if (this.player) {
+      // 1. Jetpack
+      const showJetpack = this.player.hasJetpack;
+      if (this._lastJetpackShow !== showJetpack) {
+        if (this.dom.badgeJetpack) this.dom.badgeJetpack.style.display = showJetpack ? "flex" : "none";
+        this._lastJetpackShow = showJetpack;
+      }
+      if (showJetpack && this.dom.fillJetpack) {
+        const pct = Math.floor(Math.max(0, (this.player.jetpackTimer / CONFIG.JETPACK_DURATION) * 100));
+        if (this._lastJetpackPct !== pct) {
+          this.dom.fillJetpack.style.width = `${pct}%`;
+          this._lastJetpackPct = pct;
+        }
+      }
+
+      // 2. Magnet
+      const showMagnet = this.player.hasMagnet;
+      if (this._lastMagnetShow !== showMagnet) {
+        if (this.dom.badgeMagnet) this.dom.badgeMagnet.style.display = showMagnet ? "flex" : "none";
+        this._lastMagnetShow = showMagnet;
+      }
+      if (showMagnet && this.dom.fillMagnet) {
+        const pct = Math.floor(Math.max(0, (this.player.magnetTimer / CONFIG.MAGNET_DURATION) * 100));
+        if (this._lastMagnetPct !== pct) {
+          this.dom.fillMagnet.style.width = `${pct}%`;
+          this._lastMagnetPct = pct;
+        }
+      }
+
+      // 3. 2X Multiplier
+      const showMultiplier = this.player.hasMultiplier;
+      if (this._lastMultShow !== showMultiplier) {
+        if (this.dom.badgeMultiplier) this.dom.badgeMultiplier.style.display = showMultiplier ? "flex" : "none";
+        this._lastMultShow = showMultiplier;
+      }
+      if (showMultiplier && this.dom.fillMultiplier) {
+        const pct = Math.floor(Math.max(0, (this.player.multiplierTimer / CONFIG.DOUBLE_POINTS_DURATION) * 100));
+        if (this._lastMultPct !== pct) {
+          this.dom.fillMultiplier.style.width = `${pct}%`;
+          this._lastMultPct = pct;
+        }
+      }
+
+      // 4. Shield
+      const showShield = this.player.hasShield;
+      if (this._lastShieldShow !== showShield) {
+        if (this.dom.badgeShield) this.dom.badgeShield.style.display = showShield ? "flex" : "none";
+        this._lastShieldShow = showShield;
       }
     }
   }
@@ -426,8 +511,8 @@ export class GameEngine3D {
     // 4. Update Third-Person Follow Camera
     this.cameraManager.update(dt, this.player.position, this.currentSpeed);
 
-    // 5. Collision Detection (Obstacles)
-    const activeObstacles = this.trackPool.getAllActiveObstacles();
+    // 5. Collision Detection (Obstacles - Spatially Filtered around Player)
+    const activeObstacles = this.trackPool.getAllActiveObstacles(this.player.position.z);
     const hitResult = CollisionManager3D.checkObstacleCollisions(this.player, activeObstacles);
 
     if (hitResult) {
@@ -435,15 +520,23 @@ export class GameEngine3D {
         // Shield absorbs collision
         this.player.breakShield();
         this.audio.playShieldBreak();
-        this.cameraManager.shake(0.4);
-      } else {
+        this.cameraManager.shake(0.45);
+
+        // If hitting a train with a shield, pop cleanly onto the roof rather than clipping through inside
+        if (hitResult.obstacle && hitResult.obstacle.type === "train") {
+          this.player.position.y = 4.15;
+          this.player.groundElevation = 4.15;
+          this.player.isGrounded = true;
+          this.player.velocityY = 1.8;
+        }
+      } else if (this.player.invulnerableTimer <= 0) {
         this.gameOver();
         return;
       }
     }
 
-    // 6. Collectible Item Pickup & Magnet Attraction (Switches between ground vs sky coins)
-    const activeCollectibles = this.trackPool.getAllActiveCollectibles(this.player.hasJetpack);
+    // 6. Collectible Item Pickup & Magnet Attraction (Spatially Filtered around Player)
+    const activeCollectibles = this.trackPool.getAllActiveCollectibles(this.player.hasJetpack, this.player.position.z);
     const collected = CollisionManager3D.checkCollectiblePickups(this.player, activeCollectibles, dt);
 
     for (const item of collected) {
@@ -458,8 +551,8 @@ export class GameEngine3D {
           this.audio.playDialogue("milestone");
         }
 
-        // Win Condition: 1 Million Units -> Unlocks entry to Complex!
-        if (this.units >= CONFIG.TARGET_UNITS) {
+        // Win Condition: 1 Million Units in Complex Heist mode -> Unlocks entry to Complex!
+        if (this.gameMode === "heist" && this.units >= CONFIG.TARGET_UNITS) {
           this.victory();
           return;
         }

@@ -53,6 +53,22 @@ export class Player3D {
     this.jetpackTimer = 0;
     this.hasMultiplier = false;
     this.multiplierTimer = 0;
+    this.invulnerableTimer = 0;
+
+    // Pre-allocated collision bounds object
+    this._bounds = {
+      minX: 0,
+      maxX: 0,
+      minY: 0,
+      maxY: 0,
+      minZ: 0,
+      maxZ: 0,
+      centerX: 0,
+      centerY: 0,
+      centerZ: 0,
+      height: 0,
+      isSliding: false
+    };
 
     this.scene.add(this.root);
   }
@@ -77,8 +93,16 @@ export class Player3D {
     this.jetpackTimer = 0;
     this.hasMultiplier = false;
     this.multiplierTimer = 0;
+    this.invulnerableTimer = 0;
 
     if (this.shieldMesh) this.shieldMesh.visible = false;
+    if (this.bhairava && this.bhairava.root) {
+      this.bhairava.root.visible = true;
+      this.bhairava.root.position.x = 0;
+    }
+    if (this.bujji && this.bujji.root) {
+      this.bujji.root.visible = true;
+    }
     this.root.rotation.set(0, 0, 0);
     this.updateTransform();
   }
@@ -137,11 +161,13 @@ export class Player3D {
 
   giveShield() {
     this.hasShield = true;
+    this.invulnerableTimer = 0;
     if (this.shieldMesh) this.shieldMesh.visible = true;
   }
 
   breakShield() {
     this.hasShield = false;
+    this.invulnerableTimer = 1.6;
     if (this.shieldMesh) this.shieldMesh.visible = false;
   }
 
@@ -228,10 +254,39 @@ export class Player3D {
       }
     }
 
-    // 6. Shield Pulse Animation
+    // 6. Shield Pulse & Invulnerability Glitch Effect
     if (this.hasShield && this.shieldMesh) {
       this.shieldMesh.rotation.y += dt * 3.0;
       this.shieldMesh.rotation.x += dt * 1.5;
+    }
+
+    if (this.invulnerableTimer > 0) {
+      this.invulnerableTimer -= dt;
+      const isVisible = Math.floor(time * 36) % 2 === 0;
+      if (this.bhairava && this.bhairava.root) {
+        this.bhairava.root.visible = isVisible;
+        this.bhairava.root.position.x = (Math.random() - 0.5) * 0.08;
+      }
+      if (this.bujji && this.bujji.root) {
+        this.bujji.root.visible = isVisible;
+      }
+      if (this.invulnerableTimer <= 0) {
+        if (this.bhairava && this.bhairava.root) {
+          this.bhairava.root.visible = true;
+          this.bhairava.root.position.x = 0;
+        }
+        if (this.bujji && this.bujji.root) {
+          this.bujji.root.visible = true;
+        }
+      }
+    } else {
+      if (this.bhairava && this.bhairava.root) {
+        this.bhairava.root.visible = true;
+        this.bhairava.root.position.x = 0;
+      }
+      if (this.bujji && this.bujji.root) {
+        this.bujji.root.visible = true;
+      }
     }
 
     // 7. Update 3D Character Rig & Bujji Companion Animations
@@ -253,19 +308,21 @@ export class Player3D {
     const isSliding = this.state === "sliding";
     const height = isSliding ? CONFIG.PLAYER_SLIDE_HEIGHT : CONFIG.PLAYER_NORMAL_HEIGHT;
     const halfH = height / 2;
+    const halfW = CONFIG.PLAYER_WIDTH / 2;
+    const halfD = CONFIG.PLAYER_DEPTH / 2;
 
-    return {
-      minX: this.position.x - CONFIG.PLAYER_WIDTH / 2,
-      maxX: this.position.x + CONFIG.PLAYER_WIDTH / 2,
-      minY: this.position.y,
-      maxY: this.position.y + height,
-      minZ: this.position.z - CONFIG.PLAYER_DEPTH / 2,
-      maxZ: this.position.z + CONFIG.PLAYER_DEPTH / 2,
-      centerX: this.position.x,
-      centerY: this.position.y + halfH,
-      centerZ: this.position.z,
-      height: height,
-      isSliding: isSliding
-    };
+    this._bounds.minX = this.position.x - halfW;
+    this._bounds.maxX = this.position.x + halfW;
+    this._bounds.minY = this.position.y;
+    this._bounds.maxY = this.position.y + height;
+    this._bounds.minZ = this.position.z - halfD;
+    this._bounds.maxZ = this.position.z + halfD;
+    this._bounds.centerX = this.position.x;
+    this._bounds.centerY = this.position.y + halfH;
+    this._bounds.centerZ = this.position.z;
+    this._bounds.height = height;
+    this._bounds.isSliding = isSliding;
+
+    return this._bounds;
   }
 }

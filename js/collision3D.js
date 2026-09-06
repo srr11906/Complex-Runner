@@ -5,6 +5,11 @@
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 
+// OPTIMIZATION: Object Pooling to eliminate Garbage Collection micro-stutters and battery drain
+const _pCenter = new THREE.Vector3();
+const _dir = new THREE.Vector3();
+const _itemOffset = new THREE.Vector3();
+
 export class CollisionManager3D {
   /**
    * Check 3D collision & vertical ramp/rooftop elevation with active obstacles
@@ -18,7 +23,8 @@ export class CollisionManager3D {
     const pBounds = player.getBounds();
     let targetGroundY = 0;
 
-    for (const obs of obstacles) {
+    for (let i = 0; i < obstacles.length; i++) {
+      const obs = obstacles[i];
       const oPos = obs.worldPos;
       const type = obs.type;
       const mesh = obs.mesh;
@@ -35,11 +41,9 @@ export class CollisionManager3D {
         const trainMinZ = oPos.z - trainHalfD;
         const trainMaxZ = oPos.z + trainHalfD + 1.8;
 
-        // Check if player is aligned in the train's lane (X-axis)
         const overlapX = pBounds.maxX > trainMinX && pBounds.minX < trainMaxX;
 
         if (overlapX) {
-          // 1. Solid Ramp Climbing Check
           if (hasRamp) {
             const rampLength = 9.0;
             const rampZStart = trainMinZ - rampLength;
@@ -53,14 +57,19 @@ export class CollisionManager3D {
             }
           }
 
-          // 2. Train Body Overlap (Roof vs Ground Crash)
           if (pBounds.centerZ >= trainMinZ && pBounds.centerZ <= trainMaxZ) {
             if (pBounds.minY >= trainTopY - 0.6) {
-              // Running safely across the top of the floating train roof!
               targetGroundY = Math.max(targetGroundY, trainTopY);
               continue;
+            } else if (player.invulnerableTimer > 0) {
+              // During invulnerability: safely ride the train roof rather than clipping through inside
+              targetGroundY = Math.max(targetGroundY, trainTopY);
+              if (player.position.y < trainTopY) {
+                player.position.y = trainTopY;
+                player.isGrounded = true;
+              }
+              continue;
             } else {
-              // Crashed into front or side of floating train!
               return {
                 type: "collision",
                 obstacle: obs
@@ -69,6 +78,10 @@ export class CollisionManager3D {
           }
         }
       } else if (type === "laser_gate") {
+        if (player.invulnerableTimer > 0) {
+          continue; // Glitch safely through during invulnerability window
+        }
+
         const gateHalfW = 1.6;
         const gateMinX = oPos.x - gateHalfW;
         const gateMaxX = oPos.x + gateHalfW;
@@ -79,7 +92,6 @@ export class CollisionManager3D {
         const overlapZ = pBounds.maxZ > gateMinZ && pBounds.minZ < gateMaxZ;
 
         if (overlapX && overlapZ) {
-          // Requires Slide: If sliding, character height is under 0.85m and clears the beam!
           if (player.state !== "sliding") {
             return {
               type: "collision",
@@ -89,6 +101,10 @@ export class CollisionManager3D {
           }
         }
       } else if (type === "hurdle") {
+        if (player.invulnerableTimer > 0) {
+          continue; // Glitch safely through during invulnerability window
+        }
+
         const hurdleHalfW = 1.25;
         const hurdleMinX = oPos.x - hurdleHalfW;
         const hurdleMaxX = oPos.x + hurdleHalfW;
@@ -100,7 +116,6 @@ export class CollisionManager3D {
         const overlapZ = pBounds.maxZ > hurdleMinZ && pBounds.minZ < hurdleMaxZ;
 
         if (overlapX && overlapZ) {
-          // Requires Jump: If jumping above 0.95m, character clears the hurdle!
           if (pBounds.minY < hurdleHeight) {
             return {
               type: "collision",
@@ -112,7 +127,6 @@ export class CollisionManager3D {
       }
     }
 
-    // Set active ground elevation (0 if ground, 4.15m if train roof, or ramp slope)
     player.groundElevation = targetGroundY;
 
     if (player.position.y > player.groundElevation + 0.15) {
@@ -126,21 +140,24 @@ export class CollisionManager3D {
    * Check 3D collision / pickup with active collectibles
    */
   static checkCollectiblePickups(player, collectibles, dt) {
-    const pCenter = new THREE.Vector3(player.position.x, player.position.y + 0.9, player.position.z);
+    _pCenter.set(player.position.x, player.position.y + 0.9, player.position.z);
     const magnetRadius = player.hasMagnet ? 28.0 : 0;
     const collectedItems = [];
 
-    for (const item of collectibles) {
+    for (let i = 0; i < collectibles.length; i++) {
+      const item = collectibles[i];
       if (item.itemRef.userData.collected || !item.itemRef.visible) continue;
 
       const itemPos = item.worldPos;
-      const dist = pCenter.distanceTo(itemPos);
+      const dist = _pCenter.distanceTo(itemPos);
 
       // 1. Magnetic Attraction Pull
       if (player.hasMagnet && dist < magnetRadius) {
-        const dir = new THREE.Vector3().subVectors(pCenter, itemPos).normalize();
-        item.itemRef.position.addScaledVector(dir, 42.0 * dt);
-        itemPos.copy(item.itemRef.position).add(new THREE.Vector3(0, 0, item.chunkRoot.position.z));
+        _dir.subVectors(_pCenter, itemPos).normalize();
+        item.itemRef.position.addScaledVector(_dir, 42.0 * dt);
+        
+        _itemOffset.set(0, 0, item.chunkRoot.position.z);
+        itemPos.copy(item.itemRef.position).add(_itemOffset);
       }
 
       // 2. Pickup Collision Check

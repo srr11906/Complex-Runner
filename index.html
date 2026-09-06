@@ -12,62 +12,96 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Master Stylesheet -->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20260906_v9">
 </head>
 <body>
   <div id="app-root">
     <!-- WebGL 3D Canvas Viewport -->
     <div id="canvas-container"></div>
 
-    <!-- Heads-Up Display (HUD) -->
+    <!-- Heads-Up Display (HUD) - Mobile Optimized 3-Point Layout -->
     <header id="game-hud" class="hud-layer">
-      <div class="hud-center">
-        <!-- Squircle Score Pill -->
-        <div class="hud-pill">
-          <div class="hud-stat">
-            <span class="hud-stat-label">SCORE</span>
-            <span id="hud-score-val" class="hud-stat-num">000000</span>
+      <!-- Top Left: Controls (Pause & Sound) -->
+      <div class="hud-top-left">
+        <button id="btn-pause-toggle" class="squircle-icon-btn interactive-ui" aria-label="Pause" title="Pause">
+          <img src="assets/ui/pause.svg" alt="Pause">
+        </button>
+        <button id="btn-sound-toggle" class="squircle-icon-btn interactive-ui" aria-label="Sound" title="Sound">
+          <img id="sound-icon-img" src="assets/ui/sound-on.svg" alt="Sound">
+        </button>
+      </div>
+
+      <!-- Top Right: Score + Units + Goal Pill Stack -->
+      <div class="hud-top-right">
+        <!-- Score Card -->
+        <div class="hud-stat-card">
+          <div class="hud-row score-row">
+            <span class="hud-label">SCORE</span>
+            <span id="hud-score-val" class="hud-val-score">000000</span>
           </div>
-          <div class="hud-sep"></div>
-          <div class="hud-stat">
-            <span class="hud-stat-label">BEST</span>
-            <span id="hud-high-val" class="hud-stat-num text-sub">000000</span>
-          </div>
-          <div class="hud-sep"></div>
-          <div class="hud-stat">
-            <span class="hud-stat-label">UNITS</span>
-            <span id="hud-units-val" class="hud-stat-num text-amber">0 / 1,000,000</span>
+          <div class="hud-row units-row">
+            <span class="hud-label">UNITS</span>
+            <span id="hud-units-val" class="hud-val-units">0</span>
           </div>
         </div>
 
-        <!-- Progress Bar Squircle -->
-        <div class="goal-pill" title="1,000,000 Units Goal">
-          <div class="goal-pill-header">
-            <span class="goal-pill-title">GOAL PROGRESS</span>
-            <span id="hud-goal-pct" class="goal-pill-pct">0%</span>
+        <!-- Goal Progress Pill (Active in Complex Heist Mode) -->
+        <div id="hud-goal-pill" class="hud-goal-card" title="1,000,000 Units Goal">
+          <div class="goal-header">
+            <span class="goal-title">COMPLEX GOAL</span>
+            <span id="hud-goal-pct" class="goal-pct">0%</span>
           </div>
           <div class="goal-track">
             <div id="hud-goal-fill" class="goal-fill" style="width: 0%;"></div>
           </div>
         </div>
-
-        <!-- Power-Up Chip -->
-        <div id="hud-powerup-badge" class="powerup-chip" style="display: none;">
-          <span id="powerup-name" class="powerup-chip-label">JETPACK</span>
-          <div class="powerup-track">
-            <div id="powerup-timer-fill" class="powerup-fill" style="width: 100%;"></div>
-          </div>
-        </div>
       </div>
 
-      <!-- Sound & Pause Action Buttons -->
-      <div class="hud-right">
-        <button id="btn-sound-toggle" class="squircle-icon-btn interactive-ui" aria-label="Sound" title="Sound">
-          <img id="sound-icon-img" src="assets/ui/sound-on.svg" alt="Sound">
-        </button>
-        <button id="btn-pause-toggle" class="squircle-icon-btn interactive-ui" aria-label="Pause" title="Pause">
-          <img src="assets/ui/pause.svg" alt="Pause">
-        </button>
+      <!-- Bottom Left: Active Power-Up Badges Stacked Vertically -->
+      <div id="hud-powerup-stack" class="hud-bottom-left">
+        <!-- Jetpack Badge -->
+        <div id="badge-jetpack" class="powerup-badge badge-jetpack" style="display: none;">
+          <span class="powerup-icon">🚀</span>
+          <div class="powerup-details">
+            <div class="powerup-name">JETPACK</div>
+            <div class="powerup-track">
+              <div id="jetpack-timer-fill" class="powerup-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Magnet Badge -->
+        <div id="badge-magnet" class="powerup-badge badge-magnet" style="display: none;">
+          <span class="powerup-icon">🧲</span>
+          <div class="powerup-details">
+            <div class="powerup-name">MAGNET</div>
+            <div class="powerup-track">
+              <div id="magnet-timer-fill" class="powerup-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2X Multiplier Badge -->
+        <div id="badge-multiplier" class="powerup-badge badge-multiplier" style="display: none;">
+          <span class="powerup-icon">⚡</span>
+          <div class="powerup-details">
+            <div class="powerup-name">2X UNITS</div>
+            <div class="powerup-track">
+              <div id="multiplier-timer-fill" class="powerup-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shield Badge -->
+        <div id="badge-shield" class="powerup-badge badge-shield" style="display: none;">
+          <span class="powerup-icon">🛡️</span>
+          <div class="powerup-details">
+            <div class="powerup-name">SHIELD ACTIVE</div>
+            <div class="powerup-track">
+              <div class="powerup-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -76,7 +110,24 @@
       <div class="squircle-card desert-theme">
         <div class="card-header">
           <h1 class="game-title">COMPLEX RUNNER</h1>
-          <p class="game-tagline">Reach 1,000,000 Units</p>
+          <p class="game-tagline">Kalki 2898 AD Wasteland</p>
+        </div>
+
+        <!-- Mode Selector Section -->
+        <div class="mode-selector-group">
+          <div class="mode-section-title">SELECT MISSION MODE</div>
+          <div class="mode-grid">
+            <button id="mode-btn-heist" class="mode-card-btn active" type="button">
+              <div class="mode-badge">GOAL MISSION</div>
+              <div class="mode-name">COMPLEX HEIST</div>
+              <div class="mode-desc">Collect 1,000,000 Units to unlock entry to the Complex</div>
+            </button>
+            <button id="mode-btn-endless" class="mode-card-btn" type="button">
+              <div class="mode-badge">ARCADE SURVIVAL</div>
+              <div class="mode-name">ENDLESS RUN</div>
+              <div class="mode-desc">Endless survival wasteland run for maximum high score</div>
+            </button>
+          </div>
         </div>
 
         <div class="card-actions">
@@ -169,6 +220,6 @@
   </div>
 
   <!-- Main ES Module Script -->
-  <script type="module" src="js/script.js"></script>
+  <script type="module" src="js/script.js?v=20260906_v9"></script>
 </body>
 </html>
