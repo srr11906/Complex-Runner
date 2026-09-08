@@ -488,10 +488,12 @@ export class TrackSegmentPool3D {
       const pLane = (trainLane + 2) % 3;
       this.spawnRandomPowerup(chunkData, lanes[pLane], 28);
     } else if (patternType === 1) {
+      // Rightmost lane (User POV): Moving Maglev Train advancing towards player at balanced speed
       const movingTrain = this.obstacleFactory.createMaglevTrain(false, true, 22.0);
-      movingTrain.position.set(lanes[0], 0, 32);
+      movingTrain.position.set(lanes[0], 0, 54);
       this.registerObstacle(chunkData, movingTrain);
 
+      // Leftmost lane (User POV): Climbable Ramp Train with rooftop coins
       const rampTrain = this.obstacleFactory.createMaglevTrain(true, false, 22.0);
       rampTrain.position.set(lanes[2], 0, 25);
       this.registerObstacle(chunkData, rampTrain);

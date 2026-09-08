@@ -212,6 +212,10 @@ export class GameEngine3D {
   setGameMode(mode) {
     this.gameMode = mode;
     localStorage.setItem("prabhas3DGameMode", mode);
+    this._lastUnits = null;
+    this._lastScore = null;
+    this._lastGoalPct = null;
+    this._lastGoalPillDisplay = null;
     if (this.dom.btnModeHeist) {
       this.dom.btnModeHeist.classList.toggle("active", mode === "heist");
     }
@@ -239,6 +243,11 @@ export class GameEngine3D {
     this.score = 0;
     this.units = 0;
     this.currentSpeed = CONFIG.INITIAL_SPEED;
+
+    this._lastUnits = null;
+    this._lastScore = null;
+    this._lastGoalPct = null;
+    this._lastGoalPillDisplay = null;
 
     this.player.reset();
     this.trackPool.init();
@@ -275,6 +284,10 @@ export class GameEngine3D {
     this.state = GameState3D.MENU;
     this.audio.stopMusic();
     this.showScreen(GameState3D.MENU);
+    this._lastUnits = null;
+    this._lastScore = null;
+    this._lastGoalPct = null;
+    this._lastGoalPillDisplay = null;
     this.player.reset();
     this.trackPool.clear();
     if (this.tractorBeam) this.tractorBeam.material.opacity = 0;
@@ -348,12 +361,37 @@ export class GameEngine3D {
 
   handleLeft() {
     if (this.state !== GameState3D.PLAYING) return;
-    this.player.moveLeft();
+    const res = this.player.moveLeft();
+    if (res === "barrier_hit") {
+      this.handleBarrierHit();
+    }
   }
 
   handleRight() {
     if (this.state !== GameState3D.PLAYING) return;
-    this.player.moveRight();
+    const res = this.player.moveRight();
+    if (res === "barrier_hit") {
+      this.handleBarrierHit();
+    }
+  }
+
+  handleBarrierHit() {
+    if (this.player.hasShield) {
+      this.player.breakShield();
+      this.audio.playShieldBreak();
+      this.cameraManager.shake(0.45);
+    } else if (this.player.invulnerableTimer <= 0) {
+      if (this.player.healAidTimer > 0) {
+        // Second hit during the 5-second Bujji Aid recovery window -> Run Ends!
+        this.gameOver();
+      } else {
+        // First hit: Trigger 5-Second Bujji Aid / Second Chance Healing!
+        this.player.triggerBujjiAid(5.0);
+        this.audio.playHit();
+        this.audio.playDialogue("bujji");
+        this.cameraManager.shake(0.5);
+      }
+    }
   }
 
   handleJump() {
@@ -530,8 +568,25 @@ export class GameEngine3D {
           this.player.velocityY = 1.8;
         }
       } else if (this.player.invulnerableTimer <= 0) {
-        this.gameOver();
-        return;
+        if (this.player.healAidTimer > 0) {
+          // Second hit during the 5-second Bujji Aid recovery window -> Run Ends!
+          this.gameOver();
+          return;
+        } else {
+          // First hit: Trigger 5-Second Bujji Aid / Second Chance Healing!
+          this.player.triggerBujjiAid(5.0);
+          this.audio.playHit();
+          this.audio.playDialogue("bujji");
+          this.cameraManager.shake(0.55);
+
+          // If hitting a train, pop cleanly onto the roof so the player doesn't clip inside
+          if (hitResult.obstacle && hitResult.obstacle.type === "train") {
+            this.player.position.y = 4.15;
+            this.player.groundElevation = 4.15;
+            this.player.isGrounded = true;
+            this.player.velocityY = 1.8;
+          }
+        }
       }
     }
 

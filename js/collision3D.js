@@ -29,6 +29,7 @@ export class CollisionManager3D {
       const type = obs.type;
       const mesh = obs.mesh;
       const hasRamp = !!(mesh && mesh.userData && mesh.userData.hasRamp);
+      const isMoving = !!(mesh && mesh.userData && mesh.userData.isMoving);
 
       if (type === "train") {
         const trainHalfW = 1.35;
@@ -38,8 +39,8 @@ export class CollisionManager3D {
 
         const trainMinX = oPos.x - trainHalfW;
         const trainMaxX = oPos.x + trainHalfW;
-        const trainMinZ = oPos.z - trainHalfD;
-        const trainMaxZ = oPos.z + trainHalfD + 1.8;
+        const trainMinZ = isMoving ? (oPos.z - trainHalfD - 1.8) : (oPos.z - trainHalfD);
+        const trainMaxZ = isMoving ? (oPos.z + trainHalfD) : (oPos.z + trainHalfD + 1.8);
 
         const overlapX = pBounds.maxX > trainMinX && pBounds.minX < trainMaxX;
 

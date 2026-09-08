@@ -32,6 +32,37 @@ export class Player3D {
     this.shieldMesh.visible = false;
     this.root.add(this.shieldMesh);
 
+    // Blue Holographic Glitch Healing Aura Field (80% Outer Wireframe Lattice / 20% Subtle Core)
+    this.healGlitchGroup = new THREE.Group();
+    this.healGlitchGroup.visible = false;
+
+    // 1. Subtle 20% Inner Ambient Energy Glow
+    const coreGeo = new THREE.CylinderGeometry(0.22, 0.92, 2.15, 16, 1, true);
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: 0x00E5FF,
+      transparent: true,
+      opacity: 0.10, // Very subtle, clean 20% inner wash
+      side: THREE.DoubleSide
+    });
+    this.healGlitchCore = new THREE.Mesh(coreGeo, coreMat);
+    this.healGlitchCore.position.set(0, 1.22, 0.05);
+    this.healGlitchGroup.add(this.healGlitchCore);
+
+    // 2. Dominant 80% Holographic Glitch Scanline Wireframe Lattice
+    const latticeGeo = new THREE.CylinderGeometry(0.24, 0.98, 2.2, 12, 10, true);
+    const latticeMat = new THREE.MeshBasicMaterial({
+      color: 0x00E5FF,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.38, // Crisp, clean 80% outer wireframe
+      side: THREE.DoubleSide
+    });
+    this.healGlitchLattice = new THREE.Mesh(latticeGeo, latticeMat);
+    this.healGlitchLattice.position.set(0, 1.22, 0.05);
+    this.healGlitchGroup.add(this.healGlitchLattice);
+
+    this.root.add(this.healGlitchGroup);
+
     // State Variables
     this.currentLane = 1; // 0: Left (-3m), 1: Center (0m), 2: Right (+3m)
     this.targetX = CONFIG.LANES[1];
@@ -45,7 +76,7 @@ export class Player3D {
     this.laneChangeTimer = 0;
     this.turnDirection = 0; // -1: Left, +1: Right
 
-    // Power-Up States
+    // Power-Up & Aid States
     this.hasShield = false;
     this.hasMagnet = false;
     this.magnetTimer = 0;
@@ -54,6 +85,7 @@ export class Player3D {
     this.hasMultiplier = false;
     this.multiplierTimer = 0;
     this.invulnerableTimer = 0;
+    this.healAidTimer = 0; // 5-Second Grace Window
 
     // Pre-allocated collision bounds object
     this._bounds = {
@@ -94,6 +126,7 @@ export class Player3D {
     this.hasMultiplier = false;
     this.multiplierTimer = 0;
     this.invulnerableTimer = 0;
+    this.clearBujjiAid();
 
     if (this.shieldMesh) this.shieldMesh.visible = false;
     if (this.bhairava && this.bhairava.root) {
@@ -113,9 +146,9 @@ export class Player3D {
       this.targetX = CONFIG.LANES[this.currentLane];
       this.turnDirection = 1;
       this.laneChangeTimer = CONFIG.LANE_CHANGE_TIME;
-      return true;
+      return "moved";
     }
-    return false;
+    return "barrier_hit";
   }
 
   moveRight() {
@@ -124,9 +157,9 @@ export class Player3D {
       this.targetX = CONFIG.LANES[this.currentLane];
       this.turnDirection = -1;
       this.laneChangeTimer = CONFIG.LANE_CHANGE_TIME;
-      return true;
+      return "moved";
     }
-    return false;
+    return "barrier_hit";
   }
 
   jump() {
@@ -157,6 +190,19 @@ export class Player3D {
       this.slideTimer = CONFIG.SLIDE_DURATION;
       return "slide";
     }
+  }
+
+  triggerBujjiAid(duration = 5.0) {
+    this.healAidTimer = duration;
+    this.invulnerableTimer = 1.2; // 1.2s brief post-hit immunity so player clears the current obstacle
+    if (this.healGlitchGroup) this.healGlitchGroup.visible = true;
+    if (this.bujji) this.bujji.setAid(true);
+  }
+
+  clearBujjiAid() {
+    this.healAidTimer = 0;
+    if (this.healGlitchGroup) this.healGlitchGroup.visible = false;
+    if (this.bujji) this.bujji.setAid(false);
   }
 
   giveShield() {
@@ -289,7 +335,58 @@ export class Player3D {
       }
     }
 
-    // 7. Update 3D Character Rig & Bujji Companion Animations
+    // 7. Blue Holographic Glitch Healing Aura Animation (80% Outer Lattice / 20% Inner Glow)
+    if (this.healAidTimer > 0) {
+      this.healAidTimer -= dt;
+
+      if (this.healGlitchGroup && this.healGlitchCore && this.healGlitchLattice) {
+        this.healGlitchGroup.visible = true;
+
+        // Periodic digital holographic de-sync glitch pulse
+        const glitchCycle = (time * 12.0) % 1.0;
+        const isGlitching = glitchCycle > 0.82; // Brief subtle glitch moments
+
+        let offsetX = 0;
+        let offsetZ = 0;
+        let scaleJitter = 1.0;
+
+        if (isGlitching) {
+          // Subtle crisp stepped slice displacement
+          offsetX = (Math.sin(time * 50.0) > 0 ? 0.04 : -0.04);
+          offsetZ = (Math.cos(time * 40.0) > 0 ? 0.03 : -0.03);
+          scaleJitter = 1.0 + Math.sin(time * 70.0) * 0.08;
+          this.healGlitchCore.material.opacity = 0.16 + Math.random() * 0.08; // 20% faint inner glow
+          this.healGlitchLattice.material.opacity = 0.52 + Math.random() * 0.18; // 80% primary wireframe
+        } else {
+          // Smooth atmospheric scanline float
+          offsetX = Math.sin(time * 3.5) * 0.015;
+          offsetZ = Math.cos(time * 4.0) * 0.015;
+          scaleJitter = 1.0 + Math.sin(time * 6.0) * 0.025;
+          this.healGlitchCore.material.opacity = 0.08 + Math.sin(time * 8.0) * 0.04;
+          this.healGlitchLattice.material.opacity = 0.35 + Math.sin(time * 9.0) * 0.08;
+        }
+
+        this.healGlitchCore.position.x = offsetX;
+        this.healGlitchCore.position.z = 0.05 + offsetZ;
+        this.healGlitchCore.scale.set(scaleJitter, 1.0 + (scaleJitter - 1.0) * 0.3, scaleJitter);
+        this.healGlitchCore.rotation.y += dt * 2.2;
+
+        this.healGlitchLattice.position.x = -offsetX * 0.7;
+        this.healGlitchLattice.position.z = 0.05 - offsetZ * 0.7;
+        this.healGlitchLattice.scale.set(scaleJitter * 1.03, 1.0, scaleJitter * 1.03);
+        this.healGlitchLattice.rotation.y -= dt * 3.5;
+      }
+
+      if (this.healAidTimer <= 0) {
+        this.clearBujjiAid();
+      }
+    } else {
+      if (this.healGlitchGroup && this.healGlitchGroup.visible) {
+        this.clearBujjiAid();
+      }
+    }
+
+    // 8. Update 3D Character Rig & Bujji Companion Animations
     const speedRatio = currentSpeed / CONFIG.INITIAL_SPEED;
     this.bhairava.updateAnimation(this.state, time, speedRatio, this.hasJetpack);
     this.bujji.update(time, this.turnDirection);

@@ -150,7 +150,11 @@ export class ObstacleFactory3D {
     group.userData.type = "train";
     group.userData.hasRamp = hasRamp;
     group.userData.isMoving = isMoving;
-    group.userData.moveSpeed = isMoving ? 11.9 : 0;
+    group.userData.moveSpeed = isMoving ? 6.0 : 0; // Smooth advance speed for generous visibility
+
+    if (isMoving) {
+      group.rotation.y = Math.PI; // Reverse train direction so front nose & headlights face oncoming player!
+    }
 
     const width = 2.6;
     const bodyHeight = 3.4;

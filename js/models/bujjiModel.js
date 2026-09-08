@@ -142,30 +142,55 @@ export class BujjiModel {
 
     // Compact companion scale
     this.root.scale.set(0.38, 0.38, 0.38);
+
+    // Aid / Healing State
+    this.isAiding = false;
+    this.aidLerp = 0.0;
+  }
+
+  setAid(isAiding) {
+    this.isAiding = isAiding;
   }
 
   update(time, isTurning = 0) {
-    const hoverY = this.baseLocalY + Math.sin(time * 5.0) * 0.03;
-    const hoverX = this.baseLocalX + Math.cos(time * 3.5) * 0.015;
-    const hoverZ = this.baseLocalZ;
+    // Smooth transition between default shoulder hover and active healing overflight
+    const targetAidLerp = this.isAiding ? 1.0 : 0.0;
+    this.aidLerp += (targetAidLerp - this.aidLerp) * 0.15;
 
-    this.root.position.x = hoverX;
-    this.root.position.y = hoverY;
-    this.root.position.z = hoverZ;
+    const normalHoverX = this.baseLocalX + Math.cos(time * 3.5) * 0.015;
+    const normalHoverY = this.baseLocalY + Math.sin(time * 5.0) * 0.03;
+    const normalHoverZ = this.baseLocalZ;
 
-    // Inward 45° angle facing towards Bhairava's gaze
-    this.root.rotation.y = this.baseRotY + isTurning * 0.2;
-    this.root.rotation.z = isTurning * 0.3;
-    this.root.rotation.x = 0.05 + Math.sin(time * 5) * 0.02;
+    const aidHoverX = 0.0 + Math.sin(time * 8.0) * 0.06;
+    const aidHoverY = 2.25 + Math.sin(time * 6.0) * 0.05;
+    const aidHoverZ = 0.35 + Math.cos(time * 7.0) * 0.04;
 
-    // Thruster flame flicker
-    const flameScale = 0.85 + Math.random() * 0.35;
+    this.root.position.x = THREE.MathUtils.lerp(normalHoverX, aidHoverX, this.aidLerp);
+    this.root.position.y = THREE.MathUtils.lerp(normalHoverY, aidHoverY, this.aidLerp);
+    this.root.position.z = THREE.MathUtils.lerp(normalHoverZ, aidHoverZ, this.aidLerp);
+
+    // Rotation: tilt forward/down towards Bhairava when aiding
+    const normalRotY = this.baseRotY + isTurning * 0.2;
+    const aidRotY = Math.sin(time * 4.0) * 0.15;
+    this.root.rotation.y = THREE.MathUtils.lerp(normalRotY, aidRotY, this.aidLerp);
+
+    const normalRotX = 0.05 + Math.sin(time * 5) * 0.02;
+    const aidRotX = 0.55 + Math.sin(time * 8) * 0.05; // 30° downward tilt towards character
+    this.root.rotation.x = THREE.MathUtils.lerp(normalRotX, aidRotX, this.aidLerp);
+
+    this.root.rotation.z = (isTurning * 0.3) * (1.0 - this.aidLerp);
+
+    // High-energy thruster flames during medical flight
+    const baseFlameScale = 0.85 + Math.random() * 0.35;
+    const aidFlameMultiplier = 1.0 + this.aidLerp * 0.8;
     this.thrusterFlames.forEach((f) => {
-      f.scale.set(1, flameScale, 1);
+      f.scale.set(aidFlameMultiplier, baseFlameScale * aidFlameMultiplier, aidFlameMultiplier);
     });
 
     if (this.eyeMesh) {
-      this.eyeMesh.material.emissiveIntensity = 1.5 + Math.sin(time * 6) * 0.4;
+      const normalGlow = 1.5 + Math.sin(time * 6) * 0.4;
+      const aidGlow = 3.8 + Math.sin(time * 14) * 1.5; // Rapid emergency optical pulse
+      this.eyeMesh.material.emissiveIntensity = THREE.MathUtils.lerp(normalGlow, aidGlow, this.aidLerp);
     }
   }
 }
