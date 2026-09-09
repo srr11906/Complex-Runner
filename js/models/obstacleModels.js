@@ -113,19 +113,27 @@ export class ObstacleFactory3D {
     const y0 = 0.0;
     const y1 = totalTopY;
 
+    // 18 vertices (6 triangles)
     const rampPositions = new Float32Array([
+      // Top Slope (2 triangles)
       -wHalf, y0, z0,
        wHalf, y0, z0,
        wHalf, y1, z1,
       -wHalf, y0, z0,
        wHalf, y1, z1,
       -wHalf, y1, z1,
+
+      // Left Side Wall (1 triangle)
       -wHalf, y0, z0,
       -wHalf, y1, z1,
       -wHalf, y0, z1,
+
+      // Right Side Wall (1 triangle)
        wHalf, y0, z0,
        wHalf, y0, z1,
        wHalf, y1, z1,
+
+      // Back Wall (2 triangles)
       -wHalf, y0, z1,
        wHalf, y0, z1,
        wHalf, y1, z1,
@@ -135,17 +143,41 @@ export class ObstacleFactory3D {
     ]);
 
     const rampNormals = new Float32Array([
+      // Top slope
       0, 0.88, -0.47,  0, 0.88, -0.47,  0, 0.88, -0.47,
       0, 0.88, -0.47,  0, 0.88, -0.47,  0, 0.88, -0.47,
+
+      // Left side (-X)
      -1, 0, 0,        -1, 0, 0,        -1, 0, 0,
+
+      // Right side (+X)
       1, 0, 0,         1, 0, 0,         1, 0, 0,
+
+      // Back face (+Z)
       0, 0, 1,         0, 0, 1,         0, 0, 1,
       0, 0, 1,         0, 0, 1,         0, 0, 1
+    ]);
+
+    const rampUVs = new Float32Array([
+      // Top slope
+      0, 0,  1, 0,  1, 1,
+      0, 0,  1, 1,  0, 1,
+
+      // Left side
+      0, 0,  1, 1,  1, 0,
+
+      // Right side
+      0, 0,  1, 0,  1, 1,
+
+      // Back face
+      0, 0,  1, 0,  1, 1,
+      0, 0,  1, 1,  0, 1
     ]);
 
     const rampGeo = new THREE.BufferGeometry();
     rampGeo.setAttribute("position", new THREE.BufferAttribute(rampPositions, 3));
     rampGeo.setAttribute("normal", new THREE.BufferAttribute(rampNormals, 3));
+    rampGeo.setAttribute("uv", new THREE.BufferAttribute(rampUVs, 2));
     return rampGeo;
   }
 
@@ -226,19 +258,39 @@ export class ObstacleFactory3D {
     if (hasRamp) {
       const rampLength = 9.0;
       const rampZOffset = -length / 2 - rampLength / 2;
+      const rampAngle = -Math.atan2(totalTopY, rampLength);
 
+      // Solid Ramp Body (with full UVs and normal maps)
       const solidRampMesh = new THREE.Mesh(this.rampGeo, this.materials.rampSurface);
       solidRampMesh.position.set(0, 0, rampZOffset);
       solidRampMesh.castShadow = true;
       solidRampMesh.receiveShadow = true;
       group.add(solidRampMesh);
 
+      // Symmetrical Left and Right Heavy Carbon Rail Bases & Luminous Guides
       for (let s of [-1, 1]) {
-        const stripe = new THREE.Mesh(this.rampStripeGeo, this.materials.trainTrim);
-        stripe.position.set(s * (width / 2 - 0.09), totalTopY / 2, rampZOffset);
-        stripe.rotation.x = -Math.atan2(totalTopY, rampLength);
-        group.add(stripe);
+        const railBase = new THREE.Mesh(this.rampStripeGeo, this.materials.carbonFrame);
+        railBase.position.set(s * (width / 2 - 0.08), totalTopY / 2, rampZOffset);
+        railBase.rotation.x = rampAngle;
+        group.add(railBase);
+
+        const guideEdge = new THREE.Mesh(
+          new THREE.BoxGeometry(0.06, 0.12, 9.0),
+          this.materials.plasmaBeam
+        );
+        guideEdge.position.set(s * (width / 2 - 0.04), totalTopY / 2 + 0.06, rampZOffset);
+        guideEdge.rotation.x = rampAngle;
+        group.add(guideEdge);
       }
+
+      // Center Induction Grip Tread
+      const centerTread = new THREE.Mesh(
+        new THREE.BoxGeometry(0.7, 0.04, 8.8),
+        this.materials.roofGrating
+      );
+      centerTread.position.set(0, totalTopY / 2 + 0.02, rampZOffset);
+      centerTread.rotation.x = rampAngle;
+      group.add(centerTread);
 
       group.userData.hasRamp = true;
     }
