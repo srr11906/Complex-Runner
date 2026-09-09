@@ -640,23 +640,18 @@ export class BhairavaModel {
     if (this.thrusterLight) this.thrusterLight.intensity = 0;
 
     if (state === "sliding") {
-      hips.position.y = THREE.MathUtils.lerp(hips.position.y, 0.35, 0.3);
-      hips.rotation.x = THREE.MathUtils.lerp(hips.rotation.x, -0.68, 0.3);
-      torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, 0.42, 0.3);
-      leftLeg.rotation.x = THREE.MathUtils.lerp(leftLeg.rotation.x, -1.25, 0.3);
-      rightLeg.rotation.x = THREE.MathUtils.lerp(rightLeg.rotation.x, 0.55, 0.3);
-      leftArm.rotation.x = THREE.MathUtils.lerp(leftArm.rotation.x, 0.75, 0.3);
-      leftArm.rotation.y = THREE.MathUtils.lerp(leftArm.rotation.y, 0, 0.3);
-      leftArm.rotation.z = THREE.MathUtils.lerp(leftArm.rotation.z, 0, 0.3);
-
+      hips.position.y = THREE.MathUtils.lerp(hips.position.y, 0.32, 0.25);
+      hips.rotation.x = THREE.MathUtils.lerp(hips.rotation.x, -0.75, 0.25);
+      torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, 0.35, 0.25);
+      leftLeg.rotation.x = THREE.MathUtils.lerp(leftLeg.rotation.x, -1.15, 0.25);
+      rightLeg.rotation.x = THREE.MathUtils.lerp(rightLeg.rotation.x, -0.95, 0.25);
+      leftArm.rotation.x = THREE.MathUtils.lerp(leftArm.rotation.x, 0.65, 0.25);
       if (shootTimer > 0) {
         rightArm.rotation.x = THREE.MathUtils.lerp(rightArm.rotation.x, -Math.PI / 2, 0.45);
         rightArm.rotation.y = THREE.MathUtils.lerp(rightArm.rotation.y, -0.12, 0.4);
         rightArm.rotation.z = THREE.MathUtils.lerp(rightArm.rotation.z, 0.08, 0.4);
       } else {
-        rightArm.rotation.x = THREE.MathUtils.lerp(rightArm.rotation.x, 0.75, 0.3);
-        rightArm.rotation.y = THREE.MathUtils.lerp(rightArm.rotation.y, 0, 0.3);
-        rightArm.rotation.z = THREE.MathUtils.lerp(rightArm.rotation.z, 0, 0.3);
+        rightArm.rotation.x = THREE.MathUtils.lerp(rightArm.rotation.x, 0.65, 0.25);
       }
       return;
     }
@@ -679,12 +674,12 @@ export class BhairavaModel {
 
     // High-energy athletic running loop
     hips.position.y = THREE.MathUtils.lerp(hips.position.y, 0.95 + Math.abs(Math.sin(time * 16 * speedRatio)) * 0.09, 0.25);
-    hips.rotation.x = THREE.MathUtils.lerp(hips.rotation.x, 0, 0.25);
-    torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, 0.14, 0.25);
+    hips.rotation.x = 0;
+    torso.rotation.x = 0.14;
 
     const runCycle = Math.sin(time * 16 * speedRatio);
-    leftLeg.rotation.x = THREE.MathUtils.lerp(leftLeg.rotation.x, runCycle * 0.98, 0.35);
-    rightLeg.rotation.x = THREE.MathUtils.lerp(rightLeg.rotation.x, -runCycle * 0.98, 0.35);
+    leftLeg.rotation.x = runCycle * 0.98;
+    rightLeg.rotation.x = -runCycle * 0.98;
     leftArm.rotation.x = -runCycle * 0.88;
     leftArm.rotation.y = THREE.MathUtils.lerp(leftArm.rotation.y, 0, 0.2);
     leftArm.rotation.z = THREE.MathUtils.lerp(leftArm.rotation.z, 0, 0.2);

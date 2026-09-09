@@ -53,17 +53,31 @@ export class CollisionManager3D {
             const rampZStart = trainMinZ - rampLength;
             const rampZEnd = trainMinZ;
 
-            if (pBounds.centerZ >= rampZStart && pBounds.centerZ <= rampZEnd) {
+            if (pBounds.centerZ >= rampZStart && pBounds.centerZ <= rampZEnd + 1.2) {
               const climbProgress = Math.max(0, Math.min(1.0, (pBounds.centerZ - rampZStart) / rampLength));
               const rampElevation = climbProgress * trainTopY;
               targetGroundY = Math.max(targetGroundY, rampElevation);
+              if (player.position.y <= rampElevation + 0.3) {
+                player.position.y = rampElevation;
+                player.isGrounded = true;
+              }
               continue;
             }
           }
 
           if (pBounds.centerZ >= trainMinZ && pBounds.centerZ <= trainMaxZ) {
-            if (pBounds.minY >= trainTopY - 0.6) {
+            // Check if player is on roof, sliding across roof, or fast-falling/diving onto roof
+            const isRoofLevel = pBounds.minY >= trainTopY - 0.75 || 
+                                (player.state === "sliding" && pBounds.minY >= trainTopY - 1.2) ||
+                                (player.velocityY < -5.0 && pBounds.minY >= trainTopY - 1.5);
+
+            if (isRoofLevel) {
               targetGroundY = Math.max(targetGroundY, trainTopY);
+              if (player.position.y < trainTopY || (player.state === "sliding" && player.position.y <= trainTopY + 0.4)) {
+                player.position.y = trainTopY;
+                player.isGrounded = true;
+                player.velocityY = 0;
+              }
               continue;
             } else if (player.invulnerableTimer > 0) {
               // During invulnerability: safely ride the train roof rather than clipping through inside
@@ -71,6 +85,7 @@ export class CollisionManager3D {
               if (player.position.y < trainTopY) {
                 player.position.y = trainTopY;
                 player.isGrounded = true;
+                player.velocityY = 0;
               }
               continue;
             } else {
