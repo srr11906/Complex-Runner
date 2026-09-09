@@ -13,18 +13,20 @@ export class ObstacleFactory3D {
     this.materials = {
       trainArmor: new THREE.MeshStandardMaterial({
         map: textureGen.getTrainArmorTexture(),
-        roughness: 0.55,
-        metalness: 0.75
+        normalMap: textureGen.getTrainArmorNormalMap(),
+        normalScale: new THREE.Vector2(0.85, 0.85),
+        roughness: 0.45,
+        metalness: 0.82
       }),
       trainTrim: new THREE.MeshStandardMaterial({
         color: 0xD97706,
-        roughness: 0.35,
-        metalness: 0.8
+        roughness: 0.28,
+        metalness: 0.85
       }),
       grillMat: new THREE.MeshStandardMaterial({
         color: 0x111827,
-        roughness: 0.8,
-        metalness: 0.9
+        roughness: 0.7,
+        metalness: 0.95
       }),
       repulsorPlasma: new THREE.MeshBasicMaterial({
         color: 0x00E5FF,
@@ -43,13 +45,15 @@ export class ObstacleFactory3D {
       }),
       roofGrating: new THREE.MeshStandardMaterial({
         color: 0x1E293B,
-        roughness: 0.7,
-        metalness: 0.5
+        roughness: 0.6,
+        metalness: 0.6
       }),
       rampSurface: new THREE.MeshStandardMaterial({
         map: textureGen.getTrainArmorTexture(),
-        roughness: 0.6,
-        metalness: 0.65,
+        normalMap: textureGen.getTrainArmorNormalMap(),
+        normalScale: new THREE.Vector2(0.85, 0.85),
+        roughness: 0.5,
+        metalness: 0.75,
         side: THREE.DoubleSide
       }),
       plasmaBeam: new THREE.MeshBasicMaterial({
@@ -78,8 +82,8 @@ export class ObstacleFactory3D {
       gateLightNode: new THREE.SphereGeometry(0.24, 10, 10),
       gateCrossBeam: new THREE.BoxGeometry(3.6, 0.25, 0.25),
       gateLaser: new THREE.CylinderGeometry(0.05, 0.05, 3.2, 8),
-      hurdleBarricade: new THREE.BoxGeometry(2.4, 0.95, 0.4),
-      hurdleStripe: new THREE.BoxGeometry(2.4, 0.16, 0.42)
+      hurdleBarricade: new THREE.BoxGeometry(2.4, 1.90, 0.55),
+      hurdleStripe: new THREE.BoxGeometry(2.42, 0.28, 0.57)
     };
 
     this.trainBodyGeos = {};
@@ -151,6 +155,8 @@ export class ObstacleFactory3D {
     group.userData.hasRamp = hasRamp;
     group.userData.isMoving = isMoving;
     group.userData.moveSpeed = isMoving ? 6.0 : 0; // Smooth advance speed for generous visibility
+    group.userData.hp = 20;
+    group.userData.maxHp = 20;
 
     if (isMoving) {
       group.rotation.y = Math.PI; // Reverse train direction so front nose & headlights face oncoming player!
@@ -244,6 +250,8 @@ export class ObstacleFactory3D {
     const group = new THREE.Group();
     group.userData.type = "laser_gate";
     group.userData.requiresSlide = true;
+    group.userData.hp = 8;
+    group.userData.maxHp = 8;
 
     const width = 3.2;
     const height = 3.6;
@@ -277,8 +285,10 @@ export class ObstacleFactory3D {
     const group = new THREE.Group();
     group.userData.type = "hurdle";
     group.userData.requiresJump = true;
+    group.userData.hp = 8;
+    group.userData.maxHp = 8;
 
-    const height = 0.95;
+    const height = 1.90;
 
     const barricade = new THREE.Mesh(this.geometries.hurdleBarricade, this.materials.trainArmor);
     barricade.position.y = height / 2;

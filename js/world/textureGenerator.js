@@ -12,6 +12,70 @@ class TextureGenerator {
   }
 
   /**
+   * Fast Sobel Filter to generate high-fidelity Tangent-Space Normal Maps from Canvas Grayscale
+   */
+  generateNormalMapFromCanvas(srcCanvas, strength = 2.0) {
+    const width = srcCanvas.width;
+    const height = srcCanvas.height;
+    const srcCtx = srcCanvas.getContext("2d");
+    const srcData = srcCtx.getImageData(0, 0, width, height).data;
+
+    const normCanvas = document.createElement("canvas");
+    normCanvas.width = width;
+    normCanvas.height = height;
+    const normCtx = normCanvas.getContext("2d");
+    const normImgData = normCtx.createImageData(width, height);
+    const dstData = normImgData.data;
+
+    // Helper to get grayscale height (0.0 to 1.0)
+    const getHeight = (x, y) => {
+      const px = Math.max(0, Math.min(width - 1, x));
+      const py = Math.max(0, Math.min(height - 1, y));
+      const idx = (py * width + px) * 4;
+      return (srcData[idx] * 0.299 + srcData[idx + 1] * 0.587 + srcData[idx + 2] * 0.114) / 255.0;
+    };
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        // Sobel filter kernels
+        // [-1 0 1]      [-1 -2 -1]
+        // [-2 0 2]  dx  [ 0  0  0] dy
+        // [-1 0 1]      [ 1  2  1]
+        const tl = getHeight(x - 1, y - 1);
+        const t  = getHeight(x,     y - 1);
+        const tr = getHeight(x + 1, y - 1);
+        const l  = getHeight(x - 1, y);
+        const r  = getHeight(x + 1, y);
+        const bl = getHeight(x - 1, y + 1);
+        const b  = getHeight(x,     y + 1);
+        const br = getHeight(x + 1, y + 1);
+
+        const dx = (tr + 2.0 * r + br) - (tl + 2.0 * l + bl);
+        const dy = (bl + 2.0 * b + br) - (tl + 2.0 * t + tr);
+
+        let nx = -dx * strength;
+        let ny = -dy * strength;
+        let nz = 1.0;
+
+        // Normalize vector
+        const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+        nx /= len;
+        ny /= len;
+        nz /= len;
+
+        const idx = (y * width + x) * 4;
+        dstData[idx]     = Math.floor((nx * 0.5 + 0.5) * 255); // R -> X
+        dstData[idx + 1] = Math.floor((ny * 0.5 + 0.5) * 255); // G -> Y
+        dstData[idx + 2] = Math.floor((nz * 0.5 + 0.5) * 255); // B -> Z
+        dstData[idx + 3] = 255;
+      }
+    }
+
+    normCtx.putImageData(normImgData, 0, 0);
+    return normCanvas;
+  }
+
+  /**
    * 1. 2898 AD Dystopian Electromagnetic Highway Trackway
    * Monolithic titanium-composite slabs, embedded linear induction maglev rails, sleek optical guideways
    */
@@ -543,6 +607,292 @@ class TextureGenerator {
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(6, 6);
     this.cache.set("sandTerrain", texture);
+    return texture;
+  }
+
+  /**
+   * 8. Road Highway Normal Map (3D expansion seams, induction trenches, micro-grit relief)
+   */
+  getRoadNormalMap() {
+    if (this.cache.has("road_norm")) return this.cache.get("road_norm");
+    // Generate base grayscale heightmap canvas
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#808080";
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Expansion joint trenches
+    ctx.strokeStyle = "#202020";
+    ctx.lineWidth = 4;
+    for (let y = 0; y <= 512; y += 128) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(512, y);
+      ctx.stroke();
+    }
+
+    // Induction lane trenches
+    for (let lx of [85, 256, 427]) {
+      ctx.fillStyle = "#303030";
+      ctx.fillRect(lx - 12, 0, 24, 512);
+      ctx.fillStyle = "#E0E0E0";
+      ctx.fillRect(lx - 2, 0, 4, 512);
+    }
+
+    const normCanvas = this.generateNormalMapFromCanvas(canvas, 2.5);
+    const texture = new THREE.CanvasTexture(normCanvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1, 4);
+    this.cache.set("road_norm", texture);
+    return texture;
+  }
+
+  /**
+   * 9. Sand Terrain Dune & Ripple Normal Map
+   */
+  getSandTerrainNormalMap() {
+    if (this.cache.has("sandTerrain_norm")) return this.cache.get("sandTerrain_norm");
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#808080";
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Sand dune ridges
+    ctx.lineWidth = 10;
+    for (let y = 0; y < 512; y += 24) {
+      ctx.strokeStyle = (y % 48 === 0) ? "#D0D0D0" : "#404040";
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      for (let x = 0; x <= 512; x += 64) {
+        const waveY = y + Math.sin((x / 512) * Math.PI * 4 + y) * 8;
+        ctx.lineTo(x, waveY);
+      }
+      ctx.stroke();
+    }
+
+    const normCanvas = this.generateNormalMapFromCanvas(canvas, 1.8);
+    const texture = new THREE.CanvasTexture(normCanvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(6, 6);
+    this.cache.set("sandTerrain_norm", texture);
+    return texture;
+  }
+
+  /**
+   * 10. Maglev Train Armor Plate Normal Map
+   */
+  getTrainArmorNormalMap() {
+    if (this.cache.has("trainArmor_norm")) return this.cache.get("trainArmor_norm");
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#808080";
+    ctx.fillRect(0, 0, 512, 256);
+
+    // Panel seams
+    ctx.strokeStyle = "#101010";
+    ctx.lineWidth = 3;
+    for (let y = 32; y < 256; y += 64) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(512, y);
+      ctx.stroke();
+
+      // Raised rivets
+      ctx.fillStyle = "#FFFFFF";
+      for (let x = 8; x < 512; x += 16) {
+        ctx.beginPath();
+        ctx.arc(x, y - 5, 2, 0, Math.PI * 2);
+        ctx.arc(x, y + 5, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    const normCanvas = this.generateNormalMapFromCanvas(canvas, 2.2);
+    const texture = new THREE.CanvasTexture(normCanvas);
+    this.cache.set("trainArmor_norm", texture);
+    return texture;
+  }
+
+  /**
+   * 11. Bhairava Realism Cloth Weave Bump Map
+   */
+  getClothBumpMap() {
+    if (this.cache.has("clothBump")) return this.cache.get("clothBump");
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#808080";
+    ctx.fillRect(0, 0, 256, 256);
+
+    // High frequency cross-hatch fabric weave
+    ctx.strokeStyle = "#A0A0A0";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 256; i += 4) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, 256);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(256, i);
+      ctx.stroke();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(4, 4);
+    this.cache.set("clothBump", texture);
+    return texture;
+  }
+
+  /**
+   * 12. Bhairava Cybernetic Gauntlet Normal & Specular Texture
+   */
+  getCyberGauntletTexture() {
+    if (this.cache.has("cyberGauntlet")) return this.cache.get("cyberGauntlet");
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext("2d");
+
+    // Gunmetal base
+    ctx.fillStyle = "#1E222A";
+    ctx.fillRect(0, 0, 256, 256);
+
+    // Laser engraved circuit conduits
+    ctx.strokeStyle = "#00E5FF";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(20, 40);
+    ctx.lineTo(100, 40);
+    ctx.lineTo(130, 80);
+    ctx.lineTo(220, 80);
+    ctx.moveTo(30, 180);
+    ctx.lineTo(110, 180);
+    ctx.lineTo(140, 140);
+    ctx.lineTo(230, 140);
+    ctx.stroke();
+
+    // Golden power nodes
+    ctx.fillStyle = "#F59E0B";
+    for (let x of [40, 120, 200]) {
+      ctx.fillRect(x - 4, 110, 8, 36);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    this.cache.set("cyberGauntlet", texture);
+    return texture;
+  }
+
+  /**
+   * 13. Dystopian Shanty Building Normal Map (3D corrugated iron ridges, window frames, seams)
+   */
+  getShantyBuildingNormalMap() {
+    if (this.cache.has("shanty_norm")) return this.cache.get("shanty_norm");
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 1024;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#808080";
+    ctx.fillRect(0, 0, 512, 1024);
+
+    // Corrugated iron vertical ridges
+    for (let y = 0; y < 1024; y += 64) {
+      for (let x = 0; x < 512; x += 128) {
+        for (let rx = x + 10; rx < x + 120; rx += 12) {
+          ctx.strokeStyle = "#D0D0D0";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(rx, y + 2);
+          ctx.lineTo(rx, y + 62);
+          ctx.stroke();
+
+          ctx.strokeStyle = "#303030";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(rx + 4, y + 2);
+          ctx.lineTo(rx + 4, y + 62);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Window frame recessed bevels
+    for (let wy = 40; wy < 1000; wy += 80) {
+      for (let wx = 30; wx < 500; wx += 70) {
+        ctx.fillStyle = "#202020";
+        ctx.fillRect(wx - 2, wy - 2, 28, 22);
+        ctx.fillStyle = "#E0E0E0";
+        ctx.fillRect(wx, wy, 24, 18);
+      }
+    }
+
+    const normCanvas = this.generateNormalMapFromCanvas(canvas, 2.0);
+    const texture = new THREE.CanvasTexture(normCanvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    this.cache.set("shanty_norm", texture);
+    return texture;
+  }
+
+  /**
+   * 14. Corrugated Cargo Container Normal Map
+   */
+  getContainerNormalMap() {
+    if (this.cache.has("container_norm")) return this.cache.get("container_norm");
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#808080";
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Accordion corrugation ridges
+    const ridgeWidth = 32;
+    for (let x = 0; x < 512; x += ridgeWidth) {
+      ctx.fillStyle = "#E0E0E0";
+      ctx.fillRect(x, 0, ridgeWidth / 2, 512);
+      ctx.fillStyle = "#202020";
+      ctx.fillRect(x + ridgeWidth / 2, 0, ridgeWidth / 2, 512);
+    }
+
+    // Steel perimeter frame (raised)
+    ctx.fillStyle = "#C0C0C0";
+    ctx.fillRect(0, 0, 512, 24);
+    ctx.fillRect(0, 488, 512, 24);
+    ctx.fillRect(0, 0, 24, 512);
+    ctx.fillRect(488, 0, 24, 512);
+
+    // Recessed corner twist-lock holes
+    ctx.fillStyle = "#101010";
+    for (let cx of [4, 480]) {
+      for (let cy of [4, 480]) {
+        ctx.beginPath();
+        ctx.arc(cx + 14, cy + 14, 8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    const normCanvas = this.generateNormalMapFromCanvas(canvas, 2.2);
+    const texture = new THREE.CanvasTexture(normCanvas);
+    this.cache.set("container_norm", texture);
     return texture;
   }
 }

@@ -38,7 +38,8 @@ export const CONFIG = {
   BUJJI_OFFSET_Y: 1.35,
   BUJJI_OFFSET_Z: -0.35,
 
-  // Power-Up Parameters
+  // Power-Up Parameters (Spawn frequency reduced by 60%)
+  POWERUP_SPAWN_CHANCE: 0.40,
   JETPACK_ALTITUDE: 8.0,
   JETPACK_DURATION: 8.0,
   MAGNET_RADIUS: 25.0,

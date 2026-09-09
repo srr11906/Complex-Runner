@@ -1,27 +1,36 @@
 /* ==========================================================================
-   COMPLEX RUNNER - Master Stylesheet
-   Rich Dark Brown Desert Theme Squircles, Simple Typography, Zero Overflows
+   COMPLEX RUNNER - Master Stylesheet (AAA Deployment Standard)
+   Modern Subway Surfers-Inspired Glassmorphism, Zero Overflows, 60fps UI
    ========================================================================== */
 
 :root {
   --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   
-  /* Rich Dark Brown Desert Glass Palette */
-  --desert-card-bg: linear-gradient(165deg, rgba(42, 30, 22, 0.96) 0%, rgba(26, 18, 13, 0.98) 100%);
-  --desert-card-border: rgba(217, 119, 6, 0.35);
-  --desert-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(194, 103, 21, 0.15);
+  /* Rich Desert Sci-Fi Palette */
+  --bg-dark: #0D0906;
+  --glass-dark: rgba(22, 15, 10, 0.88);
+  --glass-card: linear-gradient(165deg, rgba(38, 26, 18, 0.92) 0%, rgba(20, 14, 9, 0.96) 100%);
+  --glass-border: rgba(217, 119, 6, 0.3);
+  --glass-border-bright: rgba(245, 158, 11, 0.6);
+  --card-shadow: 0 24px 64px rgba(0, 0, 0, 0.75), 0 0 32px rgba(217, 119, 6, 0.15);
   
+  /* Text */
   --text-main: #FFFDF8;
   --text-muted: #D4C2B0;
-  --text-sub: #A89684;
+  --text-sub: #9C8A78;
   
+  /* Accents */
   --amber-primary: #D97706;
   --amber-bright: #F59E0B;
+  --amber-gold: #FBBF24;
   --amber-hover: #B45309;
-  --amber-glow: rgba(217, 119, 6, 0.4);
+  --amber-glow: rgba(245, 158, 11, 0.45);
+  --cyan-bright: #00E5FF;
+  --cyan-glow: rgba(0, 229, 255, 0.45);
   
-  --hud-dark-bg: rgba(24, 17, 12, 0.88);
-  --hud-border: rgba(217, 119, 6, 0.25);
+  /* HUD */
+  --hud-bg: rgba(18, 12, 8, 0.82);
+  --hud-border: rgba(217, 119, 6, 0.28);
 }
 
 * {
@@ -40,7 +49,7 @@ html, body {
   height: 100dvh;
   overflow: hidden;
   position: fixed;
-  background: #120D09;
+  background: var(--bg-dark);
   font-family: var(--font-main);
   color: var(--text-main);
   touch-action: none;
@@ -75,7 +84,101 @@ html, body {
 }
 
 /* ==========================================================================
-   HEADS-UP DISPLAY (HUD) - MOBILE 3-POINT SQUIRCLE SYSTEM
+   0. INITIAL LOADING SCREEN
+   ========================================================================== */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  background: radial-gradient(circle at center, #1E140C 0%, #0D0906 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.loading-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  width: min(90vw, 420px);
+  padding: 24px;
+}
+
+.loading-logo-box {
+  animation: logoFloat 2.8s ease-in-out infinite;
+  filter: drop-shadow(0 10px 24px rgba(245, 158, 11, 0.3));
+}
+
+.loading-logo-img {
+  width: clamp(240px, 65vw, 340px);
+  height: auto;
+  display: block;
+}
+
+.loading-progress-box {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.loading-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(217, 119, 6, 0.3);
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.loading-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #D97706 0%, #F59E0B 50%, #00E5FF 100%);
+  border-radius: 9999px;
+  transition: width 0.15s ease-out;
+  box-shadow: 0 0 12px var(--amber-glow);
+}
+
+.loading-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.loading-status-text {
+  color: var(--text-muted);
+}
+
+.loading-pct-text {
+  color: var(--amber-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-8px) scale(1.02); }
+}
+
+/* ==========================================================================
+   HEADS-UP DISPLAY (HUD) - IN-GAME TACTICAL OVERLAY
    ========================================================================== */
 #game-hud {
   position: absolute;
@@ -93,73 +196,76 @@ html, body {
   opacity: 1;
 }
 
-/* 1. Top Left: Play/Pause & Audio Controls */
+/* Top Left: Controls (Pause & Sound) */
 .hud-top-left {
   position: absolute;
-  top: max(12px, env(safe-area-inset-top));
-  left: max(14px, env(safe-area-inset-left));
+  top: max(14px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   pointer-events: auto;
 }
 
 .squircle-icon-btn {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  min-height: 40px;
-  background: var(--hud-dark-bg);
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  background: var(--hud-bg);
   border: 1px solid var(--hud-border);
   border-radius: 14px;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease;
   touch-action: manipulation;
 }
 
-.squircle-icon-btn:active {
-  transform: scale(0.92);
-  background: rgba(45, 34, 24, 0.95);
+.squircle-icon-btn:hover {
+  background: rgba(38, 26, 18, 0.95);
   border-color: var(--amber-bright);
 }
 
-.squircle-icon-btn img {
-  width: 18px;
-  height: 18px;
-  filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.4));
+.squircle-icon-btn:active {
+  transform: scale(0.92);
 }
 
-/* 2. Top Right: Score + Units Directly Below + Goal Bar */
+.squircle-icon-btn img {
+  width: 20px;
+  height: 20px;
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.4));
+}
+
+/* Top Right: Score + Units + Goal */
 .hud-top-right {
   position: absolute;
-  top: max(12px, env(safe-area-inset-top));
-  right: max(14px, env(safe-area-inset-right));
+  top: max(14px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
+  gap: 8px;
   pointer-events: none;
 }
 
 .hud-stat-card {
-  background: var(--hud-dark-bg);
+  background: var(--hud-bg);
   border: 1px solid var(--hud-border);
   border-radius: 16px;
-  padding: 8px 14px;
+  padding: 8px 16px;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
-  min-width: 120px;
+  min-width: 130px;
 }
 
 .hud-row {
@@ -167,7 +273,7 @@ html, body {
   align-items: baseline;
   justify-content: space-between;
   width: 100%;
-  gap: 10px;
+  gap: 12px;
 }
 
 .hud-label {
@@ -178,7 +284,7 @@ html, body {
 }
 
 .hud-val-score {
-  font-size: clamp(14px, 3.6vw, 17px);
+  font-size: clamp(15px, 3.8vw, 18px);
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   color: #FFFFFF;
@@ -186,26 +292,26 @@ html, body {
 }
 
 .hud-val-units {
-  font-size: clamp(12px, 3vw, 14px);
+  font-size: clamp(13px, 3.2vw, 15px);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--amber-bright);
-  text-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
 }
 
-/* Goal Progress Card (In Heist Mode) */
+/* Goal Progress Card */
 .hud-goal-card {
   width: 100%;
-  background: var(--hud-dark-bg);
+  background: var(--hud-bg);
   border: 1px solid var(--hud-border);
   border-radius: 12px;
-  padding: 5px 12px;
+  padding: 6px 14px;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .goal-header {
@@ -239,13 +345,13 @@ html, body {
   transition: width 0.25s ease;
 }
 
-/* 3. Bottom Left: Active Power-Up Badges Stacked Vertically */
+/* Bottom Left: Power-Up Badges */
 .hud-bottom-left {
   position: absolute;
   bottom: max(20px, env(safe-area-inset-bottom));
-  left: max(14px, env(safe-area-inset-left));
+  left: max(16px, env(safe-area-inset-left));
   display: flex;
-  flex-direction: column-reverse; /* Stacks new ones upward cleanly */
+  flex-direction: column-reverse;
   gap: 8px;
   pointer-events: none;
   z-index: 25;
@@ -255,10 +361,10 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--hud-dark-bg);
+  background: var(--hud-bg);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
@@ -271,7 +377,7 @@ html, body {
 }
 
 .powerup-icon {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1;
 }
 
@@ -289,7 +395,7 @@ html, body {
 }
 
 .powerup-track {
-  width: 54px;
+  width: 58px;
   height: 4px;
   background: rgba(255, 255, 255, 0.15);
   border-radius: 9999px;
@@ -302,37 +408,36 @@ html, body {
   transition: width 0.1s linear;
 }
 
-/* Powerup Specific Color Schemes */
 .badge-jetpack {
-  border-color: rgba(0, 229, 255, 0.5);
-  box-shadow: 0 0 12px rgba(0, 229, 255, 0.25);
+  border-color: rgba(0, 229, 255, 0.6);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.3);
 }
 .badge-jetpack .powerup-name { color: #00E5FF; }
 .badge-jetpack .powerup-fill { background: #00E5FF; }
 
 .badge-magnet {
-  border-color: rgba(245, 158, 11, 0.5);
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+  border-color: rgba(245, 158, 11, 0.6);
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.3);
 }
 .badge-magnet .powerup-name { color: var(--amber-bright); }
 .badge-magnet .powerup-fill { background: var(--amber-bright); }
 
 .badge-multiplier {
-  border-color: rgba(234, 179, 8, 0.5);
-  box-shadow: 0 0 12px rgba(234, 179, 8, 0.25);
+  border-color: rgba(234, 179, 8, 0.6);
+  box-shadow: 0 0 14px rgba(234, 179, 8, 0.3);
 }
 .badge-multiplier .powerup-name { color: #FACC15; }
 .badge-multiplier .powerup-fill { background: #FACC15; }
 
 .badge-shield {
-  border-color: rgba(96, 165, 250, 0.5);
-  box-shadow: 0 0 12px rgba(96, 165, 250, 0.25);
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: 0 0 14px rgba(96, 165, 250, 0.3);
 }
 .badge-shield .powerup-name { color: #60A5FA; }
 .badge-shield .powerup-fill { background: #60A5FA; }
 
 /* ==========================================================================
-   MODAL DIALOGS - RICH DARK BROWN DESERT GLASS SQUIRCLE PANELS
+   1. SUBWAY SURFERS STYLE MAIN MENU VIEWPORT
    ========================================================================== */
 .game-modal-screen {
   position: absolute;
@@ -344,14 +449,10 @@ html, body {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: radial-gradient(circle at center, rgba(30, 20, 14, 0.72) 0%, rgba(14, 9, 6, 0.88) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   z-index: 100;
-  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) 16px;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.3s ease;
   overflow: hidden;
 }
 
@@ -360,11 +461,266 @@ html, body {
   pointer-events: auto;
 }
 
-/* Dark Brown Desert Squircle Card */
+/* Main Menu Fullscreen Layout */
+.menu-viewport {
+  background: radial-gradient(circle at center top, rgba(30, 20, 14, 0.45) 0%, rgba(13, 9, 6, 0.72) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: max(16px, env(safe-area-inset-top)) 18px max(24px, env(safe-area-inset-bottom)) 18px;
+}
+
+/* Top Bar: Controls & Currency / High Score Badges */
+.menu-top-bar {
+  width: 100%;
+  max-width: 580px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 110;
+}
+
+.menu-header-badges {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.menu-stat-pill {
+  background: var(--glass-dark);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.menu-stat-pill.gold-accent {
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.2);
+}
+
+.pill-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.pill-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.pill-label {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: var(--text-sub);
+}
+
+.pill-value {
+  font-size: clamp(12px, 3.2vw, 14px);
+  font-weight: 900;
+  color: #FFFFFF;
+  font-variant-numeric: tabular-nums;
+}
+
+.gold-accent .pill-value {
+  color: var(--amber-bright);
+}
+
+/* Center Logo & Mode Switcher */
+.menu-center-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  max-width: 440px;
+  z-index: 110;
+}
+
+.menu-logo-wrap {
+  animation: logoFloat 3s ease-in-out infinite;
+  filter: drop-shadow(0 8px 24px rgba(245, 158, 11, 0.35));
+}
+
+.menu-main-logo {
+  width: clamp(250px, 72vw, 360px);
+  height: auto;
+  display: block;
+}
+
+/* Segmented Mission Switcher */
+.mode-segmented-control {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  background: rgba(18, 12, 8, 0.85);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  padding: 6px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+}
+
+.mode-tab-btn {
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  touch-action: manipulation;
+}
+
+.mode-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mode-tab-btn.active {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.35) 0%, rgba(180, 83, 9, 0.2) 100%);
+  border-color: var(--amber-bright);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.3);
+}
+
+.tab-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.tab-title {
+  font-size: clamp(11px, 2.9vw, 12px);
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  color: #FFFFFF;
+}
+
+.mode-tab-btn.active .tab-title {
+  color: var(--amber-gold);
+}
+
+.tab-sub {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.mode-tab-btn.active .tab-sub {
+  color: var(--text-muted);
+}
+
+/* Bottom Subway Surfers Style Massive Play Button */
+.menu-bottom-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 440px;
+  z-index: 110;
+}
+
+.btn-play-massive {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  height: 68px;
+  background: linear-gradient(135deg, #B45309 0%, #D97706 45%, #F59E0B 100%);
+  border: 1.5px solid rgba(254, 243, 199, 0.4);
+  border-radius: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  box-shadow: 0 10px 32px var(--amber-glow), 0 0 40px rgba(245, 158, 11, 0.3);
+  transition: transform 0.15s ease, filter 0.2s ease, box-shadow 0.2s ease;
+  touch-action: manipulation;
+  overflow: hidden;
+  animation: playPulse 2s ease-in-out infinite;
+}
+
+.btn-play-massive:hover {
+  filter: brightness(1.15);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 14px 40px rgba(245, 158, 11, 0.6);
+}
+
+.btn-play-massive:active {
+  transform: scale(0.96);
+}
+
+.play-arrow {
+  font-size: 24px;
+  color: #FFFFFF;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.play-text-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.play-main-text {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #FFFFFF;
+  line-height: 1;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.play-sub-text {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 2px;
+}
+
+@keyframes playPulse {
+  0%, 100% { box-shadow: 0 10px 32px var(--amber-glow); }
+  50% { box-shadow: 0 12px 42px rgba(245, 158, 11, 0.65), 0 0 20px rgba(245, 158, 11, 0.4); }
+}
+
+.menu-controls-pill {
+  background: rgba(18, 12, 8, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.ctrl-key {
+  color: var(--amber-bright);
+  font-weight: 800;
+}
+
+/* ==========================================================================
+   MODAL DIALOG CARDS (PAUSE, GAME OVER, VICTORY)
+   ========================================================================== */
 .squircle-card {
   position: relative;
-  background: var(--desert-card-bg);
-  border: 1px solid var(--desert-card-border);
+  background: var(--glass-card);
+  border: 1.5px solid var(--glass-border);
   border-radius: 28px;
   padding: clamp(24px, 5vw, 36px);
   width: 100%;
@@ -373,120 +729,50 @@ html, body {
   overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  box-shadow: var(--desert-shadow);
+  box-shadow: var(--card-shadow);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .squircle-card::-webkit-scrollbar {
   display: none;
 }
 
-/* Header Typography */
 .card-header {
-  margin-bottom: 20px;
+  margin-bottom: 22px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 4px;
 }
 
 .game-title {
   font-family: var(--font-main);
   font-size: clamp(24px, 6.5vw, 30px);
   font-weight: 900;
-  letter-spacing: -0.5px;
+  letter-spacing: 0.5px;
   color: var(--text-main);
   line-height: 1.15;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
 }
 
 .game-tagline {
-  font-size: clamp(13px, 3.4vw, 15px);
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
-
-/* Mission Mode Selector */
-.mode-selector-group {
-  width: 100%;
-  margin-bottom: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.mode-section-title {
-  font-size: 9px;
-  font-weight: 800;
+  font-size: clamp(12px, 3.2vw, 14px);
+  font-weight: 700;
   letter-spacing: 1px;
-  color: var(--text-sub);
-  text-align: left;
-  padding-left: 4px;
 }
 
-.mode-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
+.victory-trophy-badge {
+  font-size: 44px;
+  margin-bottom: 4px;
+  filter: drop-shadow(0 4px 16px rgba(245, 158, 11, 0.6));
 }
 
-.mode-card-btn {
-  background: rgba(14, 10, 7, 0.65);
-  border: 1.5px solid rgba(217, 119, 6, 0.25);
-  border-radius: 16px;
-  padding: 10px 14px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-  touch-action: manipulation;
-}
-
-.mode-card-btn:hover {
-  border-color: rgba(245, 158, 11, 0.5);
-  background: rgba(26, 18, 13, 0.85);
-}
-
-.mode-card-btn.active {
-  background: linear-gradient(135deg, rgba(217, 119, 6, 0.25) 0%, rgba(180, 83, 9, 0.15) 100%);
-  border-color: var(--amber-bright);
-  box-shadow: 0 0 16px rgba(245, 158, 11, 0.25), inset 0 0 12px rgba(245, 158, 11, 0.1);
-}
-
-.mode-card-btn .mode-badge {
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
-  color: var(--text-sub);
-  margin-bottom: 2px;
-}
-
-.mode-card-btn.active .mode-badge {
-  color: var(--amber-bright);
-}
-
-.mode-card-btn .mode-name {
-  font-size: clamp(13px, 3.5vw, 15px);
-  font-weight: 800;
-  color: #FFFFFF;
-  margin-bottom: 2px;
-}
-
-.mode-card-btn .mode-desc {
-  font-size: clamp(10px, 2.7vw, 11px);
-  font-weight: 500;
-  color: var(--text-muted);
-  line-height: 1.35;
-}
-
-/* Stats Squircle Grid (Game Over / Restart Screen) */
+/* Stats Squircle Grid */
 .stats-squircle-grid {
   width: 100%;
   display: grid;
@@ -496,8 +782,8 @@ html, body {
 }
 
 .stat-card {
-  background: rgba(14, 10, 7, 0.6);
-  border: 1px solid rgba(217, 119, 6, 0.2);
+  background: rgba(14, 10, 7, 0.65);
+  border: 1px solid rgba(217, 119, 6, 0.25);
   border-radius: 16px;
   padding: 12px 14px;
   display: flex;
@@ -508,13 +794,13 @@ html, body {
 
 .stat-card.full-span {
   grid-column: span 2;
-  background: rgba(217, 119, 6, 0.12);
-  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(217, 119, 6, 0.16);
+  border-color: rgba(245, 158, 11, 0.45);
 }
 
 .stat-card-title {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.8px;
   color: var(--text-muted);
 }
@@ -526,9 +812,10 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
-/* ==========================================================================
-   BUTTONS (SQUIRCLE ACTION SYSTEM)
-   ========================================================================== */
+.text-sub { color: var(--text-sub); }
+.text-amber { color: var(--amber-bright); }
+
+/* Buttons */
 .card-actions {
   display: flex;
   flex-direction: column;
@@ -539,7 +826,7 @@ html, body {
 .btn-squircle-primary {
   background: linear-gradient(135deg, #B45309 0%, #D97706 50%, #F59E0B 100%);
   border: 1px solid rgba(254, 243, 199, 0.3);
-  border-radius: 16px;
+  border-radius: 18px;
   color: #FFFFFF;
   font-family: var(--font-main);
   font-size: clamp(15px, 4vw, 16px);
@@ -548,11 +835,11 @@ html, body {
   padding: 14px 24px;
   min-height: 50px;
   cursor: pointer;
-  box-shadow: 0 4px 18px var(--amber-glow);
+  box-shadow: 0 6px 20px var(--amber-glow);
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: transform 0.15s ease, filter 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.15s ease, filter 0.2s ease;
   width: 100%;
   touch-action: manipulation;
 }
@@ -560,7 +847,6 @@ html, body {
 .btn-squircle-primary:hover {
   filter: brightness(1.15);
   transform: translateY(-1px);
-  box-shadow: 0 6px 22px rgba(217, 119, 6, 0.5);
 }
 
 .btn-squircle-primary:active {
@@ -569,14 +855,14 @@ html, body {
 
 .btn-squircle-secondary {
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
   color: #FFFDF8;
   font-family: var(--font-main);
   font-size: clamp(14px, 3.6vw, 15px);
   font-weight: 700;
   padding: 12px 20px;
-  min-height: 46px;
+  min-height: 48px;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.15s ease;
   width: 100%;
@@ -587,95 +873,10 @@ html, body {
 }
 
 .btn-squircle-secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 .btn-squircle-secondary:active {
   transform: scale(0.98);
-}
-
-/* Controls Hint Box */
-.controls-hint-box {
-  margin-top: 16px;
-  font-size: clamp(10px, 2.6vw, 11px);
-  font-weight: 600;
-  letter-spacing: 0.8px;
-  color: var(--text-muted);
-  line-height: 1.6;
-}
-
-.key-pill {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  padding: 2px 6px;
-  border-radius: 6px;
-  color: #FFFDF8;
-  font-weight: 700;
-}
-
-/* Victory Highlighting */
-.victory-highlight {
-  border-color: rgba(245, 158, 11, 0.5);
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(245, 158, 11, 0.3);
-}
-
-/* Utility Color Helpers */
-.text-amber { color: var(--amber-bright) !important; }
-.text-sub { color: var(--text-sub) !important; }
-
-/* ==========================================================================
-   MOBILE VERTICAL RESPONSIVENESS
-   ========================================================================== */
-@media (max-width: 500px) {
-  #game-hud {
-    padding: max(8px, env(safe-area-inset-top)) 10px 6px 10px;
-  }
-
-  .hud-center {
-    max-width: calc(100% - 84px);
-    gap: 4px;
-  }
-
-  .hud-pill {
-    padding: 4px 12px;
-    gap: 8px;
-  }
-
-  .goal-pill {
-    max-width: 180px;
-    padding: 3px 10px;
-  }
-
-  .squircle-icon-btn {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    min-height: 36px;
-  }
-
-  .squircle-card {
-    padding: 20px 16px;
-    border-radius: 24px;
-    max-width: 94vw;
-  }
-}
-
-@media (max-height: 650px) {
-  .squircle-card {
-    padding: 16px;
-    border-radius: 20px;
-  }
-
-  .card-header {
-    margin-bottom: 12px;
-  }
-
-  .stats-squircle-grid {
-    margin-bottom: 14px;
-  }
-
-  .controls-hint-box {
-    margin-top: 10px;
-  }
 }

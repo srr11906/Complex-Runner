@@ -63,6 +63,48 @@ export class Player3D {
 
     this.root.add(this.healGlitchGroup);
 
+    // =========================================================================
+    // PLASMA GAUNTLET LASER BEAM (Spacebar Action)
+    // =========================================================================
+    this.laserBeamGroup = new THREE.Group();
+    this.laserBeamGroup.visible = false;
+
+    const outerLaserGeo = new THREE.CylinderGeometry(0.03, 0.03, 38.0, 12);
+    const outerLaserMat = new THREE.MeshBasicMaterial({
+      color: 0x00E5FF,
+      transparent: true,
+      opacity: 0.85
+    });
+    const outerLaser = new THREE.Mesh(outerLaserGeo, outerLaserMat);
+    outerLaser.rotation.x = Math.PI / 2;
+    outerLaser.position.set(0.32, 1.35, 19.0);
+    outerLaser.name = "outerLaser";
+    this.laserBeamGroup.add(outerLaser);
+
+    const coreLaserGeo = new THREE.CylinderGeometry(0.0125, 0.0125, 38.0, 8);
+    const coreLaserMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+    const coreLaser = new THREE.Mesh(coreLaserGeo, coreLaserMat);
+    coreLaser.rotation.x = Math.PI / 2;
+    coreLaser.position.set(0.32, 1.35, 19.0);
+    coreLaser.name = "coreLaser";
+    this.laserBeamGroup.add(coreLaser);
+
+    // Muzzle Flash
+    const muzzleFlash = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12, 12, 12),
+      new THREE.MeshBasicMaterial({ color: 0x00E5FF, transparent: true, opacity: 0.9 })
+    );
+    muzzleFlash.position.set(0.32, 1.35, 0.6);
+    this.laserBeamGroup.add(muzzleFlash);
+
+    this.root.add(this.laserBeamGroup);
+
+    // Combat & Action States
+    this.shootTimer = 0;
+    this.laserCooldown = 0;
+    this.hasHarpoon = false;
+    this.harpoonTimer = 0;
+
     // State Variables
     this.currentLane = 1; // 0: Left (-3m), 1: Center (0m), 2: Right (+3m)
     this.targetX = CONFIG.LANES[1];
@@ -126,6 +168,14 @@ export class Player3D {
     this.hasMultiplier = false;
     this.multiplierTimer = 0;
     this.invulnerableTimer = 0;
+    this.healAidTimer = 0; // 5-Second Grace Window
+
+    this.shootTimer = 0;
+    this.laserCooldown = 0;
+    this.hasHarpoon = false;
+    this.harpoonTimer = 0;
+    if (this.laserBeamGroup) this.laserBeamGroup.visible = false;
+
     this.clearBujjiAid();
 
     if (this.shieldMesh) this.shieldMesh.visible = false;
@@ -138,6 +188,33 @@ export class Player3D {
     }
     this.root.rotation.set(0, 0, 0);
     this.updateTransform();
+  }
+
+  shootLaser(distance = 38.0) {
+    // Zero cooldown: instant continuous rapid fire with smooth visual punch
+    this.shootTimer = 0.24;
+    if (this.laserBeamGroup) {
+      this.laserBeamGroup.visible = true;
+      this.laserBeamGroup.scale.set(1.3, 1.3, 1.0);
+      const scaleZ = Math.min(1.0, distance / 38.0);
+      const outer = this.laserBeamGroup.getObjectByName("outerLaser");
+      const core = this.laserBeamGroup.getObjectByName("coreLaser");
+      if (outer) { outer.scale.y = scaleZ; outer.position.z = (38.0 * scaleZ) / 2; }
+      if (core) { core.scale.y = scaleZ; core.position.z = (38.0 * scaleZ) / 2; }
+
+    }
+
+    return {
+      shot: true,
+      laneX: this.targetX,
+      playerZ: this.position.z,
+      range: 38.0
+    };
+  }
+
+  giveHarpoon(duration = 8.0) {
+    this.hasHarpoon = true;
+    this.harpoonTimer = duration;
   }
 
   moveLeft() {
@@ -179,15 +256,14 @@ export class Player3D {
   slide() {
     if (this.hasJetpack) return false;
 
+    this.state = "sliding";
+    this.slideTimer = CONFIG.SLIDE_DURATION;
+
     if (!this.isGrounded) {
       // In air -> Fast Fall / Dive snap!
       this.velocityY = CONFIG.FAST_FALL_VELOCITY;
-      this.slideTimer = CONFIG.SLIDE_DURATION;
       return "dive";
     } else {
-      // Ground slide
-      this.state = "sliding";
-      this.slideTimer = CONFIG.SLIDE_DURATION;
       return "slide";
     }
   }
@@ -234,7 +310,7 @@ export class Player3D {
   }
 
   update(dt, currentSpeed, time) {
-    // 1. Power-Up Timers
+    // 1. Power-Up & Action Timers
     if (this.hasMagnet) {
       this.magnetTimer -= dt;
       if (this.magnetTimer <= 0) this.hasMagnet = false;
@@ -249,6 +325,29 @@ export class Player3D {
       this.jetpackTimer -= dt;
       if (this.jetpackTimer <= 0) {
         this.hasJetpack = false;
+      }
+    }
+
+    if (this.hasHarpoon) {
+      this.harpoonTimer -= dt;
+      if (this.harpoonTimer <= 0) this.hasHarpoon = false;
+    }
+
+    if (this.shootTimer > 0) {
+      this.shootTimer -= dt;
+      if (this.laserBeamGroup) {
+        this.laserBeamGroup.visible = true;
+        const currentScale = this.laserBeamGroup.scale.x;
+        const targetScale = 1.0 + Math.sin(time * 50) * 0.15;
+        this.laserBeamGroup.scale.x = THREE.MathUtils.lerp(currentScale, targetScale, 0.3);
+        this.laserBeamGroup.scale.y = this.laserBeamGroup.scale.x;
+      }
+      if (this.shootTimer <= 0) {
+        if (this.laserBeamGroup) this.laserBeamGroup.visible = false;
+      }
+    } else {
+      if (this.laserBeamGroup && this.laserBeamGroup.visible) {
+        this.laserBeamGroup.visible = false;
       }
     }
 
@@ -388,7 +487,7 @@ export class Player3D {
 
     // 8. Update 3D Character Rig & Bujji Companion Animations
     const speedRatio = currentSpeed / CONFIG.INITIAL_SPEED;
-    this.bhairava.updateAnimation(this.state, time, speedRatio, this.hasJetpack);
+    this.bhairava.updateAnimation(this.state, time, speedRatio, this.hasJetpack, this.shootTimer);
     this.bujji.update(time, this.turnDirection);
 
     this.updateTransform();

@@ -41,6 +41,8 @@ export class GameEngine3D {
 
     // Subsystems
     this.audio = new AudioManager3D();
+    // Bounty system disabled for now - will be implemented one by one
+    this.bountyManager = null;
     this.input = null;
     this.player = null;
     this.environment = null;
@@ -53,6 +55,16 @@ export class GameEngine3D {
 
     // DOM Elements
     this.dom = {};
+  }
+
+  safeAudio(fnName, ...args) {
+    if (this.audio && typeof this.audio[fnName] === "function") {
+      try {
+        this.audio[fnName](...args);
+      } catch (e) {
+        console.warn(`Audio call '${fnName}' error:`, e);
+      }
+    }
   }
 
   init() {
@@ -69,19 +81,39 @@ export class GameEngine3D {
       onRight: () => this.handleRight(),
       onJump: () => this.handleJump(),
       onSlide: () => this.handleSlide(),
+      onShoot: () => this.handleShoot(),
       onPause: () => this.togglePause(),
       onStart: () => this.handleStartAction()
     });
 
     this.bindUi();
     this.setGameMode(this.gameMode);
+    this.updateMenuStats();
     this.updateHud();
     this.showScreen(GameState3D.MENU);
+    this.initLoading();
 
     window.addEventListener("resize", () => this.handleResize());
 
+    // Battery & Performance: Handle background tab visibility
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        if (this.state === GameState3D.PLAYING) {
+          this.togglePause();
+        }
+        if (this.audio) {
+          this.audio.suspendContext();
+        }
+      } else {
+        if (this.audio && this.state === GameState3D.PLAYING) {
+          this.audio.ensureContext();
+        }
+      }
+    });
+
     // Start 60 FPS Loop
     this.lastTime = performance.now();
+    this.lastRenderTime = performance.now();
     this.animId = requestAnimationFrame((t) => this.gameLoop(t));
   }
 
@@ -97,15 +129,31 @@ export class GameEngine3D {
     this.camera = new THREE.PerspectiveCamera(65, width / height, 0.1, 1000);
     this.camera.position.set(0, 3.4, -6.5);
 
-    // WebGL Renderer (Optimized for consistent 60 FPS)
-    this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "default" });
+    // WebGL Renderer (Optimized for low-power photorealism)
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: false,
+      powerPreference: "high-performance",
+      depth: true,
+      stencil: false,
+      alpha: false
+    });
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.0;
 
     container.appendChild(this.renderer.domElement);
+
+    // Warm Subtle Rim Backlight for Hero Silhouettes (Balanced)
+    this.rimLight = new THREE.DirectionalLight(0xF59E0B, 0.45);
+    this.rimLight.position.set(-15, 12, 10);
+    this.rimLightTarget = new THREE.Object3D();
+    this.scene.add(this.rimLightTarget);
+    this.rimLight.target = this.rimLightTarget;
+    this.scene.add(this.rimLight);
 
     // Tractor Beam for Victory Sequence
     const beamGeo = new THREE.CylinderGeometry(4.0, 4.0, 150, 24, 1, true);
@@ -122,12 +170,25 @@ export class GameEngine3D {
 
   cacheDom() {
     this.dom = {
+      // Loading Screen Elements
+      loadingScreen: document.getElementById("loading-screen"),
+      loadingFill: document.getElementById("loading-bar-fill"),
+      loadingStatus: document.getElementById("loading-status-text"),
+      loadingPct: document.getElementById("loading-pct-text"),
+
+      // In-Game HUD
       hud: document.getElementById("game-hud"),
       hudScore: document.getElementById("hud-score-val"),
       hudUnits: document.getElementById("hud-units-val"),
       hudGoalPill: document.getElementById("hud-goal-pill"),
       hudGoalPct: document.getElementById("hud-goal-pct"),
       hudGoalFill: document.getElementById("hud-goal-fill"),
+
+      // Menu Badges (Subway Surfers Header)
+      menuHighScore: document.getElementById("menu-high-score-val"),
+      menuVaultUnits: document.getElementById("menu-vault-units-val"),
+      btnMenuSound: document.getElementById("btn-menu-sound-toggle"),
+      menuSoundIcon: document.getElementById("menu-sound-icon-img"),
 
       // Stacked Power-Up Badges (Bottom Left)
       badgeJetpack: document.getElementById("badge-jetpack"),
@@ -137,6 +198,8 @@ export class GameEngine3D {
       badgeMultiplier: document.getElementById("badge-multiplier"),
       fillMultiplier: document.getElementById("multiplier-timer-fill"),
       badgeShield: document.getElementById("badge-shield"),
+      badgeHarpoon: document.getElementById("badge-harpoon"),
+      fillHarpoon: document.getElementById("harpoon-timer-fill"),
 
       // Mission Mode Selectors
       btnModeHeist: document.getElementById("mode-btn-heist"),
@@ -199,12 +262,23 @@ export class GameEngine3D {
     if (this.dom.btnPause) {
       this.dom.btnPause.addEventListener("click", () => this.togglePause());
     }
+
+    const updateAudioIcons = (isMuted) => {
+      const iconSrc = isMuted ? "assets/ui/sound-off.svg" : "assets/ui/sound-on.svg";
+      if (this.dom.soundIcon) this.dom.soundIcon.src = iconSrc;
+      if (this.dom.menuSoundIcon) this.dom.menuSoundIcon.src = iconSrc;
+    };
+
     if (this.dom.btnSound) {
       this.dom.btnSound.addEventListener("click", () => {
         const isMuted = this.audio.toggleMute();
-        if (this.dom.soundIcon) {
-          this.dom.soundIcon.src = isMuted ? "assets/ui/sound-off.svg" : "assets/ui/sound-on.svg";
-        }
+        updateAudioIcons(isMuted);
+      });
+    }
+    if (this.dom.btnMenuSound) {
+      this.dom.btnMenuSound.addEventListener("click", () => {
+        const isMuted = this.audio.toggleMute();
+        updateAudioIcons(isMuted);
       });
     }
   }
@@ -237,9 +311,9 @@ export class GameEngine3D {
   }
 
   startNewGame() {
-    this.audio.init();
-    this.audio.playMusic();
-    this.audio.playDialogue("bujji");
+    this.safeAudio("init");
+    this.safeAudio("playMusic");
+    this.safeAudio("playDialogue", "bujji");
     this.score = 0;
     this.units = 0;
     this.currentSpeed = CONFIG.INITIAL_SPEED;
@@ -259,13 +333,13 @@ export class GameEngine3D {
     this.state = GameState3D.PLAYING;
     this.showScreen(GameState3D.PLAYING);
     this.updateHud();
-    this.audio.playDialogue("bujji");
+    this.safeAudio("playDialogue", "bujji");
   }
 
   togglePause() {
     if (this.state === GameState3D.PLAYING) {
       this.state = GameState3D.PAUSED;
-      this.audio.pauseMusic();
+      this.safeAudio("pauseMusic");
       this.showScreen(GameState3D.PAUSED);
     } else if (this.state === GameState3D.PAUSED) {
       this.resumeGame();
@@ -275,14 +349,59 @@ export class GameEngine3D {
   resumeGame() {
     if (this.state !== GameState3D.PAUSED) return;
     this.state = GameState3D.PLAYING;
-    this.audio.playMusic();
+    this.safeAudio("playMusic");
     this.showScreen(GameState3D.PLAYING);
     this.lastTime = performance.now();
   }
 
+  initLoading() {
+    const loadingScreen = this.dom.loadingScreen || document.getElementById("loading-screen");
+    const fill = this.dom.loadingFill || document.getElementById("loading-bar-fill");
+    const status = this.dom.loadingStatus || document.getElementById("loading-status-text");
+    const pct = this.dom.loadingPct || document.getElementById("loading-pct-text");
+
+    const steps = [
+      { progress: 28, text: "CALIBRATING GAUNTLET..." },
+      { progress: 58, text: "LINKING BUJJI AI CORE..." },
+      { progress: 88, text: "BUILDING HIGH-SPEED TRACK..." },
+      { progress: 100, text: "RUNNER READY" }
+    ];
+
+    let currentStep = 0;
+    const interval = setInterval(() => {
+      if (currentStep < steps.length) {
+        const step = steps[currentStep];
+        if (fill) fill.style.width = `${step.progress}%`;
+        if (pct) pct.textContent = `${step.progress}%`;
+        if (status) status.textContent = step.text;
+        currentStep++;
+      } else {
+        clearInterval(interval);
+        setTimeout(() => {
+          if (loadingScreen) {
+            loadingScreen.classList.remove("active");
+            setTimeout(() => {
+              loadingScreen.style.display = "none";
+            }, 500);
+          }
+        }, 150);
+      }
+    }, 120);
+  }
+
+  updateMenuStats() {
+    if (this.dom.menuHighScore) {
+      this.dom.menuHighScore.textContent = this.highScore.toString().padStart(6, "0");
+    }
+    if (this.dom.menuVaultUnits) {
+      this.dom.menuVaultUnits.textContent = this.vaultUnits.toLocaleString();
+    }
+  }
+
   showMenu() {
     this.state = GameState3D.MENU;
-    this.audio.stopMusic();
+    this.safeAudio("stopMusic");
+    this.updateMenuStats();
     this.showScreen(GameState3D.MENU);
     this._lastUnits = null;
     this._lastScore = null;
@@ -297,8 +416,8 @@ export class GameEngine3D {
   gameOver() {
     this.state = GameState3D.GAME_OVER;
     this.gameOverLockTime = Date.now() + 1000;
-    this.audio.pauseMusic();
-    this.audio.playHit();
+    this.safeAudio("pauseMusic");
+    this.safeAudio("playHit");
     this.cameraManager.shake(0.8);
 
     if (this.score > this.highScore) {
@@ -308,6 +427,7 @@ export class GameEngine3D {
 
     this.vaultUnits += this.units;
     localStorage.setItem("prabhas3DVaultUnits", this.vaultUnits.toString());
+    this.updateMenuStats();
 
     if (this.dom.finalScore) this.dom.finalScore.textContent = Math.floor(this.score).toString().padStart(6, "0");
     if (this.dom.finalHighScore) this.dom.finalHighScore.textContent = this.highScore.toString().padStart(6, "0");
@@ -326,8 +446,8 @@ export class GameEngine3D {
   victory() {
     this.state = GameState3D.VICTORY;
     this.gameOverLockTime = Date.now() + 1500;
-    this.audio.playPowerup();
-    this.audio.playDialogue("complex");
+    this.safeAudio("playPowerup");
+    this.safeAudio("playDialogue", "complex");
 
     // Position Tractor Beam on Player
     if (this.tractorBeam) {
@@ -341,6 +461,10 @@ export class GameEngine3D {
       this.highScore = Math.floor(this.score);
       localStorage.setItem("prabhas3DHighScore", this.highScore.toString());
     }
+
+    this.vaultUnits += this.units;
+    localStorage.setItem("prabhas3DVaultUnits", this.vaultUnits.toString());
+    this.updateMenuStats();
 
     setTimeout(() => {
       if (this.state === GameState3D.VICTORY) {
@@ -378,7 +502,7 @@ export class GameEngine3D {
   handleBarrierHit() {
     if (this.player.hasShield) {
       this.player.breakShield();
-      this.audio.playShieldBreak();
+      this.safeAudio("playShieldBreak");
       this.cameraManager.shake(0.45);
     } else if (this.player.invulnerableTimer <= 0) {
       if (this.player.healAidTimer > 0) {
@@ -387,17 +511,137 @@ export class GameEngine3D {
       } else {
         // First hit: Trigger 5-Second Bujji Aid / Second Chance Healing!
         this.player.triggerBujjiAid(5.0);
-        this.audio.playHit();
-        this.audio.playDialogue("bujji");
+        this.safeAudio("playHit");
+        this.safeAudio("playDialogue", "bujji");
         this.cameraManager.shake(0.5);
       }
+    }
+  }
+
+  handleShoot() {
+    if (this.state !== GameState3D.PLAYING) return;
+    const shot = this.player.shootLaser();
+    if (shot) {
+      this.safeAudio("playLaser");
+      this.cameraManager.shake(0.15);
+
+      const activeObstacles = this.trackPool.getAllActiveObstacles(this.player.position.z);
+      const hitEntities = CollisionManager3D.checkLaserCollisions(shot, activeObstacles);
+      let closestZ = 38.0;
+      for (let hit of hitEntities) {
+        const dist = (hit.obstacle.worldPos.z - hit.obstacle.mesh.geometry.boundingSphere?.radius || 0) - this.player.position.z;
+        if (dist > 0 && dist < closestZ) {
+          closestZ = dist;
+        }
+      }
+      this.player.shootLaser(closestZ);
+
+      for (let hit of hitEntities) {
+        if (hit.type === "laser_destructible_hit" || hit.type === "laser_hurdle_hit" || hit.type === "laser_obstacle_destroyed") {
+          const obs = hit.obstacle;
+          const defaultHp = obs.type === "train" ? 20 : 8;
+          const currentHp = obs.hp !== undefined ? obs.hp : (obs.mesh && obs.mesh.userData && obs.mesh.userData.hp !== undefined ? obs.mesh.userData.hp : defaultHp);
+          obs.hp = currentHp - 1;
+          if (obs.mesh && obs.mesh.userData) {
+            obs.mesh.userData.hp = obs.hp;
+          }
+
+          this.safeAudio("playHit");
+          this.cameraManager.shake(obs.type === "train" ? 0.22 : 0.16);
+
+          // Visual hit reaction recoil & damage flicker on obstacle
+          if (obs.mesh) {
+            const origX = obs.mesh.position.x;
+            obs.mesh.position.x += (Math.random() - 0.5) * (obs.type === "train" ? 0.22 : 0.16);
+            setTimeout(() => { if (obs.mesh) obs.mesh.position.x = origX; }, 60);
+          }
+
+          // Destroyed once HP is exhausted (8 hits for barriers & laser gates, 20 hits for trains)
+          if (obs.hp <= 0) {
+            obs.destroyed = true;
+            if (obs.mesh) {
+              obs.mesh.visible = false;
+              if (obs.mesh.userData) obs.mesh.userData.destroyed = true;
+            }
+            this.safeAudio("playHit");
+            this.cameraManager.shake(obs.type === "train" ? 0.55 : 0.3);
+            this.safeAudio("playDialogue", "laser");
+          }
+        }
+      }
+    }
+  }
+
+  showFloatingBountyBanner(text, type = "normal") {
+    let banner = document.getElementById("hud-bounty-banner");
+    if (!banner) {
+      banner = document.createElement("div");
+      banner.id = "hud-bounty-banner";
+      banner.className = "bounty-hud-pill";
+      if (this.dom.hud) this.dom.hud.appendChild(banner);
+    }
+    banner.textContent = text;
+    banner.className = `bounty-hud-pill active ${type === "boss" ? "boss-warning" : ""}`;
+
+    clearTimeout(this._bountyBannerTimeout);
+    this._bountyBannerTimeout = setTimeout(() => {
+      banner.className = "bounty-hud-pill";
+    }, 2400);
+  }
+
+  onBountyCaptured(data) {
+    this.updateBountyBoard();
+  }
+
+  onContractComplete(contract, reward) {
+    this.units += reward;
+    this.score += reward;
+    this.audio.playDialogue("complex");
+    this.showFloatingBountyBanner(`🏆 CONTRACT COMPLETED: ${contract.title} (+${reward.toLocaleString()} UNITS)`);
+    this.updateBountyBoard();
+  }
+
+  onStreakChange(count, mult) {
+    const badge = document.getElementById("hud-streak-badge");
+    if (badge) {
+      if (count >= 2) {
+        badge.style.display = "flex";
+        badge.textContent = `🔥 ${mult}X STREAK (${count})`;
+      } else {
+        badge.style.display = "none";
+      }
+    }
+  }
+
+  updateBountyBoard() {
+    const listEl = document.getElementById("bounty-contracts-list");
+    const rankEl = document.getElementById("bounty-rank-badge");
+    if (rankEl) {
+      const rank = this.bountyManager.getHunterRank();
+      rankEl.textContent = `${rank.icon} ${rank.badge} - ${rank.title}`;
+    }
+
+    if (listEl && this.bountyManager) {
+      listEl.innerHTML = this.bountyManager.contracts.map(c => `
+        <div class="contract-card ${c.completed ? 'completed' : ''}">
+          <div class="contract-header">
+            <span class="contract-title">${c.title}</span>
+            <span class="contract-reward">+${c.reward.toLocaleString()} UNITS</span>
+          </div>
+          <div class="contract-desc">${c.desc}</div>
+          <div class="contract-progress-bar">
+            <div class="contract-fill" style="width: ${(c.current / c.target) * 100}%"></div>
+          </div>
+          <div class="contract-status">${c.completed ? 'COMPLETED' : `${c.current} / ${c.target}`}</div>
+        </div>
+      `).join('');
     }
   }
 
   handleJump() {
     if (this.state !== GameState3D.PLAYING) return;
     if (this.player.jump()) {
-      this.audio.playJump();
+      this.safeAudio("playJump");
     }
   }
 
@@ -405,11 +649,14 @@ export class GameEngine3D {
     if (this.state !== GameState3D.PLAYING) return;
     const act = this.player.slide();
     if (act) {
-      this.audio.playSlide();
+      this.safeAudio("playSlide");
     }
   }
 
   showScreen(targetState) {
+    if (targetState === GameState3D.MENU) {
+      this.updateMenuStats();
+    }
     if (this.dom.startScreen) this.dom.startScreen.classList.toggle("active", targetState === GameState3D.MENU);
     if (this.dom.pauseScreen) this.dom.pauseScreen.classList.toggle("active", targetState === GameState3D.PAUSED);
     if (this.dom.gameOverScreen) this.dom.gameOverScreen.classList.toggle("active", targetState === GameState3D.GAME_OVER);
@@ -508,10 +755,35 @@ export class GameEngine3D {
         if (this.dom.badgeShield) this.dom.badgeShield.style.display = showShield ? "flex" : "none";
         this._lastShieldShow = showShield;
       }
+
+      // 5. Bujji EMP Harpoon
+      const showHarpoon = this.player.hasHarpoon;
+      if (this._lastHarpoonShow !== showHarpoon) {
+        if (this.dom.badgeHarpoon) this.dom.badgeHarpoon.style.display = showHarpoon ? "flex" : "none";
+        this._lastHarpoonShow = showHarpoon;
+      }
+      if (showHarpoon && this.dom.fillHarpoon) {
+        const pct = Math.floor(Math.max(0, (this.player.harpoonTimer / 8.0) * 100));
+        if (this._lastHarpoonPct !== pct) {
+          this.dom.fillHarpoon.style.width = `${pct}%`;
+          this._lastHarpoonPct = pct;
+        }
+      }
     }
   }
 
   gameLoop(timestamp) {
+    this.animId = requestAnimationFrame((t) => this.gameLoop(t));
+
+    // Power optimization: Throttle rendering
+    if (this.state !== GameState3D.PLAYING && this.state !== GameState3D.VICTORY) {
+      if (timestamp - this.lastRenderTime < 40) return;
+    } else {
+      // 60 FPS cap during gameplay to save 50% battery on 120Hz displays
+      if (timestamp - this.lastRenderTime < 16) return;
+    }
+    this.lastRenderTime = timestamp;
+
     const rawDt = (timestamp - this.lastTime) / 1000;
     const dt = Math.max(0.001, Math.min(rawDt, 0.05));
     this.lastTime = timestamp;
@@ -528,8 +800,6 @@ export class GameEngine3D {
     if (this.renderer && this.scene && this.camera) {
       this.renderer.render(this.scene, this.camera);
     }
-
-    this.animId = requestAnimationFrame((t) => this.gameLoop(t));
   }
 
   update(dt, time) {
@@ -537,7 +807,7 @@ export class GameEngine3D {
     const mult = this.player.hasMultiplier ? 2 : 1;
     this.score += dt * this.currentSpeed * 1.5 * mult;
     this.currentSpeed = Math.min(CONFIG.MAX_SPEED, this.currentSpeed + CONFIG.SPEED_ACCELERATION * dt * 20);
-    this.audio.updateSpeed(this.currentSpeed, CONFIG.INITIAL_SPEED, CONFIG.MAX_SPEED);
+    this.safeAudio("updateSpeed", this.currentSpeed, CONFIG.INITIAL_SPEED, CONFIG.MAX_SPEED);
 
     // 2. Update Player Kinematics
     this.player.update(dt, this.currentSpeed, time);
@@ -546,18 +816,22 @@ export class GameEngine3D {
     this.trackPool.update(this.player.position.z, this.player.hasJetpack, dt);
     this.environment.update(time, this.player.position.z);
 
-    // 4. Update Third-Person Follow Camera
+    // 4. Update Third-Person Follow Camera & Cinematic Lighting
     this.cameraManager.update(dt, this.player.position, this.currentSpeed);
+    if (this.rimLight && this.rimLightTarget) {
+      this.rimLight.position.set(-15, 14, this.player.position.z + 10);
+      this.rimLightTarget.position.set(0, 1.5, this.player.position.z);
+    }
 
-    // 5. Collision Detection (Obstacles - Spatially Filtered around Player)
+    // 5. Collision Detection (Standard Obstacles: Trains, Hurdles, Laser Gates)
     const activeObstacles = this.trackPool.getAllActiveObstacles(this.player.position.z);
     const hitResult = CollisionManager3D.checkObstacleCollisions(this.player, activeObstacles);
 
-    if (hitResult) {
+    if (hitResult && hitResult.type === "collision") {
       if (this.player.hasShield) {
         // Shield absorbs collision
         this.player.breakShield();
-        this.audio.playShieldBreak();
+        this.safeAudio("playShieldBreak");
         this.cameraManager.shake(0.45);
 
         // If hitting a train with a shield, pop cleanly onto the roof rather than clipping through inside
@@ -575,8 +849,8 @@ export class GameEngine3D {
         } else {
           // First hit: Trigger 5-Second Bujji Aid / Second Chance Healing!
           this.player.triggerBujjiAid(5.0);
-          this.audio.playHit();
-          this.audio.playDialogue("bujji");
+          this.safeAudio("playHit");
+          this.safeAudio("playDialogue", "bujji");
           this.cameraManager.shake(0.55);
 
           // If hitting a train, pop cleanly onto the roof so the player doesn't clip inside
@@ -599,11 +873,11 @@ export class GameEngine3D {
         const prevUnits = this.units;
         this.units += item.points * mult;
         this.score += item.points * mult;
-        this.audio.playCoin(mult);
+        this.safeAudio("playCoin", mult);
 
         // Milestone audio cues (Every 200k Units)
         if (Math.floor(this.units / 200000) > Math.floor(prevUnits / 200000)) {
-          this.audio.playDialogue("milestone");
+          this.safeAudio("playDialogue", "milestone");
         }
 
         // Win Condition: 1 Million Units in Complex Heist mode -> Unlocks entry to Complex!
@@ -612,16 +886,19 @@ export class GameEngine3D {
           return;
         }
       } else if (item.type === "powerup") {
-        this.audio.playPowerup();
+        this.safeAudio("playPowerup");
         if (item.powerupType === "magnet") {
           this.player.giveMagnet(item.duration);
+          this.safeAudio("playDialogue", "magnet");
         } else if (item.powerupType === "jetpack") {
           this.player.giveJetpack(item.duration);
-          this.audio.playDialogue("jetpack");
+          this.safeAudio("playDialogue", "jetpack");
         } else if (item.powerupType === "shield") {
           this.player.giveShield();
+          this.safeAudio("playDialogue", "shield");
         } else if (item.powerupType === "multiplier") {
           this.player.giveMultiplier(item.duration);
+          this.safeAudio("playDialogue", "multiplier");
         }
       }
     }

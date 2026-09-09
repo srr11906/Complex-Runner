@@ -25,6 +25,9 @@ export class CollisionManager3D {
 
     for (let i = 0; i < obstacles.length; i++) {
       const obs = obstacles[i];
+      if (!obs || obs.destroyed || !obs.mesh || !obs.mesh.visible || (obs.mesh.userData && obs.mesh.userData.destroyed)) {
+        continue;
+      }
       const oPos = obs.worldPos;
       const type = obs.type;
       const mesh = obs.mesh;
@@ -101,6 +104,49 @@ export class CollisionManager3D {
             };
           }
         }
+      } else if (type === "bounty_target" || type === "rival_hunter") {
+        const targetHalfW = 1.1;
+        const targetMinX = oPos.x - targetHalfW;
+        const targetMaxX = oPos.x + targetHalfW;
+        const targetMinZ = oPos.z - 1.2;
+        const targetMaxZ = oPos.z + 1.2;
+
+        const overlapX = pBounds.maxX > targetMinX && pBounds.minX < targetMaxX;
+        const overlapZ = pBounds.maxZ > targetMinZ && pBounds.minZ < targetMaxZ;
+
+        if (overlapX && overlapZ) {
+          return {
+            type: "bounty_takedown",
+            target: obs,
+            rewardUnits: obs.rewardUnits || 5000,
+            targetName: obs.targetName || "Target"
+          };
+        }
+      } else if (type === "bounty_crate") {
+        const crateHalfW = 1.0;
+        const crateMinX = oPos.x - crateHalfW;
+        const crateMaxX = oPos.x + crateHalfW;
+        const crateMinZ = oPos.z - 0.9;
+        const crateMaxZ = oPos.z + 0.9;
+
+        const overlapX = pBounds.maxX > crateMinX && pBounds.minX < crateMaxX;
+        const overlapZ = pBounds.maxZ > crateMinZ && pBounds.minZ < crateMaxZ;
+
+        if (overlapX && overlapZ) {
+          return {
+            type: "crate_breached",
+            crate: obs,
+            rewardUnits: obs.rewardUnits || 10000
+          };
+        }
+      } else if (type === "extraction_beacon") {
+        const dist = Math.hypot(pBounds.centerX - oPos.x, pBounds.centerZ - oPos.z);
+        if (dist < (obs.radius || 3.5)) {
+          return {
+            type: "extraction_triggered",
+            beacon: obs
+          };
+        }
       } else if (type === "hurdle") {
         if (player.invulnerableTimer > 0) {
           continue; // Glitch safely through during invulnerability window
@@ -111,7 +157,7 @@ export class CollisionManager3D {
         const hurdleMaxX = oPos.x + hurdleHalfW;
         const hurdleMinZ = oPos.z - 0.5;
         const hurdleMaxZ = oPos.z + 0.5;
-        const hurdleHeight = 0.95;
+        const hurdleHeight = 1.90;
 
         const overlapX = pBounds.maxX > hurdleMinX && pBounds.minX < hurdleMaxX;
         const overlapZ = pBounds.maxZ > hurdleMinZ && pBounds.minZ < hurdleMaxZ;
@@ -135,6 +181,64 @@ export class CollisionManager3D {
     }
 
     return null;
+  }
+
+  /**
+   * Check Gauntlet Laser Beam intersection along player lane (38m range)
+   */
+  static checkLaserCollisions(laserData, obstacles) {
+    if (!laserData || !laserData.shot) return [];
+    const hitEntities = [];
+    const laneX = laserData.laneX;
+    const startZ = laserData.playerZ;
+    const endZ = laserData.playerZ + laserData.range;
+
+    for (let i = 0; i < obstacles.length; i++) {
+      const obs = obstacles[i];
+      if (!obs.mesh || !obs.mesh.visible) continue;
+      const oPos = obs.worldPos;
+
+      const isSameLane = Math.abs(oPos.x - laneX) < 1.6;
+      const obsDepth = obs.type === "train" ? 12.0 : 1.5;
+      const isInRange = (oPos.z + obsDepth) >= startZ && (oPos.z - obsDepth) <= endZ;
+
+      if (isSameLane && isInRange) {
+        if (obs.type === "bounty_target" || obs.type === "rival_hunter") {
+          hitEntities.push({ type: "laser_bounty_capture", obstacle: obs, rewardUnits: obs.rewardUnits || 5000, targetName: obs.targetName || "Target" });
+        } else if (obs.type === "bounty_crate") {
+          hitEntities.push({ type: "laser_crate_breached", obstacle: obs, rewardUnits: obs.rewardUnits || 10000 });
+        } else if (obs.type === "hurdle" || obs.type === "laser_gate" || obs.type === "train") {
+          hitEntities.push({ type: "laser_destructible_hit", obstacle: obs });
+        }
+      }
+    }
+    return hitEntities;
+  }
+
+  /**
+   * Check Bujji EMP Harpoon automatic obstacle locks
+   */
+  static checkHarpoonLocks(player, obstacles) {
+    if (!player.hasHarpoon) return [];
+    const destroyed = [];
+    const pZ = player.position.z;
+
+    for (let i = 0; i < obstacles.length; i++) {
+      const obs = obstacles[i];
+      if (!obs.mesh || !obs.mesh.visible) continue;
+      const oPos = obs.worldPos;
+
+      if (oPos.z > pZ && oPos.z < pZ + 35.0) {
+        if (obs.type === "bounty_target" || obs.type === "rival_hunter") {
+          destroyed.push({ type: "harpoon_bounty_capture", obstacle: obs, rewardUnits: obs.rewardUnits || 5000, targetName: obs.targetName || "Target" });
+        } else if (obs.type === "bounty_crate") {
+          destroyed.push({ type: "harpoon_crate_breached", obstacle: obs, rewardUnits: obs.rewardUnits || 10000 });
+        } else if (obs.type === "hurdle" || obs.type === "laser_gate") {
+          destroyed.push({ type: "harpoon_obstacle_destroyed", obstacle: obs });
+        }
+      }
+    }
+    return destroyed;
   }
 
   /**
