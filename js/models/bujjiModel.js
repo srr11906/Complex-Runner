@@ -26,17 +26,17 @@ export class BujjiModel {
   }
 
   buildModel() {
-    // 1. High-Fidelity PBR Materials
+    // 1. High-Fidelity Photorealistic Automotive PBR Materials
     const yellowNanoMat = new THREE.MeshStandardMaterial({
       color: CONFIG.COLORS.BUJJI_YELLOW,
-      roughness: 0.28,
-      metalness: 0.75
+      roughness: 0.18,
+      metalness: 0.88
     });
 
     const darkCarbonMat = new THREE.MeshStandardMaterial({
       color: CONFIG.COLORS.DARK_CARBON,
-      roughness: 0.45,
-      metalness: 0.85
+      roughness: 0.32,
+      metalness: 0.90
     });
 
     const canopyGlassMat = new THREE.MeshStandardMaterial({

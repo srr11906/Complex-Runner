@@ -38,6 +38,12 @@ export class AudioManager3D {
     }
   }
 
+  suspendContext() {
+    if (this.ctx && this.ctx.state === "running") {
+      this.ctx.suspend().catch(() => {});
+    }
+  }
+
   playMusic() {
     if (this.isMuted) return;
     try {
@@ -242,8 +248,51 @@ export class AudioManager3D {
     } catch (e) {}
   }
 
+  playBountyTakedown() {
+    if (this.isMuted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      [440, 659, 880, 1318].forEach((f, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(f, now + idx * 0.04);
+        gain.gain.setValueAtTime(0.3, now + idx * 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.2);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + idx * 0.04);
+        osc.stop(now + idx * 0.04 + 0.22);
+      });
+    } catch (e) {}
+  }
+
+  playBossAlarm() {
+    if (this.isMuted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      for (let i = 0; i < 3; i++) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(220, now + i * 0.25);
+        osc.frequency.linearRampToValueAtTime(440, now + i * 0.25 + 0.18);
+        gain.gain.setValueAtTime(0.35, now + i * 0.25);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.25 + 0.22);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + i * 0.25);
+        osc.stop(now + i * 0.25 + 0.24);
+      }
+    } catch (e) {}
+  }
+
   /**
-   * Reactive Bujji AI Robotic Voice Synthesizer
+   * Reactive Bujji AI Robotic Voice Synthesizer (Pure Web Audio Harmonics)
    */
   playDialogue(type) {
     if (this.isMuted) return;
@@ -256,6 +305,10 @@ export class AudioManager3D {
       if (type === "jetpack") notes = [440, 660, 990, 1320];
       else if (type === "complex") notes = [523, 659, 783, 1046, 1318];
       else if (type === "milestone") notes = [659, 880, 1318];
+      else if (type === "magnet") notes = [600, 900, 1200];
+      else if (type === "shield") notes = [500, 750, 1000];
+      else if (type === "multiplier") notes = [700, 1050, 1400];
+      else if (type === "bounty" || type === "laser") notes = [784, 987, 1318, 1568];
 
       notes.forEach((f, idx) => {
         const osc = this.ctx.createOscillator();
@@ -264,7 +317,7 @@ export class AudioManager3D {
         osc.frequency.setValueAtTime(f, now + idx * 0.05);
         osc.frequency.linearRampToValueAtTime(f * 1.25, now + idx * 0.05 + 0.12);
         gain.gain.setValueAtTime(0.01, now + idx * 0.05);
-        gain.gain.linearRampToValueAtTime(0.18, now + idx * 0.05 + 0.04);
+        gain.gain.linearRampToValueAtTime(0.25, now + idx * 0.05 + 0.04);
         gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.22);
         osc.connect(gain);
         gain.connect(this.ctx.destination);

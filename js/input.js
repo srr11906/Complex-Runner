@@ -10,6 +10,7 @@ export class InputManager3D {
       onRight: callbacks.onRight || (() => {}),
       onJump: callbacks.onJump || (() => {}),
       onSlide: callbacks.onSlide || (() => {}),
+      onShoot: callbacks.onShoot || (() => {}),
       onPause: callbacks.onPause || (() => {}),
       onStart: callbacks.onStart || (() => {})
     };
@@ -78,9 +79,7 @@ export class InputManager3D {
       const dy = e.clientY - pointerStartY;
       const dt = performance.now() - pointerStartTime;
 
-      if (Math.abs(dx) > 20 || Math.abs(dy) > 20) {
-        this.processSwipe(dx, dy, dt);
-      }
+      this.processSwipe(dx, dy, dt);
     });
   }
 
@@ -90,8 +89,8 @@ export class InputManager3D {
     const absY = Math.abs(dy);
 
     if (absX < minDistance && absY < minDistance) {
-      // Tap action -> Jump
-      this.callbacks.onJump();
+      // Single Click / Tap (not swipe) -> Shoot Gauntlet Laser (same as Spacebar)!
+      this.callbacks.onShoot();
       return;
     }
 
@@ -114,17 +113,20 @@ export class InputManager3D {
 
   handleKeyDown(e) {
     const key = e.key;
+    const code = e.code;
 
     // Prevent default scroll on arrow keys / space
-    if ([" ", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Spacebar"].includes(key)) {
+    if ([" ", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Spacebar"].includes(key) || code === "Space") {
       e.preventDefault();
     }
 
-    if (key === "ArrowLeft" || key === "a" || key === "A") {
+    if (key === " " || key === "Spacebar" || code === "Space") {
+      this.callbacks.onShoot(); // Spacebar STRICTLY fires Gauntlet Laser Blast!
+    } else if (key === "ArrowLeft" || key === "a" || key === "A") {
       this.callbacks.onLeft();
     } else if (key === "ArrowRight" || key === "d" || key === "D") {
       this.callbacks.onRight();
-    } else if (key === "ArrowUp" || key === "w" || key === "W" || key === " " || key === "Spacebar") {
+    } else if (key === "ArrowUp" || key === "w" || key === "W") {
       this.callbacks.onJump();
     } else if (key === "ArrowDown" || key === "s" || key === "S") {
       this.callbacks.onSlide();

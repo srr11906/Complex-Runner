@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>COMPLEX RUNNER</title>
-  <meta name="description" content="Collect 1 Million Units to unlock entry to the Complex!">
+  <meta name="description" content="Complex Runner - Next-Gen 3D Sci-Fi Runner">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="assets/ui/favicon.svg">
 
   <!-- Clean, Modern Sans-Serif Font: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,16 +15,34 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Master Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=20260908_v10">
+  <link rel="stylesheet" href="css/style.css?v=20260909_ui_v1">
 </head>
 <body>
   <div id="app-root">
     <!-- WebGL 3D Canvas Viewport -->
     <div id="canvas-container"></div>
 
-    <!-- Heads-Up Display (HUD) - Mobile Optimized 3-Point Layout -->
+    <!-- 0. Production Loading Screen -->
+    <div id="loading-screen" class="loading-overlay active">
+      <div class="loading-container">
+        <div class="loading-logo-box">
+          <img src="assets/ui/logo.svg" alt="Complex Runner Logo" class="loading-logo-img">
+        </div>
+        <div class="loading-progress-box">
+          <div class="loading-track">
+            <div id="loading-bar-fill" class="loading-bar-fill" style="width: 0%;"></div>
+          </div>
+          <div class="loading-details">
+            <span id="loading-status-text" class="loading-status-text">INITIALIZING NEURAL LINK...</span>
+            <span id="loading-pct-text" class="loading-pct-text">0%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Heads-Up Display (HUD) - In-Game Tactical Overlay -->
     <header id="game-hud" class="hud-layer">
-      <!-- Top Left: Controls (Pause & Sound) -->
+      <!-- Top Left: Quick Controls -->
       <div class="hud-top-left">
         <button id="btn-pause-toggle" class="squircle-icon-btn interactive-ui" aria-label="Pause" title="Pause">
           <img src="assets/ui/pause.svg" alt="Pause">
@@ -105,49 +126,79 @@
       </div>
     </header>
 
-    <!-- 1. Main Menu Screen (Warm Desert Sand Light Theme) -->
-    <section id="start-screen" class="game-modal-screen active">
-      <div class="squircle-card desert-theme">
-        <div class="card-header">
-          <h1 class="game-title">COMPLEX RUNNER</h1>
-          <p class="game-tagline">Kalki 2898 AD Wasteland</p>
-        </div>
+    <!-- 1. Subway Surfers Style Main Menu Screen -->
+    <section id="start-screen" class="game-modal-screen active menu-viewport">
+      <!-- Top Navigation Header -->
+      <div class="menu-top-bar">
+        <button id="btn-menu-sound-toggle" class="squircle-icon-btn interactive-ui" aria-label="Toggle Sound" title="Sound">
+          <img id="menu-sound-icon-img" src="assets/ui/sound-on.svg" alt="Sound">
+        </button>
 
-        <!-- Mode Selector Section -->
-        <div class="mode-selector-group">
-          <div class="mode-section-title">SELECT MISSION MODE</div>
-          <div class="mode-grid">
-            <button id="mode-btn-heist" class="mode-card-btn active" type="button">
-              <div class="mode-badge">GOAL MISSION</div>
-              <div class="mode-name">COMPLEX HEIST</div>
-              <div class="mode-desc">Collect 1,000,000 Units to unlock entry to the Complex</div>
-            </button>
-            <button id="mode-btn-endless" class="mode-card-btn" type="button">
-              <div class="mode-badge">ARCADE SURVIVAL</div>
-              <div class="mode-name">ENDLESS RUN</div>
-              <div class="mode-desc">Endless survival wasteland run for maximum high score</div>
-            </button>
+        <div class="menu-header-badges">
+          <div class="menu-stat-pill" title="High Score">
+            <span class="pill-icon">🏆</span>
+            <div class="pill-col">
+              <span class="pill-label">HIGH SCORE</span>
+              <span id="menu-high-score-val" class="pill-value">000000</span>
+            </div>
+          </div>
+
+          <div class="menu-stat-pill gold-accent" title="Vault Units">
+            <span class="pill-icon">🪙</span>
+            <div class="pill-col">
+              <span class="pill-label">VAULT UNITS</span>
+              <span id="menu-vault-units-val" class="pill-value">0</span>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div class="card-actions">
-          <button id="btn-start-run" class="btn-squircle-primary">
-            <span>Play</span>
-          </button>
+      <!-- Center Logo & Mission Mode Container -->
+      <div class="menu-center-box">
+        <div class="menu-logo-wrap">
+          <img src="assets/ui/logo.svg" alt="Complex Runner Logo" class="menu-main-logo">
         </div>
 
-        <!-- Restored Previous Clean Game Controls Description -->
-        <div class="controls-hint-box">
-          <span class="key-pill">A / D / ← / →</span> SWITCH LANE &bull; <span class="key-pill">W / ↑ / SPACE</span> JUMP &bull; <span class="key-pill">S / ↓</span> SLIDE
+        <!-- Segmented Mission Mode Switcher -->
+        <div class="mode-segmented-control">
+          <button id="mode-btn-heist" class="mode-tab-btn active" type="button">
+            <span class="tab-icon">🎯</span>
+            <span class="tab-title">COMPLEX HEIST</span>
+            <span class="tab-sub">1M Units Goal</span>
+          </button>
+          <button id="mode-btn-endless" class="mode-tab-btn" type="button">
+            <span class="tab-icon">⚡</span>
+            <span class="tab-title">ENDLESS RUN</span>
+            <span class="tab-sub">Survive & Score</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bottom Subway Surfers Style Play CTA -->
+      <div class="menu-bottom-box">
+        <button id="btn-start-run" class="btn-play-massive interactive-ui" aria-label="Start Game">
+          <div class="play-btn-glow"></div>
+          <span class="play-arrow">▶</span>
+          <div class="play-text-group">
+            <span class="play-main-text">PLAY</span>
+            <span class="play-sub-text">TAP TO RUN</span>
+          </div>
+        </button>
+
+        <div class="menu-controls-pill">
+          <span class="ctrl-key">A / D / ← / →</span> MOVE &bull; 
+          <span class="ctrl-key">W / ↑</span> JUMP &bull; 
+          <span class="ctrl-key">S / ↓</span> SLIDE &bull; 
+          <span class="ctrl-key">SPACE / CLICK</span> LASER
         </div>
       </div>
     </section>
 
-    <!-- 2. Pause Screen (Warm Desert Sand Light Theme) -->
+    <!-- 2. Pause Screen (Warm Desert Sand Theme) -->
     <section id="pause-screen" class="game-modal-screen">
       <div class="squircle-card desert-theme">
         <div class="card-header">
-          <h2 class="game-title">Paused</h2>
+          <h2 class="game-title">PAUSED</h2>
         </div>
 
         <div class="card-actions">
@@ -158,17 +209,17 @@
             <span>Restart</span>
           </button>
           <button id="btn-pause-menu" class="btn-squircle-secondary">
-            <span>Menu</span>
+            <span>Main Menu</span>
           </button>
         </div>
       </div>
     </section>
 
-    <!-- 3. Game Over Screen (Warm Desert Sand Light Theme) -->
+    <!-- 3. Game Over Screen -->
     <section id="game-over-screen" class="game-modal-screen">
       <div class="squircle-card desert-theme">
         <div class="card-header">
-          <h2 class="game-title">Run Over</h2>
+          <h2 class="game-title">RUN OVER</h2>
         </div>
 
         <div class="stats-squircle-grid">
@@ -183,7 +234,7 @@
           </div>
 
           <div class="stat-card full-span">
-            <span class="stat-card-title">UNITS COLLECTED</span>
+            <span class="stat-card-title">UNITS SECURED</span>
             <span id="final-units-val" class="stat-card-val text-amber">0 UNITS</span>
           </div>
         </div>
@@ -193,18 +244,19 @@
             <span>Play Again</span>
           </button>
           <button id="btn-gameover-menu" class="btn-squircle-secondary">
-            <span>Menu</span>
+            <span>Main Menu</span>
           </button>
         </div>
       </div>
     </section>
 
-    <!-- 4. Victory Screen (Warm Desert Sand Light Theme) -->
+    <!-- 4. Victory Screen -->
     <section id="victory-screen" class="game-modal-screen">
       <div class="squircle-card desert-theme victory-highlight">
         <div class="card-header">
-          <h2 class="game-title">1,000,000 Units!</h2>
-          <p class="game-tagline text-amber">Complex Unlocked</p>
+          <div class="victory-trophy-badge">🏆</div>
+          <h2 class="game-title">1,000,000 UNITS!</h2>
+          <p class="game-tagline text-amber">COMPLEX ACCESS UNLOCKED</p>
         </div>
 
         <div class="card-actions">
@@ -212,7 +264,7 @@
             <span>Play Again</span>
           </button>
           <button id="btn-victory-menu" class="btn-squircle-secondary">
-            <span>Menu</span>
+            <span>Main Menu</span>
           </button>
         </div>
       </div>
@@ -220,6 +272,6 @@
   </div>
 
   <!-- Main ES Module Script -->
-  <script type="module" src="js/script.js?v=20260908_v16"></script>
+  <script type="module" src="js/script.js?v=20260909_ui_v2"></script>
 </body>
 </html>

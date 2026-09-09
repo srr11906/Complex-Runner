@@ -6,6 +6,7 @@
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 import { CONFIG } from "../config.js";
+import { textureGen } from "../world/textureGenerator.js";
 
 export class BhairavaModel {
   constructor() {
@@ -21,10 +22,10 @@ export class BhairavaModel {
   }
 
   buildModel() {
-    // 1. High-Fidelity PBR Materials
+    // 1. High-Fidelity Photorealistic PBR Materials with Tactile Micro-Detail Bump Maps
     const skinMat = new THREE.MeshStandardMaterial({
-      color: 0x8C5A3C,
-      roughness: 0.55,
+      color: 0xB8805A, // Balanced, natural cinematic warm Indian skin tone (calibrated)
+      roughness: 0.52,
       metalness: 0.08
     });
 
@@ -35,21 +36,25 @@ export class BhairavaModel {
     });
 
     const hairMat = new THREE.MeshStandardMaterial({
-      color: 0x120F0D,
-      roughness: 0.8,
-      metalness: 0.05
+      color: 0x120E0C,
+      roughness: 0.75,
+      metalness: 0.08
     });
 
+    const clothBump = textureGen.getClothBumpMap();
+
     const vestMat = new THREE.MeshStandardMaterial({
-      color: 0x4D3B2C, // Scavenger Khaki / Olive Brown
-      roughness: 0.75,
-      metalness: 0.15
+      color: 0x5C4A3A, // Balanced Scavenger Khaki / Sand
+      roughness: 0.72,
+      metalness: 0.10,
+      bumpMap: clothBump,
+      bumpScale: 0.03
     });
 
     const kanthaArmorMat = new THREE.MeshStandardMaterial({
-      color: 0x221E1B, // Dark Kantha Armor Plating
-      roughness: 0.6,
-      metalness: 0.4
+      color: 0x2A231E, // Dark Kantha Armor Plating
+      roughness: 0.55,
+      metalness: 0.38
     });
 
     const redInsigniaMat = new THREE.MeshBasicMaterial({
@@ -57,15 +62,16 @@ export class BhairavaModel {
     });
 
     const bronzeTrimMat = new THREE.MeshStandardMaterial({
-      color: 0xD97706,
-      roughness: 0.3,
-      metalness: 0.85
+      color: 0xD9982E, // Warm Antique Brass / Gold Buckles
+      roughness: 0.26,
+      metalness: 0.88
     });
 
     const cyberGauntletMat = new THREE.MeshStandardMaterial({
-      color: 0x1E293B,
+      color: 0x242C38,
+      map: textureGen.getCyberGauntletTexture(),
       roughness: 0.25,
-      metalness: 0.95
+      metalness: 0.90
     });
 
     const cyanCellMat = new THREE.MeshBasicMaterial({
@@ -73,22 +79,26 @@ export class BhairavaModel {
     });
 
     const dusterCloakMat = new THREE.MeshStandardMaterial({
-      color: 0x2E251E, // Flowing Scavenger Duster Trench Coat
-      roughness: 0.85,
-      metalness: 0.1,
+      color: 0x3E3228, // Balanced Scavenger Duster Trench Coat
+      roughness: 0.78,
+      metalness: 0.08,
+      bumpMap: clothBump,
+      bumpScale: 0.04,
       side: THREE.DoubleSide
     });
 
     const pantsMat = new THREE.MeshStandardMaterial({
-      color: 0x1E1E22,
-      roughness: 0.85,
-      metalness: 0.08
+      color: 0x2A2A32, // Balanced Tactical Combat Pants
+      roughness: 0.80,
+      metalness: 0.06,
+      bumpMap: clothBump,
+      bumpScale: 0.02
     });
 
     const bootMat = new THREE.MeshStandardMaterial({
-      color: 0x161311,
+      color: 0x1A1715,
       roughness: 0.55,
-      metalness: 0.45
+      metalness: 0.40
     });
 
     const darkTitaniumMat = new THREE.MeshStandardMaterial({
@@ -197,6 +207,24 @@ export class BhairavaModel {
     vestBody.castShadow = true;
     torso.add(vestBody);
 
+    // Diagonal Scavenger Bandolier Strap & Brass Ammo Nodes
+    const bandolier = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.36, 0.28, 0.06, 20),
+      vestMat
+    );
+    bandolier.rotation.z = 0.45;
+    bandolier.position.set(0, 0.26, 0.02);
+    torso.add(bandolier);
+
+    for (let c of [-0.1, 0.0, 0.1]) {
+      const cartridge = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.02, 0.02, 0.08, 8),
+        bronzeTrimMat
+      );
+      cartridge.position.set(c * 1.2, 0.26 + c * 0.4, 0.28);
+      torso.add(cartridge);
+    }
+
     // Shoulder Pauldrons / Heavy Straps
     for (let side of [-1, 1]) {
       const strap = new THREE.Mesh(
@@ -228,7 +256,7 @@ export class BhairavaModel {
       this.cloakSegments.push(panel);
     }
 
-    // 4. Sculpted Head & Top-Knot Hair Bun
+    // 4. Sculpted Head & Top-Knot Hair Bun (Restored from commit b6f725cf8c3169730ebde6fed393133617044a0d)
     const headGroup = new THREE.Group();
     headGroup.position.y = 0.56;
     torso.add(headGroup);
@@ -289,66 +317,151 @@ export class BhairavaModel {
     hairTie.rotation.x = Math.PI / 4;
     headGroup.add(hairTie);
 
-    // 5. Left Arm (Cloth wraps)
+    // 5. Left Arm (Kantha Armored Bracer & Wraps)
     const leftArm = new THREE.Group();
-    leftArm.position.set(-0.38, 0.44, 0);
+    leftArm.position.set(-0.36, 0.44, 0);
     torso.add(leftArm);
     this.parts.leftArm = leftArm;
 
+    // Anatomical Shoulder Deltoid & Socket Cap (Zero seams/gaps on rotation)
+    const leftShoulderBall = new THREE.Mesh(
+      new THREE.SphereGeometry(0.108, 16, 16),
+      vestMat
+    );
+    leftShoulderBall.position.set(0, 0, 0);
+    leftShoulderBall.castShadow = true;
+    leftArm.add(leftShoulderBall);
+
+    const leftShoulderCap = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.115, 0.105, 0.08, 16),
+      kanthaArmorMat
+    );
+    leftShoulderCap.position.set(0, -0.02, 0);
+    leftShoulderCap.castShadow = true;
+    leftArm.add(leftShoulderCap);
+
+    // Upper Arm / Muscular Bicep
     const leftBicep = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.095, 0.085, 0.3, 16),
+      new THREE.CylinderGeometry(0.098, 0.088, 0.28, 16),
       skinMat
     );
     leftBicep.position.y = -0.15;
     leftBicep.castShadow = true;
     leftArm.add(leftBicep);
 
-    const leftForearm = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.085, 0.075, 0.28, 16),
-      vestMat
-    );
-    leftForearm.position.y = -0.42;
-    leftForearm.castShadow = true;
-    leftArm.add(leftForearm);
-
-    const leftHand = new THREE.Mesh(
-      new THREE.SphereGeometry(0.065, 12, 12),
+    // Seamless Elbow Joint
+    const leftElbow = new THREE.Mesh(
+      new THREE.SphereGeometry(0.090, 14, 14),
       skinMat
     );
-    leftHand.position.y = -0.58;
+    leftElbow.position.y = -0.29;
+    leftElbow.castShadow = true;
+    leftArm.add(leftElbow);
+
+    // Forearm / Kantha Bracer
+    const leftGauntlet = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.096, 0.086, 0.26, 16),
+      vestMat
+    );
+    leftGauntlet.position.y = -0.42;
+    leftGauntlet.castShadow = true;
+    leftArm.add(leftGauntlet);
+
+    // Decorative Antique Bronze Bracer Rings
+    for (let r of [-0.32, -0.51]) {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.088, 0.012, 8, 16),
+        bronzeTrimMat
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = r;
+      leftArm.add(ring);
+    }
+
+    // Wrist Joint & Sculpted Hand
+    const leftWrist = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.086, 0.082, 0.06, 16),
+      bronzeTrimMat
+    );
+    leftWrist.position.y = -0.54;
+    leftWrist.castShadow = true;
+    leftArm.add(leftWrist);
+
+    const leftHand = new THREE.Mesh(
+      new THREE.SphereGeometry(0.075, 14, 14),
+      skinMat
+    );
+    leftHand.position.y = -0.59;
+    leftHand.castShadow = true;
     leftArm.add(leftHand);
 
-    // 6. Right Arm (Cybernetic Gauntlet with Glowing Cyan Power Cell)
+    const leftThumb = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.024, 0.045, 8, 8),
+      skinMat
+    );
+    leftThumb.position.set(-0.045, -0.57, 0.035);
+    leftThumb.rotation.z = -0.35;
+    leftArm.add(leftThumb);
+
+    // 6. Right Arm (Cybernetic Laser Gauntlet with Glowing Power Cell)
     const rightArm = new THREE.Group();
-    rightArm.position.set(0.38, 0.44, 0);
+    rightArm.position.set(0.36, 0.44, 0);
     torso.add(rightArm);
     this.parts.rightArm = rightArm;
 
+    // Anatomical Shoulder Deltoid & Socket Cap (Zero seams/gaps on rotation)
+    const rightShoulderBall = new THREE.Mesh(
+      new THREE.SphereGeometry(0.108, 16, 16),
+      vestMat
+    );
+    rightShoulderBall.position.set(0, 0, 0);
+    rightShoulderBall.castShadow = true;
+    rightArm.add(rightShoulderBall);
+
+    const rightShoulderCap = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.115, 0.105, 0.08, 16),
+      kanthaArmorMat
+    );
+    rightShoulderCap.position.set(0, -0.02, 0);
+    rightShoulderCap.castShadow = true;
+    rightArm.add(rightShoulderCap);
+
+    // Upper Arm / Muscular Bicep
     const rightBicep = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.095, 0.085, 0.3, 16),
+      new THREE.CylinderGeometry(0.098, 0.088, 0.28, 16),
       skinMat
     );
     rightBicep.position.y = -0.15;
     rightBicep.castShadow = true;
     rightArm.add(rightBicep);
 
+    // Seamless Elbow Joint
+    const rightElbow = new THREE.Mesh(
+      new THREE.SphereGeometry(0.092, 14, 14),
+      darkTitaniumMat
+    );
+    rightElbow.position.y = -0.29;
+    rightElbow.castShadow = true;
+    rightArm.add(rightElbow);
+
+    // Cybernetic Gauntlet Forearm
     const rightGauntlet = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.105, 0.09, 0.3, 16),
+      new THREE.CylinderGeometry(0.108, 0.095, 0.26, 16),
       cyberGauntletMat
     );
     rightGauntlet.position.y = -0.42;
     rightGauntlet.castShadow = true;
     rightArm.add(rightGauntlet);
 
-    // Glowing Teal/Cyan Power Cell
-    const energyCell = new THREE.Mesh(
+    // Glowing Teal/Cyan Power Cell on Gauntlet
+    const rightCell = new THREE.Mesh(
       new THREE.BoxGeometry(0.06, 0.16, 0.04),
       cyanCellMat
     );
-    energyCell.position.set(0.08, -0.42, 0.06);
-    rightArm.add(energyCell);
+    rightCell.position.set(0.08, -0.42, 0.06);
+    rightArm.add(rightCell);
 
-    for (let r of [-0.34, -0.42, -0.5]) {
+    for (let r of [-0.34, -0.42, -0.50]) {
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(0.095, 0.012, 8, 16),
         new THREE.MeshBasicMaterial({ color: 0x00E5FF })
@@ -358,12 +471,30 @@ export class BhairavaModel {
       rightArm.add(ring);
     }
 
-    const rightHand = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.1, 0.1),
+    // Wrist Joint & Cybernetic Hand Fist
+    const rightWrist = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.095, 0.092, 0.06, 16),
       cyberGauntletMat
     );
-    rightHand.position.y = -0.58;
+    rightWrist.position.y = -0.54;
+    rightWrist.castShadow = true;
+    rightArm.add(rightWrist);
+
+    const rightHand = new THREE.Mesh(
+      new THREE.BoxGeometry(0.085, 0.10, 0.095),
+      cyberGauntletMat
+    );
+    rightHand.position.y = -0.59;
+    rightHand.castShadow = true;
     rightArm.add(rightHand);
+
+    const rightThumb = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.024, 0.045, 8, 8),
+      cyberGauntletMat
+    );
+    rightThumb.position.set(0.045, -0.57, 0.035);
+    rightThumb.rotation.z = 0.35;
+    rightArm.add(rightThumb);
 
     // 7. Legs & Heavy Combat Boots with Integrated Jet Thrusters
     const legSides = [
@@ -473,7 +604,7 @@ export class BhairavaModel {
     });
   }
 
-  updateAnimation(state, time, speedRatio = 1.0, isJetpack = false) {
+  updateAnimation(state, time, speedRatio = 1.0, isJetpack = false, shootTimer = 0) {
     const { hips, torso, head, leftArm, rightArm, leftLeg, rightLeg, cloak } = this.parts;
 
     // Flowing Duster Cloak Physics (Wind flutter)
@@ -509,13 +640,24 @@ export class BhairavaModel {
     if (this.thrusterLight) this.thrusterLight.intensity = 0;
 
     if (state === "sliding") {
-      hips.position.y = THREE.MathUtils.lerp(hips.position.y, 0.32, 0.25);
-      hips.rotation.x = THREE.MathUtils.lerp(hips.rotation.x, -0.75, 0.25);
-      torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, 0.35, 0.25);
-      leftLeg.rotation.x = THREE.MathUtils.lerp(leftLeg.rotation.x, -1.15, 0.25);
-      rightLeg.rotation.x = THREE.MathUtils.lerp(rightLeg.rotation.x, -0.95, 0.25);
-      leftArm.rotation.x = THREE.MathUtils.lerp(leftArm.rotation.x, 0.65, 0.25);
-      rightArm.rotation.x = THREE.MathUtils.lerp(rightArm.rotation.x, 0.65, 0.25);
+      hips.position.y = THREE.MathUtils.lerp(hips.position.y, 0.35, 0.3);
+      hips.rotation.x = THREE.MathUtils.lerp(hips.rotation.x, -0.68, 0.3);
+      torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, 0.42, 0.3);
+      leftLeg.rotation.x = THREE.MathUtils.lerp(leftLeg.rotation.x, -1.25, 0.3);
+      rightLeg.rotation.x = THREE.MathUtils.lerp(rightLeg.rotation.x, 0.55, 0.3);
+      leftArm.rotation.x = THREE.MathUtils.lerp(leftArm.rotation.x, 0.75, 0.3);
+      leftArm.rotation.y = THREE.MathUtils.lerp(leftArm.rotation.y, 0, 0.3);
+      leftArm.rotation.z = THREE.MathUtils.lerp(leftArm.rotation.z, 0, 0.3);
+
+      if (shootTimer > 0) {
+        rightArm.rotation.x = THREE.MathUtils.lerp(rightArm.rotation.x, -Math.PI / 2, 0.45);
+        rightArm.rotation.y = THREE.MathUtils.lerp(rightArm.rotation.y, -0.12, 0.4);
+        rightArm.rotation.z = THREE.MathUtils.lerp(rightArm.rotation.z, 0.08, 0.4);
+      } else {
+        rightArm.rotation.x = THREE.MathUtils.lerp(rightArm.rotation.x, 0.75, 0.3);
+        rightArm.rotation.y = THREE.MathUtils.lerp(rightArm.rotation.y, 0, 0.3);
+        rightArm.rotation.z = THREE.MathUtils.lerp(rightArm.rotation.z, 0, 0.3);
+      }
       return;
     }
 
@@ -525,20 +667,40 @@ export class BhairavaModel {
       leftLeg.rotation.x = THREE.MathUtils.lerp(leftLeg.rotation.x, 0.85, 0.2);
       rightLeg.rotation.x = THREE.MathUtils.lerp(rightLeg.rotation.x, -0.65, 0.2);
       leftArm.rotation.x = THREE.MathUtils.lerp(leftArm.rotation.x, -1.45, 0.2);
-      rightArm.rotation.x = THREE.MathUtils.lerp(rightArm.rotation.x, 0.85, 0.2);
+      if (shootTimer > 0) {
+        rightArm.rotation.x = THREE.MathUtils.lerp(rightArm.rotation.x, -Math.PI / 2, 0.45);
+        rightArm.rotation.y = THREE.MathUtils.lerp(rightArm.rotation.y, -0.12, 0.4);
+        rightArm.rotation.z = THREE.MathUtils.lerp(rightArm.rotation.z, 0.08, 0.4);
+      } else {
+        rightArm.rotation.x = THREE.MathUtils.lerp(rightArm.rotation.x, 0.85, 0.2);
+      }
       return;
     }
 
     // High-energy athletic running loop
     hips.position.y = THREE.MathUtils.lerp(hips.position.y, 0.95 + Math.abs(Math.sin(time * 16 * speedRatio)) * 0.09, 0.25);
-    hips.rotation.x = 0;
-    torso.rotation.x = 0.14;
+    hips.rotation.x = THREE.MathUtils.lerp(hips.rotation.x, 0, 0.25);
+    torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, 0.14, 0.25);
 
     const runCycle = Math.sin(time * 16 * speedRatio);
-    leftLeg.rotation.x = runCycle * 0.98;
-    rightLeg.rotation.x = -runCycle * 0.98;
+    leftLeg.rotation.x = THREE.MathUtils.lerp(leftLeg.rotation.x, runCycle * 0.98, 0.35);
+    rightLeg.rotation.x = THREE.MathUtils.lerp(rightLeg.rotation.x, -runCycle * 0.98, 0.35);
     leftArm.rotation.x = -runCycle * 0.88;
-    rightArm.rotation.x = runCycle * 0.88;
+    leftArm.rotation.y = THREE.MathUtils.lerp(leftArm.rotation.y, 0, 0.2);
+    leftArm.rotation.z = THREE.MathUtils.lerp(leftArm.rotation.z, 0, 0.2);
     head.rotation.y = Math.sin(time * 8 * speedRatio) * 0.06;
+
+    // Right Arm: Chest-Level Laser Shoot Override
+    if (shootTimer > 0) {
+      const shootProgress = shootTimer / 0.24;
+      rightArm.rotation.x = THREE.MathUtils.lerp(rightArm.rotation.x, -Math.PI / 2, 0.45); 
+      rightArm.rotation.y = THREE.MathUtils.lerp(rightArm.rotation.y, -0.12, 0.4);
+      rightArm.rotation.z = THREE.MathUtils.lerp(rightArm.rotation.z, 0.08, 0.4);
+      torso.rotation.x -= 0.05 * shootProgress; // Slight tactical recoil
+    } else {
+      rightArm.rotation.x = runCycle * 0.88;
+      rightArm.rotation.y = THREE.MathUtils.lerp(rightArm.rotation.y, 0, 0.2);
+      rightArm.rotation.z = THREE.MathUtils.lerp(rightArm.rotation.z, 0, 0.2);
+    }
   }
 }

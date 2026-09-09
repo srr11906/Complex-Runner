@@ -35,19 +35,19 @@ export class Environment3D {
     hemiLight.position.set(0, 50, 0);
     this.scene.add(hemiLight);
 
-    // 3. Directional Sun Light Tracking (Optimized 1024x1024 shadow map)
+    // 3. Directional Sun Light Tracking (Optimized 512x512 tight-frustum shadow map)
     this.sunLight = new THREE.DirectionalLight(CONFIG.COLORS.SUN_LIGHT, 3.4);
-    this.sunLight.position.set(35, 75, -40);
+    this.sunLight.position.set(25, 55, -25);
     this.sunLight.castShadow = true;
-    this.sunLight.shadow.mapSize.width = 1024;
-    this.sunLight.shadow.mapSize.height = 1024;
+    this.sunLight.shadow.mapSize.width = 512;
+    this.sunLight.shadow.mapSize.height = 512;
     this.sunLight.shadow.camera.near = 0.5;
-    this.sunLight.shadow.camera.far = 240;
-    this.sunLight.shadow.camera.left = -28;
-    this.sunLight.shadow.camera.right = 28;
-    this.sunLight.shadow.camera.top = 28;
-    this.sunLight.shadow.camera.bottom = -28;
-    this.sunLight.shadow.bias = -0.0004;
+    this.sunLight.shadow.camera.far = 55;
+    this.sunLight.shadow.camera.left = -14;
+    this.sunLight.shadow.camera.right = 14;
+    this.sunLight.shadow.camera.top = 14;
+    this.sunLight.shadow.camera.bottom = -14;
+    this.sunLight.shadow.bias = -0.0005;
 
     this.sunTarget = new THREE.Object3D();
     this.sunTarget.position.set(0, 0, 0);
@@ -121,11 +121,13 @@ export class Environment3D {
 
   buildInfiniteDesertGroundFloor() {
     const floorGeo = new THREE.PlaneGeometry(1200, 1200, 1, 1);
-    const floorMat = new THREE.MeshStandardMaterial({
+    const floorMat = new THREE.MeshPhongMaterial({
       color: CONFIG.COLORS.SAND_GROUND,
       map: textureGen.getSandTerrainTexture(),
-      roughness: 0.94,
-      metalness: 0.05
+      normalMap: textureGen.getSandTerrainNormalMap(),
+      normalScale: new THREE.Vector2(0.85, 0.85),
+      shininess: 6,
+      specular: 0x332010
     });
 
     this.groundFloor = new THREE.Mesh(floorGeo, floorMat);
@@ -141,10 +143,8 @@ export class Environment3D {
   buildMovieAccurateComplex() {
     this.complexGroup.position.set(0, 145, 380);
 
-    const complexMat = new THREE.MeshStandardMaterial({
-      map: textureGen.getComplexMonolithTexture(),
-      roughness: 0.35,
-      metalness: 0.8
+    const complexMat = new THREE.MeshLambertMaterial({
+      map: textureGen.getComplexMonolithTexture()
     });
 
     const goldenCoreMat = new THREE.MeshBasicMaterial({
@@ -189,10 +189,8 @@ export class Environment3D {
 
     const orbitRing = new THREE.Mesh(
       new THREE.TorusGeometry(135, 3.0, 12, 48),
-      new THREE.MeshStandardMaterial({
-        color: 0x1E293B,
-        roughness: 0.3,
-        metalness: 0.9
+      new THREE.MeshLambertMaterial({
+        color: 0x1E293B
       })
     );
     orbitRing.rotation.x = Math.PI / 2;
