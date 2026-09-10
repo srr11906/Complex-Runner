@@ -154,8 +154,8 @@ class TextureGenerator {
     // 6. Futuristic Sector Stencils
     ctx.fillStyle = "rgba(203, 213, 225, 0.35)";
     ctx.font = "900 22px monospace";
-    ctx.fillText("KASI MAGLEV // CORRIDOR-01", 50, 130);
-    ctx.fillText("KASI MAGLEV // CORRIDOR-01", 50, 642);
+    ctx.fillText("COMPLEX MAGLEV // CORRIDOR-01", 50, 130);
+    ctx.fillText("COMPLEX MAGLEV // CORRIDOR-01", 50, 642);
     ctx.fillText("INDUCTION 750V // ACTIVE", 390, 380);
     ctx.fillText("INDUCTION 750V // ACTIVE", 390, 892);
 
@@ -260,7 +260,7 @@ class TextureGenerator {
     // Industrial Stencil Markings
     ctx.fillStyle = "rgba(248, 250, 252, 0.8)";
     ctx.font = "bold 32px monospace";
-    ctx.fillText("KASI-CORRIDOR // FREIGHT 2898", 60, 240);
+    ctx.fillText("COMPLEX-CORRIDOR // FREIGHT 3000", 60, 240);
     ctx.font = "bold 20px monospace";
     ctx.fillText("MAX LOAD • 100,000 U • COMPLEX CLASS-IV", 60, 275);
 
@@ -404,7 +404,7 @@ class TextureGenerator {
     // Stenciled Logistics Text & Serial Codes
     ctx.fillStyle = "rgba(244, 244, 245, 0.85)";
     ctx.font = "bold 26px monospace";
-    ctx.fillText("KASI-LOGISTICS // 2898", 45, 230);
+    ctx.fillText("SECTOR-LOGISTICS // 3000", 45, 230);
     ctx.font = "bold 18px monospace";
     ctx.fillText("SECTOR 7-G • FREIGHT CONTAINER", 45, 260);
     ctx.fillText("MAX PAYLOAD 45,000 KG", 45, 285);

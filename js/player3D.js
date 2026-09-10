@@ -1,5 +1,5 @@
 /**
- * PRABHAS: KASI 2898 AD (3D Runner)
+ * COMPLEX RUNNER - Next-Gen 3D Sci-Fi Runner
  * 3D Player Controller: Kinematic Movement, Lane Switching, Jumps, Slides, Jetpack
  */
 
@@ -265,14 +265,15 @@ export class Player3D {
   slide() {
     if (this.hasJetpack) return false;
 
-    this.state = "sliding";
-    this.slideTimer = CONFIG.SLIDE_DURATION;
-
     if (!this.isGrounded) {
       // In air -> Fast Fall / Dive snap!
       this.velocityY = CONFIG.FAST_FALL_VELOCITY;
+      this.slideTimer = CONFIG.SLIDE_DURATION;
       return "dive";
     } else {
+      // Ground slide
+      this.state = "sliding";
+      this.slideTimer = CONFIG.SLIDE_DURATION;
       return "slide";
     }
   }
@@ -392,17 +393,11 @@ export class Player3D {
           this.position.y = targetGroundY;
           this.velocityY = 0;
           this.isGrounded = true;
-          if (this.state === "jumping") {
-            this.state = this.slideTimer > 0 ? "sliding" : "running";
-          }
-        }
-      } else {
-        // Grounded on highway, ramp, or train rooftop
-        this.position.y = targetGroundY;
-        this.velocityY = 0;
-        if (this.state === "jumping") {
           this.state = this.slideTimer > 0 ? "sliding" : "running";
         }
+      } else {
+        // Snapped to ground elevation
+        this.position.y = targetGroundY;
       }
     }
 

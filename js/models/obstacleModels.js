@@ -187,8 +187,8 @@ export class ObstacleFactory3D {
     group.userData.hasRamp = hasRamp;
     group.userData.isMoving = isMoving;
     group.userData.moveSpeed = isMoving ? 6.0 : 0; // Smooth advance speed for generous visibility
-    group.userData.hp = 20;
-    group.userData.maxHp = 20;
+    group.userData.hp = 10;
+    group.userData.maxHp = 10;
 
     if (isMoving) {
       group.rotation.y = Math.PI; // Reverse train direction so front nose & headlights face oncoming player!
@@ -302,8 +302,8 @@ export class ObstacleFactory3D {
     const group = new THREE.Group();
     group.userData.type = "laser_gate";
     group.userData.requiresSlide = true;
-    group.userData.hp = 8;
-    group.userData.maxHp = 8;
+    group.userData.hp = 6;
+    group.userData.maxHp = 6;
 
     const width = 3.2;
     const height = 3.6;
@@ -337,8 +337,8 @@ export class ObstacleFactory3D {
     const group = new THREE.Group();
     group.userData.type = "hurdle";
     group.userData.requiresJump = true;
-    group.userData.hp = 8;
-    group.userData.maxHp = 8;
+    group.userData.hp = 6;
+    group.userData.maxHp = 6;
 
     const height = 1.90;
 

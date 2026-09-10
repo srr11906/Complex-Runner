@@ -174,7 +174,7 @@ export class BhairavaModel {
 
     // Muscular Chest Core
     const chestCore = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.33, 0.25, 0.52, 20),
+      new THREE.CylinderGeometry(0.31, 0.24, 0.52, 20),
       kanthaArmorMat
     );
     chestCore.position.y = 0.26;
@@ -198,9 +198,9 @@ export class BhairavaModel {
     redChevronRight.position.set(0.04, 0.44, 0.26);
     torso.add(redChevronRight);
 
-    // Sculpted Khaki Vest Overlayer
+    // Sculpted Khaki Vest Overlayer (Properly offset to prevent z-fighting/overlapping)
     const vestBody = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.35, 0.27, 0.48, 20),
+      new THREE.CylinderGeometry(0.335, 0.265, 0.48, 20),
       vestMat
     );
     vestBody.position.y = 0.25;
@@ -209,7 +209,7 @@ export class BhairavaModel {
 
     // Diagonal Scavenger Bandolier Strap & Brass Ammo Nodes
     const bandolier = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.36, 0.28, 0.06, 20),
+      new THREE.CylinderGeometry(0.35, 0.28, 0.05, 20),
       vestMat
     );
     bandolier.rotation.z = 0.45;
@@ -218,21 +218,21 @@ export class BhairavaModel {
 
     for (let c of [-0.1, 0.0, 0.1]) {
       const cartridge = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.02, 0.02, 0.08, 8),
+        new THREE.CylinderGeometry(0.018, 0.018, 0.08, 8),
         bronzeTrimMat
       );
       cartridge.position.set(c * 1.2, 0.26 + c * 0.4, 0.28);
       torso.add(cartridge);
     }
 
-    // Shoulder Pauldrons / Heavy Straps
+    // Shoulder Pauldrons / Heavy Straps (Offset slightly outwards)
     for (let side of [-1, 1]) {
       const strap = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.12, 0.12, 0.32, 16),
+        new THREE.CylinderGeometry(0.11, 0.11, 0.30, 16),
         vestMat
       );
       strap.rotation.z = side * 0.45;
-      strap.position.set(side * 0.3, 0.46, 0);
+      strap.position.set(side * 0.32, 0.46, 0);
       torso.add(strap);
     }
 
@@ -319,13 +319,13 @@ export class BhairavaModel {
 
     // 5. Left Arm (Kantha Armored Bracer & Wraps)
     const leftArm = new THREE.Group();
-    leftArm.position.set(-0.36, 0.44, 0);
+    leftArm.position.set(-0.38, 0.44, 0);
     torso.add(leftArm);
     this.parts.leftArm = leftArm;
 
     // Anatomical Shoulder Deltoid & Socket Cap (Zero seams/gaps on rotation)
     const leftShoulderBall = new THREE.Mesh(
-      new THREE.SphereGeometry(0.108, 16, 16),
+      new THREE.SphereGeometry(0.10, 16, 16),
       vestMat
     );
     leftShoulderBall.position.set(0, 0, 0);
@@ -333,7 +333,7 @@ export class BhairavaModel {
     leftArm.add(leftShoulderBall);
 
     const leftShoulderCap = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.115, 0.105, 0.08, 16),
+      new THREE.CylinderGeometry(0.11, 0.10, 0.08, 16),
       kanthaArmorMat
     );
     leftShoulderCap.position.set(0, -0.02, 0);
@@ -342,7 +342,7 @@ export class BhairavaModel {
 
     // Upper Arm / Muscular Bicep
     const leftBicep = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.098, 0.088, 0.28, 16),
+      new THREE.CylinderGeometry(0.092, 0.082, 0.28, 16),
       skinMat
     );
     leftBicep.position.y = -0.15;
@@ -351,7 +351,7 @@ export class BhairavaModel {
 
     // Seamless Elbow Joint
     const leftElbow = new THREE.Mesh(
-      new THREE.SphereGeometry(0.090, 14, 14),
+      new THREE.SphereGeometry(0.085, 14, 14),
       skinMat
     );
     leftElbow.position.y = -0.29;
@@ -360,7 +360,7 @@ export class BhairavaModel {
 
     // Forearm / Kantha Bracer
     const leftGauntlet = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.096, 0.086, 0.26, 16),
+      new THREE.CylinderGeometry(0.092, 0.082, 0.26, 16),
       vestMat
     );
     leftGauntlet.position.y = -0.42;
@@ -370,7 +370,7 @@ export class BhairavaModel {
     // Decorative Antique Bronze Bracer Rings
     for (let r of [-0.32, -0.51]) {
       const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(0.088, 0.012, 8, 16),
+        new THREE.TorusGeometry(0.085, 0.011, 8, 16),
         bronzeTrimMat
       );
       ring.rotation.x = Math.PI / 2;
@@ -380,7 +380,7 @@ export class BhairavaModel {
 
     // Wrist Joint & Sculpted Hand
     const leftWrist = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.086, 0.082, 0.06, 16),
+      new THREE.CylinderGeometry(0.082, 0.078, 0.06, 16),
       bronzeTrimMat
     );
     leftWrist.position.y = -0.54;
@@ -388,7 +388,7 @@ export class BhairavaModel {
     leftArm.add(leftWrist);
 
     const leftHand = new THREE.Mesh(
-      new THREE.SphereGeometry(0.075, 14, 14),
+      new THREE.SphereGeometry(0.072, 14, 14),
       skinMat
     );
     leftHand.position.y = -0.59;
@@ -396,7 +396,7 @@ export class BhairavaModel {
     leftArm.add(leftHand);
 
     const leftThumb = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.024, 0.045, 8, 8),
+      new THREE.CapsuleGeometry(0.022, 0.045, 8, 8),
       skinMat
     );
     leftThumb.position.set(-0.045, -0.57, 0.035);
@@ -405,13 +405,13 @@ export class BhairavaModel {
 
     // 6. Right Arm (Cybernetic Laser Gauntlet with Glowing Power Cell)
     const rightArm = new THREE.Group();
-    rightArm.position.set(0.36, 0.44, 0);
+    rightArm.position.set(0.38, 0.44, 0);
     torso.add(rightArm);
     this.parts.rightArm = rightArm;
 
     // Anatomical Shoulder Deltoid & Socket Cap (Zero seams/gaps on rotation)
     const rightShoulderBall = new THREE.Mesh(
-      new THREE.SphereGeometry(0.108, 16, 16),
+      new THREE.SphereGeometry(0.10, 16, 16),
       vestMat
     );
     rightShoulderBall.position.set(0, 0, 0);
@@ -419,7 +419,7 @@ export class BhairavaModel {
     rightArm.add(rightShoulderBall);
 
     const rightShoulderCap = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.115, 0.105, 0.08, 16),
+      new THREE.CylinderGeometry(0.11, 0.10, 0.08, 16),
       kanthaArmorMat
     );
     rightShoulderCap.position.set(0, -0.02, 0);
@@ -428,7 +428,7 @@ export class BhairavaModel {
 
     // Upper Arm / Muscular Bicep
     const rightBicep = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.098, 0.088, 0.28, 16),
+      new THREE.CylinderGeometry(0.092, 0.082, 0.28, 16),
       skinMat
     );
     rightBicep.position.y = -0.15;
@@ -437,7 +437,7 @@ export class BhairavaModel {
 
     // Seamless Elbow Joint
     const rightElbow = new THREE.Mesh(
-      new THREE.SphereGeometry(0.092, 14, 14),
+      new THREE.SphereGeometry(0.088, 14, 14),
       darkTitaniumMat
     );
     rightElbow.position.y = -0.29;
@@ -446,7 +446,7 @@ export class BhairavaModel {
 
     // Cybernetic Gauntlet Forearm
     const rightGauntlet = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.108, 0.095, 0.26, 16),
+      new THREE.CylinderGeometry(0.102, 0.090, 0.26, 16),
       cyberGauntletMat
     );
     rightGauntlet.position.y = -0.42;

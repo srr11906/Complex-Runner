@@ -1,5 +1,5 @@
 /**
- * PRABHAS: KASI 2898 AD (3D Runner - AAA Next-Gen)
+ * COMPLEX RUNNER - Next-Gen 3D Sci-Fi Runner
  * High-Precision 3D Collision Detection, Ramp Climbing & Rooftop Physics
  */
 
@@ -53,31 +53,17 @@ export class CollisionManager3D {
             const rampZStart = trainMinZ - rampLength;
             const rampZEnd = trainMinZ;
 
-            if (pBounds.centerZ >= rampZStart && pBounds.centerZ <= rampZEnd + 1.2) {
+            if (pBounds.centerZ >= rampZStart && pBounds.centerZ <= rampZEnd) {
               const climbProgress = Math.max(0, Math.min(1.0, (pBounds.centerZ - rampZStart) / rampLength));
               const rampElevation = climbProgress * trainTopY;
               targetGroundY = Math.max(targetGroundY, rampElevation);
-              if (player.position.y <= rampElevation + 0.3) {
-                player.position.y = rampElevation;
-                player.isGrounded = true;
-              }
               continue;
             }
           }
 
           if (pBounds.centerZ >= trainMinZ && pBounds.centerZ <= trainMaxZ) {
-            // Check if player is on roof, sliding across roof, or fast-falling/diving onto roof
-            const isRoofLevel = pBounds.minY >= trainTopY - 0.75 || 
-                                (player.state === "sliding" && pBounds.minY >= trainTopY - 1.2) ||
-                                (player.velocityY < -5.0 && pBounds.minY >= trainTopY - 1.5);
-
-            if (isRoofLevel) {
+            if (pBounds.minY >= trainTopY - 0.6) {
               targetGroundY = Math.max(targetGroundY, trainTopY);
-              if (player.position.y < trainTopY || (player.state === "sliding" && player.position.y <= trainTopY + 0.4)) {
-                player.position.y = trainTopY;
-                player.isGrounded = true;
-                player.velocityY = 0;
-              }
               continue;
             } else if (player.invulnerableTimer > 0) {
               // During invulnerability: safely ride the train roof rather than clipping through inside
@@ -85,7 +71,6 @@ export class CollisionManager3D {
               if (player.position.y < trainTopY) {
                 player.position.y = trainTopY;
                 player.isGrounded = true;
-                player.velocityY = 0;
               }
               continue;
             } else {
@@ -172,7 +157,7 @@ export class CollisionManager3D {
         const hurdleMaxX = oPos.x + hurdleHalfW;
         const hurdleMinZ = oPos.z - 0.5;
         const hurdleMaxZ = oPos.z + 0.5;
-        const hurdleHeight = 1.90;
+        const hurdleHeight = 0.95;
 
         const overlapX = pBounds.maxX > hurdleMinX && pBounds.minX < hurdleMaxX;
         const overlapZ = pBounds.maxZ > hurdleMinZ && pBounds.minZ < hurdleMaxZ;
@@ -191,17 +176,8 @@ export class CollisionManager3D {
 
     player.groundElevation = targetGroundY;
 
-    if (player.position.y > player.groundElevation + 0.25) {
+    if (player.position.y > player.groundElevation + 0.15) {
       player.isGrounded = false;
-    } else {
-      player.isGrounded = true;
-      if (player.position.y < player.groundElevation) {
-        player.position.y = player.groundElevation;
-      }
-      if (player.state === "jumping") {
-        player.state = player.slideTimer > 0 ? "sliding" : "running";
-        player.velocityY = 0;
-      }
     }
 
     return null;

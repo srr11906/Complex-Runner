@@ -552,7 +552,7 @@ export class TrackSegmentPool3D {
   }
 
   registerObstacle(chunkData, obstacle) {
-    const defaultHp = obstacle.userData.type === "train" ? 20 : (obstacle.userData.type === "hurdle" || obstacle.userData.type === "laser_gate" ? 8 : 1);
+    const defaultHp = obstacle.userData.type === "train" ? 10 : (obstacle.userData.type === "hurdle" || obstacle.userData.type === "laser_gate" ? 6 : 1);
     obstacle.userData.cachedCollisionData = {
       mesh: obstacle,
       chunkStartZ: chunkData.startZ,

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>COMPLEX RUNNER</title>
   <meta name="description" content="Complex Runner - Next-Gen 3D Sci-Fi Runner">
 
@@ -15,7 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Master Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=20260909_ui_v1">
+  <link rel="stylesheet" href="css/style.css?v=20260910_realgame_v1">
 </head>
 <body>
   <div id="app-root">
@@ -33,16 +33,16 @@
             <div id="loading-bar-fill" class="loading-bar-fill" style="width: 0%;"></div>
           </div>
           <div class="loading-details">
-            <span id="loading-status-text" class="loading-status-text">INITIALIZING NEURAL LINK...</span>
+            <span id="loading-status-text" class="loading-status-text">INITIALIZING QUANTUM ENGINES...</span>
             <span id="loading-pct-text" class="loading-pct-text">0%</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Heads-Up Display (HUD) - In-Game Tactical Overlay -->
+    <!-- In-Game Heads-Up Display (HUD) - Sleek Floating Tactical Layer -->
     <header id="game-hud" class="hud-layer">
-      <!-- Top Left: Quick Controls -->
+      <!-- Top Left: Quick In-Game Controls -->
       <div class="hud-top-left">
         <button id="btn-pause-toggle" class="squircle-icon-btn interactive-ui" aria-label="Pause" title="Pause">
           <img src="assets/ui/pause.svg" alt="Pause">
@@ -52,9 +52,9 @@
         </button>
       </div>
 
-      <!-- Top Right: Score + Units + Goal Pill Stack -->
+      <!-- Top Right: Live Score & Units Pill -->
       <div class="hud-top-right">
-        <!-- Score Card -->
+        <!-- Live Score Card -->
         <div class="hud-stat-card">
           <div class="hud-row score-row">
             <span class="hud-label">SCORE</span>
@@ -66,10 +66,10 @@
           </div>
         </div>
 
-        <!-- Goal Progress Pill (Active in Complex Heist Mode) -->
+        <!-- Complex Goal Progress Card (Active in Heist Mode) -->
         <div id="hud-goal-pill" class="hud-goal-card" title="1,000,000 Units Goal">
           <div class="goal-header">
-            <span class="goal-title">COMPLEX GOAL</span>
+            <span class="goal-title">COMPLEX HEIST</span>
             <span id="hud-goal-pct" class="goal-pct">0%</span>
           </div>
           <div class="goal-track">
@@ -78,7 +78,7 @@
         </div>
       </div>
 
-      <!-- Bottom Left: Active Power-Up Badges Stacked Vertically -->
+      <!-- Bottom Left: Active Power-Up Badges -->
       <div id="hud-powerup-stack" class="hud-bottom-left">
         <!-- Jetpack Badge -->
         <div id="badge-jetpack" class="powerup-badge badge-jetpack" style="display: none;">
@@ -126,9 +126,9 @@
       </div>
     </header>
 
-    <!-- 1. Subway Surfers Style Main Menu Screen -->
+    <!-- 1. Real-World 3D Game Main Menu (Immersive Console Overlay) -->
     <section id="start-screen" class="game-modal-screen active menu-viewport">
-      <!-- Top Navigation Header -->
+      <!-- Top Bar: Sound Toggle & Currency Badges -->
       <div class="menu-top-bar">
         <button id="btn-menu-sound-toggle" class="squircle-icon-btn interactive-ui" aria-label="Toggle Sound" title="Sound">
           <img id="menu-sound-icon-img" src="assets/ui/sound-on.svg" alt="Sound">
@@ -153,7 +153,7 @@
         </div>
       </div>
 
-      <!-- Center Logo & Mission Mode Container -->
+      <!-- Center Logo & Mode Switcher -->
       <div class="menu-center-box">
         <div class="menu-logo-wrap">
           <img src="assets/ui/logo.svg" alt="Complex Runner Logo" class="menu-main-logo">
@@ -174,7 +174,7 @@
         </div>
       </div>
 
-      <!-- Bottom Subway Surfers Style Play CTA -->
+      <!-- Bottom Subway Surfers Style Massive Play Button -->
       <div class="menu-bottom-box">
         <button id="btn-start-run" class="btn-play-massive interactive-ui" aria-label="Start Game">
           <div class="play-btn-glow"></div>
@@ -203,13 +203,13 @@
 
         <div class="card-actions">
           <button id="btn-resume" class="btn-squircle-primary">
-            <span>Resume</span>
+            <span>RESUME</span>
           </button>
           <button id="btn-restart" class="btn-squircle-secondary">
-            <span>Restart</span>
+            <span>RESTART</span>
           </button>
           <button id="btn-pause-menu" class="btn-squircle-secondary">
-            <span>Main Menu</span>
+            <span>MAIN MENU</span>
           </button>
         </div>
       </div>
@@ -241,10 +241,10 @@
 
         <div class="card-actions">
           <button id="btn-run-again" class="btn-squircle-primary">
-            <span>Play Again</span>
+            <span>PLAY AGAIN</span>
           </button>
           <button id="btn-gameover-menu" class="btn-squircle-secondary">
-            <span>Main Menu</span>
+            <span>MAIN MENU</span>
           </button>
         </div>
       </div>
@@ -261,10 +261,10 @@
 
         <div class="card-actions">
           <button id="btn-victory-again" class="btn-squircle-primary">
-            <span>Play Again</span>
+            <span>PLAY AGAIN</span>
           </button>
           <button id="btn-victory-menu" class="btn-squircle-secondary">
-            <span>Main Menu</span>
+            <span>MAIN MENU</span>
           </button>
         </div>
       </div>
@@ -272,6 +272,6 @@
   </div>
 
   <!-- Main ES Module Script -->
-  <script type="module" src="js/script.js?v=20260909_ui_v2"></script>
+  <script type="module" src="js/script.js?v=20260910_realgame_v1"></script>
 </body>
 </html>
