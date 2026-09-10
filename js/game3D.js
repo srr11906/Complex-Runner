@@ -129,16 +129,16 @@ export class GameEngine3D {
     this.camera = new THREE.PerspectiveCamera(65, width / height, 0.1, 1000);
     this.camera.position.set(0, 3.4, -6.5);
 
-    // WebGL Renderer (Optimized for low-power photorealism)
+    // WebGL Renderer (High-definition AAA photorealism)
     this.renderer = new THREE.WebGLRenderer({
-      antialias: false,
+      antialias: true,
       powerPreference: "high-performance",
       depth: true,
       stencil: false,
       alpha: false
     });
     this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -308,6 +308,7 @@ export class GameEngine3D {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
   }
 
   startNewGame() {
@@ -519,54 +520,60 @@ export class GameEngine3D {
   }
 
   handleShoot() {
-    if (this.state !== GameState3D.PLAYING) return;
-    const shot = this.player.shootLaser();
-    if (shot) {
-      this.safeAudio("playLaser");
-      this.cameraManager.shake(0.15);
+    if (this.state !== GameState3D.PLAYING || this.player.hasJetpack) return;
 
-      const activeObstacles = this.trackPool.getAllActiveObstacles(this.player.position.z);
-      const hitEntities = CollisionManager3D.checkLaserCollisions(shot, activeObstacles);
-      let closestZ = 38.0;
-      for (let hit of hitEntities) {
-        const dist = (hit.obstacle.worldPos.z - hit.obstacle.mesh.geometry.boundingSphere?.radius || 0) - this.player.position.z;
-        if (dist > 0 && dist < closestZ) {
-          closestZ = dist;
+    const laserData = {
+      shot: true,
+      laneX: this.player.targetX,
+      playerZ: this.player.position.z,
+      range: 38.0
+    };
+
+    const activeObstacles = this.trackPool.getAllActiveObstacles(this.player.position.z);
+    const hitEntities = CollisionManager3D.checkLaserCollisions(laserData, activeObstacles);
+
+    let hitDistance = 38.0;
+    if (hitEntities.length > 0) {
+      hitDistance = hitEntities[0].distance;
+    }
+
+    // Trigger visual laser beam with precise distance to obstacle
+    const shot = this.player.shootLaser(hitDistance);
+    if (!shot || !shot.shot) return;
+
+    this.safeAudio("playLaser");
+    this.cameraManager.shake(0.12);
+
+    for (let hit of hitEntities) {
+      if (hit.type === "laser_destructible_hit" || hit.type === "laser_hurdle_hit" || hit.type === "laser_obstacle_destroyed") {
+        const obs = hit.obstacle;
+        const defaultHp = obs.type === "train" ? 20 : 8;
+        const currentHp = obs.hp !== undefined ? obs.hp : (obs.mesh && obs.mesh.userData && obs.mesh.userData.hp !== undefined ? obs.mesh.userData.hp : defaultHp);
+        obs.hp = currentHp - 1;
+        if (obs.mesh && obs.mesh.userData) {
+          obs.mesh.userData.hp = obs.hp;
         }
-      }
-      this.player.shootLaser(closestZ);
 
-      for (let hit of hitEntities) {
-        if (hit.type === "laser_destructible_hit" || hit.type === "laser_hurdle_hit" || hit.type === "laser_obstacle_destroyed") {
-          const obs = hit.obstacle;
-          const defaultHp = obs.type === "train" ? 20 : 8;
-          const currentHp = obs.hp !== undefined ? obs.hp : (obs.mesh && obs.mesh.userData && obs.mesh.userData.hp !== undefined ? obs.mesh.userData.hp : defaultHp);
-          obs.hp = currentHp - 1;
-          if (obs.mesh && obs.mesh.userData) {
-            obs.mesh.userData.hp = obs.hp;
-          }
+        this.safeAudio("playHit");
+        this.cameraManager.shake(obs.type === "train" ? 0.22 : 0.16);
 
-          this.safeAudio("playHit");
-          this.cameraManager.shake(obs.type === "train" ? 0.22 : 0.16);
+        // Visual hit reaction recoil & damage flicker on obstacle
+        if (obs.mesh) {
+          const origX = obs.mesh.position.x;
+          obs.mesh.position.x += (Math.random() - 0.5) * (obs.type === "train" ? 0.22 : 0.16);
+          setTimeout(() => { if (obs.mesh) obs.mesh.position.x = origX; }, 60);
+        }
 
-          // Visual hit reaction recoil & damage flicker on obstacle
+        // Destroyed once HP is exhausted (8 hits for barriers & laser gates, 20 hits for trains)
+        if (obs.hp <= 0) {
+          obs.destroyed = true;
           if (obs.mesh) {
-            const origX = obs.mesh.position.x;
-            obs.mesh.position.x += (Math.random() - 0.5) * (obs.type === "train" ? 0.22 : 0.16);
-            setTimeout(() => { if (obs.mesh) obs.mesh.position.x = origX; }, 60);
+            obs.mesh.visible = false;
+            if (obs.mesh.userData) obs.mesh.userData.destroyed = true;
           }
-
-          // Destroyed once HP is exhausted (8 hits for barriers & laser gates, 20 hits for trains)
-          if (obs.hp <= 0) {
-            obs.destroyed = true;
-            if (obs.mesh) {
-              obs.mesh.visible = false;
-              if (obs.mesh.userData) obs.mesh.userData.destroyed = true;
-            }
-            this.safeAudio("playHit");
-            this.cameraManager.shake(obs.type === "train" ? 0.55 : 0.3);
-            this.safeAudio("playDialogue", "laser");
-          }
+          this.safeAudio("playHit");
+          this.cameraManager.shake(obs.type === "train" ? 0.55 : 0.3);
+          this.safeAudio("playDialogue", "laser");
         }
       }
     }

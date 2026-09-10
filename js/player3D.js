@@ -191,17 +191,26 @@ export class Player3D {
   }
 
   shootLaser(distance = 38.0) {
-    // Zero cooldown: instant continuous rapid fire with smooth visual punch
+    if (this.hasJetpack) {
+      return { shot: false };
+    }
+
+    // Instant continuous rapid fire with smooth visual punch
     this.shootTimer = 0.24;
     if (this.laserBeamGroup) {
       this.laserBeamGroup.visible = true;
-      this.laserBeamGroup.scale.set(1.3, 1.3, 1.0);
-      const scaleZ = Math.min(1.0, distance / 38.0);
+      const validDist = Math.max(0.5, Math.min(38.0, distance));
+      const scaleZ = validDist / 38.0;
       const outer = this.laserBeamGroup.getObjectByName("outerLaser");
       const core = this.laserBeamGroup.getObjectByName("coreLaser");
-      if (outer) { outer.scale.y = scaleZ; outer.position.z = (38.0 * scaleZ) / 2; }
-      if (core) { core.scale.y = scaleZ; core.position.z = (38.0 * scaleZ) / 2; }
-
+      if (outer) {
+        outer.scale.y = scaleZ;
+        outer.position.z = (38.0 * scaleZ) / 2;
+      }
+      if (core) {
+        core.scale.y = scaleZ;
+        core.position.z = (38.0 * scaleZ) / 2;
+      }
     }
 
     return {
@@ -383,11 +392,17 @@ export class Player3D {
           this.position.y = targetGroundY;
           this.velocityY = 0;
           this.isGrounded = true;
-          this.state = this.slideTimer > 0 ? "sliding" : "running";
+          if (this.state === "jumping") {
+            this.state = this.slideTimer > 0 ? "sliding" : "running";
+          }
         }
       } else {
-        // Snapped to ground elevation
+        // Grounded on highway, ramp, or train rooftop
         this.position.y = targetGroundY;
+        this.velocityY = 0;
+        if (this.state === "jumping") {
+          this.state = this.slideTimer > 0 ? "sliding" : "running";
+        }
       }
     }
 

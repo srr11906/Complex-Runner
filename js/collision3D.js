@@ -191,8 +191,17 @@ export class CollisionManager3D {
 
     player.groundElevation = targetGroundY;
 
-    if (player.position.y > player.groundElevation + 0.15) {
+    if (player.position.y > player.groundElevation + 0.25) {
       player.isGrounded = false;
+    } else {
+      player.isGrounded = true;
+      if (player.position.y < player.groundElevation) {
+        player.position.y = player.groundElevation;
+      }
+      if (player.state === "jumping") {
+        player.state = player.slideTimer > 0 ? "sliding" : "running";
+        player.velocityY = 0;
+      }
     }
 
     return null;
@@ -200,34 +209,52 @@ export class CollisionManager3D {
 
   /**
    * Check Gauntlet Laser Beam intersection along player lane (38m range)
+   * Stops at the closest hit obstacle and deals damage to it
    */
   static checkLaserCollisions(laserData, obstacles) {
     if (!laserData || !laserData.shot) return [];
-    const hitEntities = [];
+    const candidates = [];
     const laneX = laserData.laneX;
     const startZ = laserData.playerZ;
-    const endZ = laserData.playerZ + laserData.range;
+    const maxRange = laserData.range || 38.0;
 
     for (let i = 0; i < obstacles.length; i++) {
       const obs = obstacles[i];
-      if (!obs.mesh || !obs.mesh.visible) continue;
+      if (!obs || obs.destroyed || !obs.mesh || !obs.mesh.visible) continue;
       const oPos = obs.worldPos;
 
       const isSameLane = Math.abs(oPos.x - laneX) < 1.6;
-      const obsDepth = obs.type === "train" ? 12.0 : 1.5;
-      const isInRange = (oPos.z + obsDepth) >= startZ && (oPos.z - obsDepth) <= endZ;
+      if (!isSameLane) continue;
 
-      if (isSameLane && isInRange) {
+      const obsHalfDepth = obs.type === "train" ? 11.0 : (obs.type === "laser_gate" ? 0.6 : 0.4);
+      const obsFrontZ = oPos.z - obsHalfDepth;
+      const distFromPlayer = obsFrontZ - startZ;
+
+      if (distFromPlayer >= -0.5 && distFromPlayer <= maxRange) {
+        let hitType = "laser_destructible_hit";
         if (obs.type === "bounty_target" || obs.type === "rival_hunter") {
-          hitEntities.push({ type: "laser_bounty_capture", obstacle: obs, rewardUnits: obs.rewardUnits || 5000, targetName: obs.targetName || "Target" });
+          hitType = "laser_bounty_capture";
         } else if (obs.type === "bounty_crate") {
-          hitEntities.push({ type: "laser_crate_breached", obstacle: obs, rewardUnits: obs.rewardUnits || 10000 });
-        } else if (obs.type === "hurdle" || obs.type === "laser_gate" || obs.type === "train") {
-          hitEntities.push({ type: "laser_destructible_hit", obstacle: obs });
+          hitType = "laser_crate_breached";
         }
+
+        candidates.push({
+          type: hitType,
+          obstacle: obs,
+          distance: Math.max(0.5, distFromPlayer),
+          rewardUnits: obs.rewardUnits || (obs.type === "bounty_crate" ? 10000 : 5000),
+          targetName: obs.targetName || "Target"
+        });
       }
     }
-    return hitEntities;
+
+    if (candidates.length === 0) return [];
+
+    // Sort by distance so closest obstacle is hit first
+    candidates.sort((a, b) => a.distance - b.distance);
+
+    // Return the closest hit entity that absorbs the laser beam
+    return [candidates[0]];
   }
 
   /**
