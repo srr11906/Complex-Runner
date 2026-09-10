@@ -1,5 +1,5 @@
 /**
- * PRABHAS: KASI 2898 AD (3D Runner - AAA Next-Gen)
+ * COMPLEX RUNNER - Next-Gen 3D Sci-Fi Runner
  * Core Configuration, Daytime Lighting & Physics Constants
  */
 

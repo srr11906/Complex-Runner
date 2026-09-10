@@ -1,5 +1,5 @@
 /**
- * PRABHAS: KASI 2898 AD (3D Runner)
+ * COMPLEX RUNNER - Next-Gen 3D Sci-Fi Runner
  * Core 3D Game Engine & WebGL Render Loop with 1 Million Units Goal
  */
 
@@ -92,6 +92,17 @@ export class GameEngine3D {
     this.updateHud();
     this.showScreen(GameState3D.MENU);
     this.initLoading();
+
+    // Unlock audio context and start main menu music on first user interaction
+    const unlockMenuAudio = () => {
+      if (this.state === GameState3D.MENU) {
+        this.safeAudio("playMenuMusic");
+      }
+      window.removeEventListener("pointerdown", unlockMenuAudio);
+      window.removeEventListener("keydown", unlockMenuAudio);
+    };
+    window.addEventListener("pointerdown", unlockMenuAudio);
+    window.addEventListener("keydown", unlockMenuAudio);
 
     window.addEventListener("resize", () => this.handleResize());
 
@@ -358,25 +369,28 @@ export class GameEngine3D {
   initLoading() {
     const loadingScreen = this.dom.loadingScreen || document.getElementById("loading-screen");
     const fill = this.dom.loadingFill || document.getElementById("loading-bar-fill");
-    const status = this.dom.loadingStatus || document.getElementById("loading-status-text");
-    const pct = this.dom.loadingPct || document.getElementById("loading-pct-text");
+    const pctText = this.dom.loadingPct || document.getElementById("loading-pct-text");
+    const statusText = this.dom.loadingStatus || document.getElementById("loading-status-text");
 
-    const steps = [
-      { progress: 28, text: "CALIBRATING GAUNTLET..." },
-      { progress: 58, text: "LINKING BUJJI AI CORE..." },
-      { progress: 88, text: "BUILDING HIGH-SPEED TRACK..." },
-      { progress: 100, text: "RUNNER READY" }
+    let progress = 0;
+    const stages = [
+      "CALIBRATING NEURAL LINK...",
+      "SYNCHRONIZING BHAIRAVA KINEMATICS...",
+      "SCANNING HIGHWAY SECTORS...",
+      "WARMING PLASMA GAUNTLETS...",
+      "COMPLEX RUNNER INITIALIZED"
     ];
 
-    let currentStep = 0;
     const interval = setInterval(() => {
-      if (currentStep < steps.length) {
-        const step = steps[currentStep];
-        if (fill) fill.style.width = `${step.progress}%`;
-        if (pct) pct.textContent = `${step.progress}%`;
-        if (status) status.textContent = step.text;
-        currentStep++;
-      } else {
+      progress += Math.floor(Math.random() * 18) + 12;
+      if (progress > 100) progress = 100;
+
+      if (fill) fill.style.width = `${progress}%`;
+      if (pctText) pctText.textContent = `${progress}%`;
+      const stageIdx = Math.min(stages.length - 1, Math.floor((progress / 100) * stages.length));
+      if (statusText) statusText.textContent = stages[stageIdx];
+
+      if (progress >= 100) {
         clearInterval(interval);
         setTimeout(() => {
           if (loadingScreen) {
@@ -402,6 +416,7 @@ export class GameEngine3D {
   showMenu() {
     this.state = GameState3D.MENU;
     this.safeAudio("stopMusic");
+    this.safeAudio("playMenuMusic");
     this.updateMenuStats();
     this.showScreen(GameState3D.MENU);
     this._lastUnits = null;
@@ -547,7 +562,7 @@ export class GameEngine3D {
     for (let hit of hitEntities) {
       if (hit.type === "laser_destructible_hit" || hit.type === "laser_hurdle_hit" || hit.type === "laser_obstacle_destroyed") {
         const obs = hit.obstacle;
-        const defaultHp = obs.type === "train" ? 20 : 8;
+        const defaultHp = obs.type === "train" ? 10 : 6;
         const currentHp = obs.hp !== undefined ? obs.hp : (obs.mesh && obs.mesh.userData && obs.mesh.userData.hp !== undefined ? obs.mesh.userData.hp : defaultHp);
         obs.hp = currentHp - 1;
         if (obs.mesh && obs.mesh.userData) {
@@ -564,9 +579,11 @@ export class GameEngine3D {
           setTimeout(() => { if (obs.mesh) obs.mesh.position.x = origX; }, 60);
         }
 
-        // Destroyed once HP is exhausted (8 hits for barriers & laser gates, 20 hits for trains)
+        // Destroyed once HP is exhausted (6 hits for barriers & laser gates, 10 hits for trains)
         if (obs.hp <= 0) {
           obs.destroyed = true;
+          this.destroyedObstaclesCount = (this.destroyedObstaclesCount || 0) + 1;
+          if (this.menuManager) this.menuManager.recordMissionProgress("laser_destroy", 1);
           if (obs.mesh) {
             obs.mesh.visible = false;
             if (obs.mesh.userData) obs.mesh.userData.destroyed = true;
