@@ -17,7 +17,7 @@ export class AudioManager3D {
       this.menuMusic = new Audio("mainmenu.mp3");
       this.menuMusic.loop = true;
       this.menuMusic.preload = "auto";
-      this.menuMusic.volume = 0.85;
+      this.menuMusic.volume = 0.45; // Smooth balanced menu music volume
     } catch (e) {}
 
     // In-Game Background Music Track (Custom file fallback)
@@ -26,7 +26,7 @@ export class AudioManager3D {
       this.bgMusic = new Audio("assets/audio/bgm.mp3");
       this.bgMusic.loop = true;
       this.bgMusic.preload = "auto";
-      this.bgMusic.volume = 0.90; // Doubled in-game volume
+      this.bgMusic.volume = 0.45; // Smooth balanced in-game music volume
     } catch (e) {}
 
     // Procedural Web Audio Music Synthesizer (100% Royalty Free, Zero Lag, Speed Adaptive)
@@ -44,7 +44,7 @@ export class AudioManager3D {
       if (AudioContextClass) {
         this.ctx = new AudioContextClass();
         this.bgmMasterGain = this.ctx.createGain();
-        this.bgmMasterGain.gain.setValueAtTime(1.0, this.ctx.currentTime); // Doubled in-game procedural master volume (from 0.55 to 1.0)
+        this.bgmMasterGain.gain.setValueAtTime(0.45, this.ctx.currentTime); // Balanced, comfortable procedural soundtrack volume
         this.bgmMasterGain.connect(this.ctx.destination);
         this.isInitialized = true;
       }
@@ -163,7 +163,7 @@ export class AudioManager3D {
       this.stopMenuMusic();
     } else {
       if (this.bgmMasterGain && this.ctx) {
-        this.bgmMasterGain.gain.setValueAtTime(1.0, this.ctx.currentTime);
+        this.bgmMasterGain.gain.setValueAtTime(0.45, this.ctx.currentTime);
       }
     }
     return this.isMuted;
@@ -458,62 +458,18 @@ export class AudioManager3D {
     if (!this.ctx) return;
     try {
       const now = this.ctx.currentTime;
-
-      // 1. Crisp Metallic / Plasma Transient Click (Sharp 8-10ms impulse)
-      const bufferSize = Math.floor(this.ctx.sampleRate * 0.015);
-      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.2));
-      }
-      const noise = this.ctx.createBufferSource();
-      noise.buffer = buffer;
-      const noiseFilter = this.ctx.createBiquadFilter();
-      noiseFilter.type = "highpass";
-      noiseFilter.frequency.setValueAtTime(4500, now);
-      const noiseGain = this.ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.45, now); // Doubled from 0.22
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
-      noise.connect(noiseFilter);
-      noiseFilter.connect(noiseGain);
-      noiseGain.connect(this.ctx.destination);
-      noise.start(now);
-      noise.stop(now + 0.02);
-
-      // 2. High-Tech Tactical Resonant Energy Pop (520Hz with tight decay)
-      const baseTone = multiplier > 1 ? 680 : 540;
+      const baseFreq = 880 + Math.min(600, (multiplier - 1) * 80);
       const osc = this.ctx.createOscillator();
-      const filter = this.ctx.createBiquadFilter();
       const gain = this.ctx.createGain();
-
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(baseTone * 1.3, now);
-      osc.frequency.exponentialRampToValueAtTime(baseTone, now + 0.035);
-
-      filter.type = "lowpass";
-      filter.frequency.setValueAtTime(2200, now);
-
-      gain.gain.setValueAtTime(0.70, now); // Doubled from 0.35
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
-
-      osc.connect(filter);
-      filter.connect(gain);
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.setValueAtTime(baseFreq * 1.5, now + 0.05);
+      gain.gain.setValueAtTime(0.16, now); // Gentle, soothing volume (avoids ear fatigue)
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+      osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start(now);
-      osc.stop(now + 0.06);
-
-      // 3. Sub-Frequency Thud (Gives physical tactile weight to the collection)
-      const subOsc = this.ctx.createOscillator();
-      const subGain = this.ctx.createGain();
-      subOsc.type = "triangle";
-      subOsc.frequency.setValueAtTime(180, now);
-      subOsc.frequency.exponentialRampToValueAtTime(80, now + 0.04);
-      subGain.gain.setValueAtTime(0.55, now); // Doubled from 0.28
-      subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
-      subOsc.connect(subGain);
-      subGain.connect(this.ctx.destination);
-      subOsc.start(now);
-      subOsc.stop(now + 0.05);
+      osc.stop(now + 0.12);
     } catch (e) {}
   }
 
