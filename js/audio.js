@@ -11,30 +11,37 @@ export class AudioManager3D {
     this.jetpackOsc = null;
     this.jetpackGain = null;
 
-    // Main Menu Background Music (mainmenu.mp3 in loop)
+    // Main Menu Background Music (Disabled per request)
     this.menuMusic = null;
-    try {
-      this.menuMusic = new Audio("mainmenu.mp3");
-      this.menuMusic.loop = true;
-      this.menuMusic.preload = "auto";
-      this.menuMusic.volume = 0.45; // Smooth balanced menu music volume
-    } catch (e) {}
 
-    // In-Game Background Music Track (Custom file fallback)
+    // In-Game Background Music Track (assets/audio/bgm.mp3 with fallbacks, increased by +15% to 0.65)
     this.bgMusic = null;
-    try {
-      this.bgMusic = new Audio("assets/audio/bgm.mp3");
-      this.bgMusic.loop = true;
-      this.bgMusic.preload = "auto";
-      this.bgMusic.volume = 0.45; // Smooth balanced in-game music volume
-    } catch (e) {}
+    const bgmPaths = ["assets/audio/bgm.mp3", "bgm.mp3", "BUJJI THEME Kalki.mp3"];
+    this.initAudioElement("bgMusic", bgmPaths, 0.65);
 
-    // Procedural Web Audio Music Synthesizer (100% Royalty Free, Zero Lag, Speed Adaptive)
+    // Procedural Web Audio Music Synthesizer (100% Royalty Free, Zero Lag, Speed Adaptive fallback)
     this.isBgmSynthesizing = false;
     this.bgmTimer = null;
     this.bgmStep = 0;
     this.bgmTempo = 128; // BPM
     this.bgmMasterGain = null;
+  }
+
+  initAudioElement(propName, pathList, volume = 0.65) {
+    let index = 0;
+    const tryNext = () => {
+      if (index >= pathList.length) return;
+      const path = pathList[index++];
+      const audio = new Audio(path);
+      audio.loop = true;
+      audio.preload = "auto";
+      audio.volume = volume;
+      audio.addEventListener("error", () => {
+        tryNext();
+      }, { once: true });
+      this[propName] = audio;
+    };
+    tryNext();
   }
 
   init() {
@@ -44,7 +51,7 @@ export class AudioManager3D {
       if (AudioContextClass) {
         this.ctx = new AudioContextClass();
         this.bgmMasterGain = this.ctx.createGain();
-        this.bgmMasterGain.gain.setValueAtTime(0.45, this.ctx.currentTime); // Balanced, comfortable procedural soundtrack volume
+        this.bgmMasterGain.gain.setValueAtTime(0.65, this.ctx.currentTime); // In-game synth volume +15% (0.65)
         this.bgmMasterGain.connect(this.ctx.destination);
         this.isInitialized = true;
       }
@@ -163,7 +170,7 @@ export class AudioManager3D {
       this.stopMenuMusic();
     } else {
       if (this.bgmMasterGain && this.ctx) {
-        this.bgmMasterGain.gain.setValueAtTime(0.45, this.ctx.currentTime);
+        this.bgmMasterGain.gain.setValueAtTime(0.65, this.ctx.currentTime);
       }
     }
     return this.isMuted;
