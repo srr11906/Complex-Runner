@@ -33,6 +33,23 @@ export const CONFIG = {
   PLAYER_WIDTH: 0.9,
   PLAYER_DEPTH: 0.7,
 
+  // Monster Robot ("Wastelands Rogue Harvester") Rival Mecha Settings
+  MONSTER_ROBOT: {
+    HEIST_SPAWN_THRESHOLDS: [250000, 550000, 820000], // Spawns exactly 3 times in 1M Heist Mode
+    MAX_SPAWNS_HEIST: 3,                               // Max 3 spawns in 1M goal run
+    ENDLESS_SPAWN_INTERVAL: 280000,                    // Recurring boss interval in Endless mode
+    MAX_HITS: 25,                                      // 25 laser hits to destroy
+    AHEAD_DISTANCE: 38.0,                              // Spawns 38m ahead (within 55m laser range)
+    TARGET_LEAD_MIN: 30.0,                             // Lead distance window minimum
+    TARGET_LEAD_MAX: 42.0,                             // Lead distance window maximum
+    SCALE: 1.5,                                        // 1.5x balanced mecha scale (sleek, athletic, screen-fit)
+    BOUNTY_REWARD_UNITS: 50000,                        // +50,000 Vault Units on destruction
+    COIN_MAGNET_RADIUS: 12.0,                          // Strong vacuum magnet radius
+    COIN_EAT_RADIUS: 3.2,                              // Ingestion intake core radius
+    COINS_PER_HIT_DROP: 3,                             // Coins ejected backwards on each laser strike
+    DESPAWN_TIME: 55.0                                 // Max active duration in seconds
+  },
+
   // Bujji Companion Offset (Left Shoulder Side)
   BUJJI_OFFSET_X: -0.72,
   BUJJI_OFFSET_Y: 1.35,

@@ -87,92 +87,78 @@ class TextureGenerator {
     canvas.height = 1024;
     const ctx = canvas.getContext("2d");
 
-    // 1. Dark Monolithic Titanium-Alloy Base
-    ctx.fillStyle = "#1A1410";
+    // 1. Sleek Matte Obsidian Composite Road Surface
+    ctx.fillStyle = "#17181E";
     ctx.fillRect(0, 0, 1024, 1024);
 
-    // 2. Heavy Composite Slab Expansion Seams (Every 256px)
-    ctx.strokeStyle = "#0D0907";
-    ctx.lineWidth = 8;
-    for (let y = 0; y <= 1024; y += 256) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(1024, y);
-      ctx.stroke();
-
-      // Heavy interlocking steel dowel anchors on seams
-      ctx.fillStyle = "#382F26";
-      for (let x = 32; x < 1024; x += 64) {
-        ctx.fillRect(x - 6, y - 5, 12, 10);
-      }
-    }
-
-    // 3. Fine Industrial Alloy Micro-Grit Noise
+    // 2. Extremely Subtle Smooth Tonal Texture (Zero harsh static)
     const imgData = ctx.getImageData(0, 0, 1024, 1024);
     const data = imgData.data;
     for (let i = 0; i < data.length; i += 4) {
-      const noise = (Math.random() - 0.5) * 22;
-      data[i] = Math.max(0, Math.min(255, data[i] + noise));
-      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise * 0.85));
-      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise * 0.65));
+      const grain = (Math.random() - 0.5) * 6;
+      data[i] = Math.max(0, Math.min(255, data[i] + grain));
+      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + grain));
+      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + grain * 1.1));
     }
     ctx.putImageData(imgData, 0, 0);
 
-    // 4. Embedded Linear Maglev Induction Rails (3 Lanes: Center at X=170, 512, 854)
-    const laneCenters = [170, 512, 854];
-    for (const lx of laneCenters) {
-      // Recessed magnetic trench
-      ctx.fillStyle = "rgba(10, 7, 5, 0.92)";
-      ctx.fillRect(lx - 26, 0, 52, 1024);
-
-      // Outer guide rail strips
-      ctx.fillStyle = "#2D241C";
-      ctx.fillRect(lx - 26, 0, 4, 1024);
-      ctx.fillRect(lx + 22, 0, 4, 1024);
-
-      // Glowing Maglev Power Conduit Rail Core
-      ctx.fillStyle = "rgba(0, 229, 255, 0.55)";
-      ctx.fillRect(lx - 4, 0, 8, 1024);
-
-      // Embedded Electromagnetic Coils
-      ctx.fillStyle = "#F59E0B";
-      for (let y = 8; y < 1024; y += 32) {
-        ctx.fillRect(lx - 18, y, 36, 12);
-      }
+    // 3. Clean Transverse Expansion Seams (Every 512px)
+    for (let y = 0; y <= 1024; y += 512) {
+      // Recessed seam groove
+      ctx.fillStyle = "#0C0D11";
+      ctx.fillRect(0, y - 2, 1024, 4);
+      // Subtle top specular edge highlight
+      ctx.fillStyle = "#262A34";
+      ctx.fillRect(0, y + 2, 1024, 1.5);
     }
 
-    // 5. High-Tech Optical Guideway Lane Boundaries (Solid thin laser guideways, NO asphalt dashed lines)
-    ctx.strokeStyle = "rgba(217, 119, 6, 0.5)";
-    ctx.lineWidth = 3;
+    // 4. Sleek Minimalist Maglev Guide Tracks (3 Lanes: Left 170, Center 512, Right 854)
+    const laneCenters = [170, 512, 854];
+    for (const lx of laneCenters) {
+      // Recessed dark metallic trench
+      ctx.fillStyle = "#1E222A";
+      ctx.fillRect(lx - 12, 0, 24, 1024);
+
+      // Dark titanium track edges
+      ctx.fillStyle = "#333945";
+      ctx.fillRect(lx - 12, 0, 2, 1024);
+      ctx.fillRect(lx + 10, 0, 2, 1024);
+
+      // Soft ambient cyan glow
+      ctx.fillStyle = "rgba(0, 229, 255, 0.12)";
+      ctx.fillRect(lx - 6, 0, 12, 1024);
+
+      // Luminous cyan superconductor core beam
+      ctx.fillStyle = "rgba(0, 229, 255, 0.85)";
+      ctx.fillRect(lx - 2, 0, 4, 1024);
+    }
+
+    // 5. Clean Futuristic Dashed Amber Lane Dividers
+    ctx.strokeStyle = "rgba(245, 158, 11, 0.45)";
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([48, 32]);
     ctx.beginPath();
     ctx.moveTo(341, 0);
     ctx.lineTo(341, 1024);
     ctx.moveTo(682, 0);
     ctx.lineTo(682, 1024);
     ctx.stroke();
+    ctx.setLineDash([]); // Reset dash
 
-    // 6. Futuristic Sector Stencils
-    ctx.fillStyle = "rgba(203, 213, 225, 0.35)";
-    ctx.font = "900 22px monospace";
-    ctx.fillText("COMPLEX MAGLEV // CORRIDOR-01", 50, 130);
-    ctx.fillText("COMPLEX MAGLEV // CORRIDOR-01", 50, 642);
-    ctx.fillText("INDUCTION 750V // ACTIVE", 390, 380);
-    ctx.fillText("INDUCTION 750V // ACTIVE", 390, 892);
+    // 6. Smooth Desert Sand Border Blending at Outer Margins
+    const leftGrad = ctx.createLinearGradient(0, 0, 36, 0);
+    leftGrad.addColorStop(0, "rgba(54, 38, 22, 0.75)");
+    leftGrad.addColorStop(0.6, "rgba(54, 38, 22, 0.25)");
+    leftGrad.addColorStop(1, "rgba(54, 38, 22, 0)");
+    ctx.fillStyle = leftGrad;
+    ctx.fillRect(0, 0, 36, 1024);
 
-    // 7. Desert Sand Weathering along Highway Margins
-    for (let i = 0; i < 40; i++) {
-      const edge = Math.random() > 0.5 ? 0 : 1024;
-      const sy = Math.random() * 1024;
-      const rad = 45 + Math.random() * 80;
-      const grad = ctx.createRadialGradient(edge, sy, 0, edge, sy, rad);
-      grad.addColorStop(0, "rgba(58, 35, 15, 0.7)");
-      grad.addColorStop(0.6, "rgba(58, 35, 15, 0.25)");
-      grad.addColorStop(1, "rgba(58, 35, 15, 0)");
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(edge, sy, rad, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    const rightGrad = ctx.createLinearGradient(1024, 0, 988, 0);
+    rightGrad.addColorStop(0, "rgba(54, 38, 22, 0.75)");
+    rightGrad.addColorStop(0.6, "rgba(54, 38, 22, 0.25)");
+    rightGrad.addColorStop(1, "rgba(54, 38, 22, 0)");
+    ctx.fillStyle = rightGrad;
+    ctx.fillRect(988, 0, 36, 1024);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
@@ -615,7 +601,6 @@ class TextureGenerator {
    */
   getRoadNormalMap() {
     if (this.cache.has("road_norm")) return this.cache.get("road_norm");
-    // Generate base grayscale heightmap canvas
     const canvas = document.createElement("canvas");
     canvas.width = 512;
     canvas.height = 512;
@@ -624,25 +609,21 @@ class TextureGenerator {
     ctx.fillStyle = "#808080";
     ctx.fillRect(0, 0, 512, 512);
 
-    // Expansion joint trenches
-    ctx.strokeStyle = "#202020";
-    ctx.lineWidth = 4;
-    for (let y = 0; y <= 512; y += 128) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(512, y);
-      ctx.stroke();
+    // Subtle Expansion joint trenches
+    ctx.fillStyle = "#404040";
+    for (let y = 0; y <= 512; y += 256) {
+      ctx.fillRect(0, y - 1, 512, 2);
     }
 
     // Induction lane trenches
     for (let lx of [85, 256, 427]) {
-      ctx.fillStyle = "#303030";
-      ctx.fillRect(lx - 12, 0, 24, 512);
-      ctx.fillStyle = "#E0E0E0";
-      ctx.fillRect(lx - 2, 0, 4, 512);
+      ctx.fillStyle = "#555555";
+      ctx.fillRect(lx - 6, 0, 12, 512);
+      ctx.fillStyle = "#B0B0B0";
+      ctx.fillRect(lx - 1, 0, 2, 512);
     }
 
-    const normCanvas = this.generateNormalMapFromCanvas(canvas, 2.5);
+    const normCanvas = this.generateNormalMapFromCanvas(canvas, 0.75);
     const texture = new THREE.CanvasTexture(normCanvas);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;

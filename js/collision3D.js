@@ -187,12 +187,28 @@ export class CollisionManager3D {
    * Check Gauntlet Laser Beam intersection along player lane (38m range)
    * Stops at the closest hit obstacle and deals damage to it
    */
-  static checkLaserCollisions(laserData, obstacles) {
+  static checkLaserCollisions(laserData, obstacles, monsterRobot = null) {
     if (!laserData || !laserData.shot) return [];
     const candidates = [];
     const laneX = laserData.laneX;
     const startZ = laserData.playerZ;
     const maxRange = laserData.range || 38.0;
+
+    // Check Monster Robot
+    if (monsterRobot && monsterRobot.active && !monsterRobot.isGlitching) {
+      const isRobotLane = Math.abs(monsterRobot.position.x - laneX) < 1.6;
+      if (isRobotLane) {
+        const distFromPlayer = monsterRobot.position.z - startZ;
+        if (distFromPlayer >= 0.0 && distFromPlayer <= maxRange) {
+          candidates.push({
+            type: "laser_monster_robot_hit",
+            robot: monsterRobot,
+            distance: Math.max(0.5, distFromPlayer),
+            targetName: "Scavenger Mecha Bot"
+          });
+        }
+      }
+    }
 
     for (let i = 0; i < obstacles.length; i++) {
       const obs = obstacles[i];

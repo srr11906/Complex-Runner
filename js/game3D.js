@@ -12,6 +12,7 @@ import { Environment3D } from "./world/environment.js";
 import { TrackSegmentPool3D } from "./world/segmentPool.js";
 import { CameraManager3D } from "./cameraManager.js";
 import { CollisionManager3D } from "./collision3D.js";
+import { MonsterRobotModel } from "./models/monsterRobotModel.js";
 
 export const GameState3D = {
   MENU: "menu",
@@ -48,6 +49,9 @@ export class GameEngine3D {
     this.environment = null;
     this.trackPool = null;
     this.cameraManager = null;
+    this.monsterRobot = null;
+    this.lastMonsterSpawnScore = 0;
+    this.monsterSpawnCount = 0;
 
     // Loop
     this.lastTime = 0;
@@ -75,6 +79,8 @@ export class GameEngine3D {
     this.player = new Player3D(this.scene);
     this.trackPool = new TrackSegmentPool3D(this.scene);
     this.cameraManager = new CameraManager3D(this.camera);
+    this.monsterRobot = new MonsterRobotModel(this.scene);
+    window.gameEngine3D = this;
 
     this.input = new InputManager3D({
       onLeft: () => this.handleLeft(),
@@ -337,6 +343,12 @@ export class GameEngine3D {
 
     this.player.reset();
     this.trackPool.init();
+    this.lastMonsterSpawnScore = 0;
+    this.monsterSpawnCount = 0;
+    if (this.monsterRobot) {
+      this.monsterRobot.active = false;
+      this.monsterRobot.root.visible = false;
+    }
 
     if (this.tractorBeam) {
       this.tractorBeam.material.opacity = 0;
@@ -425,6 +437,12 @@ export class GameEngine3D {
     this._lastGoalPillDisplay = null;
     this.player.reset();
     this.trackPool.clear();
+    this.lastMonsterSpawnScore = 0;
+    this.monsterSpawnCount = 0;
+    if (this.monsterRobot) {
+      this.monsterRobot.active = false;
+      this.monsterRobot.root.visible = false;
+    }
     if (this.tractorBeam) this.tractorBeam.material.opacity = 0;
     this.updateHud();
   }
@@ -541,13 +559,13 @@ export class GameEngine3D {
       shot: true,
       laneX: this.player.targetX,
       playerZ: this.player.position.z,
-      range: 38.0
+      range: 55.0
     };
 
     const activeObstacles = this.trackPool.getAllActiveObstacles(this.player.position.z);
-    const hitEntities = CollisionManager3D.checkLaserCollisions(laserData, activeObstacles);
+    const hitEntities = CollisionManager3D.checkLaserCollisions(laserData, activeObstacles, this.monsterRobot);
 
-    let hitDistance = 38.0;
+    let hitDistance = 55.0;
     if (hitEntities.length > 0) {
       hitDistance = hitEntities[0].distance;
     }
@@ -560,7 +578,17 @@ export class GameEngine3D {
     this.cameraManager.shake(0.12);
 
     for (let hit of hitEntities) {
-      if (hit.type === "laser_destructible_hit" || hit.type === "laser_hurdle_hit" || hit.type === "laser_obstacle_destroyed") {
+      if (hit.type === "laser_monster_robot_hit") {
+        const res = hit.robot.takeLaserHit();
+        this.safeAudio("playHit");
+        this.cameraManager.shake(0.22);
+        if (res.destroyed) {
+          this.safeAudio("playHit");
+          this.safeAudio("playDialogue", "laser");
+          this.cameraManager.shake(0.65);
+          this.showFloatingBountyBanner("⚔️ WASTELANDS HARVESTER DESTROYED!", "boss");
+        }
+      } else if (hit.type === "laser_destructible_hit" || hit.type === "laser_hurdle_hit" || hit.type === "laser_obstacle_destroyed") {
         const obs = hit.obstacle;
         const defaultHp = obs.type === "train" ? 10 : 6;
         const currentHp = obs.hp !== undefined ? obs.hp : (obs.mesh && obs.mesh.userData && obs.mesh.userData.hp !== undefined ? obs.mesh.userData.hp : defaultHp);
@@ -927,7 +955,41 @@ export class GameEngine3D {
       }
     }
 
-    // 7. Update HUD Display
+    // 7. Monster Robot (Wastelands Rogue Harvester) Autonomous Spawn & Update
+    if (this.monsterRobot) {
+      const aheadDist = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.AHEAD_DISTANCE : 38.0;
+      let shouldSpawn = false;
+
+      if (this.gameMode === "heist") {
+        const thresholds = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.HEIST_SPAWN_THRESHOLDS : [250000, 550000, 820000];
+        const maxSpawns = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.MAX_SPAWNS_HEIST : 3;
+        if (this.monsterSpawnCount < maxSpawns && !this.monsterRobot.active) {
+          if (this.score >= thresholds[this.monsterSpawnCount]) {
+            shouldSpawn = true;
+          }
+        }
+      } else {
+        // Endless mode (Spawns periodically every interval)
+        const interval = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.ENDLESS_SPAWN_INTERVAL : 280000;
+        if (!this.monsterRobot.active && this.score >= interval && (this.score - this.lastMonsterSpawnScore >= interval)) {
+          shouldSpawn = true;
+        }
+      }
+
+      if (shouldSpawn) {
+        const rLane = Math.floor(Math.random() * 3);
+        this.monsterRobot.spawn(rLane, this.player.position.z + aheadDist);
+        this.monsterSpawnCount++;
+        this.lastMonsterSpawnScore = this.score;
+        this.showFloatingBountyBanner("⚠️ WASTELANDS ROGUE HARVESTER INBOUND!", "boss");
+        this.safeAudio("playDialogue", "bujji");
+        this.cameraManager.shake(0.4);
+      }
+
+      this.monsterRobot.update(dt, this.currentSpeed, this.player.position.z, activeObstacles, activeCollectibles, this.player);
+    }
+
+    // 8. Update HUD Display
     this.updateHud();
   }
 }

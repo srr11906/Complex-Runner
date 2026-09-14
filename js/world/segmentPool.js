@@ -42,9 +42,9 @@ export class TrackSegmentPool3D {
       ground: new THREE.MeshPhongMaterial({
         map: textureGen.getRoadTexture(),
         normalMap: textureGen.getRoadNormalMap(),
-        normalScale: new THREE.Vector2(0.85, 0.85),
-        shininess: 24,
-        specular: 0x332211,
+        normalScale: new THREE.Vector2(0.35, 0.35),
+        shininess: 16,
+        specular: 0x222222,
         side: THREE.DoubleSide
       }),
       roadSlab: new THREE.MeshLambertMaterial({
@@ -567,11 +567,20 @@ export class TrackSegmentPool3D {
     chunkData.obstacles.push(obstacle);
   }
 
-  spawnCoinLine(chunkData, laneX, startZ, endZ, count, yHeight, isSkyCoin = false) {
+  spawnCoinLine(chunkData, laneX, startZ, endZ, count, yHeight, isSkyCoin = false, allowPowerup = true) {
     const step = (endZ - startZ) / (count - 1);
+    const powerupIndex = (allowPowerup && !isSkyCoin && Math.random() < 0.28) ? Math.floor(count / 2) : -1;
+
     for (let i = 0; i < count; i++) {
+      const zPos = startZ + i * step;
+
+      if (i === powerupIndex) {
+        this.spawnRandomPowerup(chunkData, laneX, zPos, yHeight, true);
+        continue;
+      }
+
       const coin = this.collectibleFactory.createCoin();
-      coin.position.set(laneX, yHeight, startZ + i * step);
+      coin.position.set(laneX, yHeight, zPos);
       coin.userData.isSky = isSkyCoin;
       coin.visible = !isSkyCoin;
 
@@ -596,10 +605,12 @@ export class TrackSegmentPool3D {
     }
   }
 
-  spawnRandomPowerup(chunkData, laneX, z) {
-    // 60% frequency reduction gate (only 40% spawn rate)
-    const spawnRate = CONFIG.POWERUP_SPAWN_CHANCE !== undefined ? CONFIG.POWERUP_SPAWN_CHANCE : 0.40;
-    if (Math.random() > spawnRate) return;
+  spawnRandomPowerup(chunkData, laneX, z, customY = 1.2, force = false) {
+    // 60% frequency reduction gate (only 40% spawn rate when unforced)
+    if (!force) {
+      const spawnRate = CONFIG.POWERUP_SPAWN_CHANCE !== undefined ? CONFIG.POWERUP_SPAWN_CHANCE : 0.40;
+      if (Math.random() > spawnRate) return;
+    }
 
     const types = ["magnet", "jetpack", "shield", "multiplier"];
     const chosen = types[Math.floor(Math.random() * types.length)];
@@ -610,13 +621,14 @@ export class TrackSegmentPool3D {
     else if (chosen === "shield") powerup = this.collectibleFactory.createShield();
     else powerup = this.collectibleFactory.createMultiplier();
 
-    powerup.position.set(laneX, 1.2, z);
+    const actualY = customY !== undefined ? customY : 1.2;
+    powerup.position.set(laneX, actualY, z);
     powerup.userData.isSky = false;
 
     powerup.userData.cachedCollisionData = {
       mesh: powerup,
       chunkRoot: chunkData.root,
-      worldPos: new THREE.Vector3(laneX, 1.2, chunkData.startZ + z),
+      worldPos: new THREE.Vector3(laneX, actualY, chunkData.startZ + z),
       type: powerup.userData.type,
       powerupType: powerup.userData.powerupType || null,
       radius: 0.85,
