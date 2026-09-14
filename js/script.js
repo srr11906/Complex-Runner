@@ -1,9 +1,9 @@
 /**
- * PRABHAS: KASI 2898 AD (3D Runner)
+ * COMPLEX RUNNER - Next-Gen 3D Sci-Fi Runner
  * Main Web Application Entry Point
  */
 
-import { GameEngine3D } from "./game3D.js?v=20260914_complex_v6";
+import { GameEngine3D } from "./game3D.js?v=20260914_jetpack_v24";
 
 window.addEventListener("DOMContentLoaded", () => {
   const game = new GameEngine3D();

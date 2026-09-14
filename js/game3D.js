@@ -4,15 +4,15 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "./config.js?v=20260914_complex_v6";
-import { AudioManager3D } from "./audio.js?v=20260914_complex_v6";
-import { InputManager3D } from "./input.js?v=20260914_complex_v6";
-import { Player3D } from "./player3D.js?v=20260914_complex_v6";
-import { Environment3D } from "./world/environment.js?v=20260914_complex_v6";
-import { TrackSegmentPool3D } from "./world/segmentPool.js?v=20260914_complex_v6";
-import { CameraManager3D } from "./cameraManager.js?v=20260914_complex_v6";
-import { CollisionManager3D } from "./collision3D.js?v=20260914_complex_v6";
-import { MonsterRobotModel } from "./models/monsterRobotModel.js?v=20260914_complex_v6";
+import { CONFIG } from "./config.js?v=20260914_jetpack_v24";
+import { AudioManager3D } from "./audio.js?v=20260914_jetpack_v24";
+import { InputManager3D } from "./input.js?v=20260914_jetpack_v24";
+import { Player3D } from "./player3D.js?v=20260914_jetpack_v24";
+import { Environment3D } from "./world/environment.js?v=20260914_jetpack_v24";
+import { TrackSegmentPool3D } from "./world/segmentPool.js?v=20260914_jetpack_v24";
+import { CameraManager3D } from "./cameraManager.js?v=20260914_jetpack_v24";
+import { CollisionManager3D } from "./collision3D.js?v=20260914_jetpack_v24";
+import { MonsterRobotModel } from "./models/monsterRobotModel.js?v=20260914_jetpack_v24";
 
 export const GameState3D = {
   MENU: "menu",
@@ -50,7 +50,8 @@ export class GameEngine3D {
     this.trackPool = null;
     this.cameraManager = null;
     this.monsterRobot = null;
-    this.lastMonsterSpawnScore = 0;
+    this.lastMiniMilestone = 0;
+    this.lastApexMilestone = 0;
     this.monsterSpawnCount = 0;
 
     // Power-Up Upgrades (Persistent levels 1-6)
@@ -64,7 +65,6 @@ export class GameEngine3D {
     // Monster Mode Toggle (ON by default)
     this.monsterEnabled = localStorage.getItem("prabhas3DMonsterToggle") !== "false";
     this.lastApexMilestone = 0;
-    this.lastMiniMilestone = 0;
 
     // Loop
     this.lastTime = 0;
@@ -92,7 +92,8 @@ export class GameEngine3D {
     this.player = new Player3D(this.scene);
     this.trackPool = new TrackSegmentPool3D(this.scene);
     this.cameraManager = new CameraManager3D(this.camera);
-    this.monsterRobot = new MonsterRobotModel(this.scene);
+    this.monsterRobots = Array.from({ length: 4 }, () => new MonsterRobotModel(this.scene));
+    this.monsterRobot = this.monsterRobots[0];
     window.gameEngine3D = this;
 
     this.input = new InputManager3D({
@@ -129,13 +130,20 @@ export class GameEngine3D {
     // Battery & Performance: Handle background tab visibility
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
+        this._isTabHidden = true;
         if (this.state === GameState3D.PLAYING) {
           this.togglePause();
         }
         if (this.audio) {
           this.audio.suspendContext();
+          if (typeof this.audio.stopProceduralBgm === "function") {
+            this.audio.stopProceduralBgm();
+          }
         }
       } else {
+        this._isTabHidden = false;
+        this.lastTime = performance.now();
+        this.lastRenderTime = performance.now();
         if (this.audio && this.state === GameState3D.PLAYING) {
           this.audio.ensureContext();
         }
@@ -160,7 +168,7 @@ export class GameEngine3D {
     this.camera = new THREE.PerspectiveCamera(65, width / height, 0.1, 1000);
     this.camera.position.set(0, 3.4, -6.5);
 
-    // WebGL Renderer (High-definition AAA photorealism)
+    // WebGL Renderer (High-definition AAA photorealism with 1.5x retina cap for 43.75% GPU power savings)
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
       powerPreference: "high-performance",
@@ -169,7 +177,7 @@ export class GameEngine3D {
       alpha: false
     });
     this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -229,6 +237,7 @@ export class GameEngine3D {
       badgeMultiplier: document.getElementById("badge-multiplier"),
       fillMultiplier: document.getElementById("multiplier-timer-fill"),
       badgeShield: document.getElementById("badge-shield"),
+      fillShield: document.getElementById("shield-timer-fill"),
       badgeHarpoon: document.getElementById("badge-harpoon"),
       fillHarpoon: document.getElementById("harpoon-timer-fill"),
 
@@ -265,7 +274,13 @@ export class GameEngine3D {
       armoryModal: document.getElementById("armory-modal-screen"),
       btnCloseArmory: document.getElementById("btn-close-armory"),
       btnArmoryBack: document.getElementById("btn-armory-back"),
-      shopVaultUnits: document.getElementById("shop-vault-units-val")
+      shopVaultUnits: document.getElementById("shop-vault-units-val"),
+
+      // Cached Dynamic HUD & Bounty Elements (Zero DOM Layout Thrashing)
+      bountyBanner: document.getElementById("hud-bounty-banner"),
+      streakBadge: document.getElementById("hud-streak-badge"),
+      bountyContractsList: document.getElementById("bounty-contracts-list"),
+      bountyRankBadge: document.getElementById("bounty-rank-badge")
     };
   }
 
@@ -382,7 +397,7 @@ export class GameEngine3D {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.0));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   }
 
   startNewGame() {
@@ -406,13 +421,14 @@ export class GameEngine3D {
     this.trackPool.setTheme(isComplex ? "complex" : "wasteland");
     if (this.environment) this.environment.setTheme(isComplex ? "complex" : "wasteland");
 
-    this.lastMonsterSpawnScore = 0;
-    this.monsterSpawnCount = 0;
-    this.lastApexMilestone = 0;
     this.lastMiniMilestone = 0;
-    if (this.monsterRobot) {
-      this.monsterRobot.active = false;
-      this.monsterRobot.root.visible = false;
+    this.lastApexMilestone = 0;
+    this.monsterSpawnCount = 0;
+    if (this.monsterRobots) {
+      this.monsterRobots.forEach(bot => {
+        bot.active = false;
+        if (bot.root) bot.root.visible = false;
+      });
     }
 
     if (this.tractorBeam) {
@@ -502,13 +518,14 @@ export class GameEngine3D {
     this._lastGoalPillDisplay = null;
     this.player.reset();
     this.trackPool.clear();
-    this.lastMonsterSpawnScore = 0;
-    this.monsterSpawnCount = 0;
-    this.lastApexMilestone = 0;
     this.lastMiniMilestone = 0;
-    if (this.monsterRobot) {
-      this.monsterRobot.active = false;
-      this.monsterRobot.root.visible = false;
+    this.lastApexMilestone = 0;
+    this.monsterSpawnCount = 0;
+    if (this.monsterRobots) {
+      this.monsterRobots.forEach(bot => {
+        bot.active = false;
+        if (bot.root) bot.root.visible = false;
+      });
     }
     if (this.tractorBeam) this.tractorBeam.material.opacity = 0;
     this.updateHud();
@@ -630,7 +647,7 @@ export class GameEngine3D {
     };
 
     const activeObstacles = this.trackPool.getAllActiveObstacles(this.player.position.z);
-    const hitEntities = CollisionManager3D.checkLaserCollisions(laserData, activeObstacles, this.monsterRobot);
+    const hitEntities = CollisionManager3D.checkLaserCollisions(laserData, activeObstacles, this.monsterRobots);
 
     let hitDistance = 55.0;
     if (hitEntities.length > 0) {
@@ -692,19 +709,23 @@ export class GameEngine3D {
   }
 
   showFloatingBountyBanner(text, type = "normal") {
-    let banner = document.getElementById("hud-bounty-banner");
+    let banner = this.dom.bountyBanner || document.getElementById("hud-bounty-banner");
     if (!banner) {
       banner = document.createElement("div");
       banner.id = "hud-bounty-banner";
       banner.className = "bounty-hud-pill";
       if (this.dom.hud) this.dom.hud.appendChild(banner);
+      this.dom.bountyBanner = banner;
     }
     banner.textContent = text;
-    banner.className = `bounty-hud-pill active ${type === "boss" ? "boss-warning" : ""}`;
+    let extraClass = "";
+    if (type === "boss") extraClass = "boss-warning";
+    else if (type === "shield-convert") extraClass = "shield-convert";
+    banner.className = `bounty-hud-pill active ${extraClass}`.trim();
 
     clearTimeout(this._bountyBannerTimeout);
     this._bountyBannerTimeout = setTimeout(() => {
-      banner.className = "bounty-hud-pill";
+      if (banner) banner.className = "bounty-hud-pill";
     }, 2400);
   }
 
@@ -721,7 +742,7 @@ export class GameEngine3D {
   }
 
   onStreakChange(count, mult) {
-    const badge = document.getElementById("hud-streak-badge");
+    const badge = this.dom.streakBadge || document.getElementById("hud-streak-badge");
     if (badge) {
       if (count >= 2) {
         badge.style.display = "flex";
@@ -733,9 +754,9 @@ export class GameEngine3D {
   }
 
   updateBountyBoard() {
-    const listEl = document.getElementById("bounty-contracts-list");
-    const rankEl = document.getElementById("bounty-rank-badge");
-    if (rankEl) {
+    const listEl = this.dom.bountyContractsList || document.getElementById("bounty-contracts-list");
+    const rankEl = this.dom.bountyRankBadge || document.getElementById("bounty-rank-badge");
+    if (rankEl && this.bountyManager) {
       const rank = this.bountyManager.getHunterRank();
       rankEl.textContent = `${rank.icon} ${rank.badge} - ${rank.title}`;
     }
@@ -827,66 +848,63 @@ export class GameEngine3D {
     // Active Power-Up Badges Stacked Vertically (Bottom Left)
     if (this.player) {
       // 1. Jetpack
-      const showJetpack = this.player.hasJetpack;
+      const showJetpack = this.player.hasJetpack && this.player.jetpackTimer > 0;
       if (this._lastJetpackShow !== showJetpack) {
         if (this.dom.badgeJetpack) this.dom.badgeJetpack.style.display = showJetpack ? "flex" : "none";
         this._lastJetpackShow = showJetpack;
       }
       if (showJetpack && this.dom.fillJetpack) {
-        const pct = Math.floor(Math.max(0, (this.player.jetpackTimer / CONFIG.JETPACK_DURATION) * 100));
-        if (this._lastJetpackPct !== pct) {
-          this.dom.fillJetpack.style.width = `${pct}%`;
-          this._lastJetpackPct = pct;
-        }
+        const maxDur = this.player.jetpackMaxDuration || CONFIG.JETPACK_DURATION || 8.0;
+        const pct = Math.max(0, Math.min(100, (this.player.jetpackTimer / maxDur) * 100));
+        this.dom.fillJetpack.style.width = `${pct.toFixed(1)}%`;
       }
 
       // 2. Magnet
-      const showMagnet = this.player.hasMagnet;
+      const showMagnet = this.player.hasMagnet && this.player.magnetTimer > 0;
       if (this._lastMagnetShow !== showMagnet) {
         if (this.dom.badgeMagnet) this.dom.badgeMagnet.style.display = showMagnet ? "flex" : "none";
         this._lastMagnetShow = showMagnet;
       }
       if (showMagnet && this.dom.fillMagnet) {
-        const pct = Math.floor(Math.max(0, (this.player.magnetTimer / CONFIG.MAGNET_DURATION) * 100));
-        if (this._lastMagnetPct !== pct) {
-          this.dom.fillMagnet.style.width = `${pct}%`;
-          this._lastMagnetPct = pct;
-        }
+        const maxDur = this.player.magnetMaxDuration || CONFIG.MAGNET_DURATION || 8.0;
+        const pct = Math.max(0, Math.min(100, (this.player.magnetTimer / maxDur) * 100));
+        this.dom.fillMagnet.style.width = `${pct.toFixed(1)}%`;
       }
 
       // 3. 2X Multiplier
-      const showMultiplier = this.player.hasMultiplier;
+      const showMultiplier = this.player.hasMultiplier && this.player.multiplierTimer > 0;
       if (this._lastMultShow !== showMultiplier) {
         if (this.dom.badgeMultiplier) this.dom.badgeMultiplier.style.display = showMultiplier ? "flex" : "none";
         this._lastMultShow = showMultiplier;
       }
       if (showMultiplier && this.dom.fillMultiplier) {
-        const pct = Math.floor(Math.max(0, (this.player.multiplierTimer / CONFIG.DOUBLE_POINTS_DURATION) * 100));
-        if (this._lastMultPct !== pct) {
-          this.dom.fillMultiplier.style.width = `${pct}%`;
-          this._lastMultPct = pct;
-        }
+        const maxDur = this.player.multiplierMaxDuration || CONFIG.DOUBLE_POINTS_DURATION || 8.0;
+        const pct = Math.max(0, Math.min(100, (this.player.multiplierTimer / maxDur) * 100));
+        this.dom.fillMultiplier.style.width = `${pct.toFixed(1)}%`;
       }
 
       // 4. Shield
-      const showShield = this.player.hasShield;
+      const showShield = this.player.hasShield && this.player.shieldTimer > 0;
       if (this._lastShieldShow !== showShield) {
         if (this.dom.badgeShield) this.dom.badgeShield.style.display = showShield ? "flex" : "none";
         this._lastShieldShow = showShield;
       }
+      if (showShield && this.dom.fillShield) {
+        const maxDur = this.player.shieldMaxDuration || CONFIG.SHIELD_DURATION || 8.0;
+        const pct = Math.max(0, Math.min(100, (this.player.shieldTimer / maxDur) * 100));
+        this.dom.fillShield.style.width = `${pct.toFixed(1)}%`;
+      }
 
       // 5. Bujji EMP Harpoon
-      const showHarpoon = this.player.hasHarpoon;
+      const showHarpoon = this.player.hasHarpoon && this.player.harpoonTimer > 0;
       if (this._lastHarpoonShow !== showHarpoon) {
         if (this.dom.badgeHarpoon) this.dom.badgeHarpoon.style.display = showHarpoon ? "flex" : "none";
         this._lastHarpoonShow = showHarpoon;
       }
       if (showHarpoon && this.dom.fillHarpoon) {
-        const pct = Math.floor(Math.max(0, (this.player.harpoonTimer / 8.0) * 100));
-        if (this._lastHarpoonPct !== pct) {
-          this.dom.fillHarpoon.style.width = `${pct}%`;
-          this._lastHarpoonPct = pct;
-        }
+        const maxDur = 8.0;
+        const pct = Math.max(0, Math.min(100, (this.player.harpoonTimer / maxDur) * 100));
+        this.dom.fillHarpoon.style.width = `${pct.toFixed(1)}%`;
       }
     }
   }
@@ -894,9 +912,12 @@ export class GameEngine3D {
   gameLoop(timestamp) {
     this.animId = requestAnimationFrame((t) => this.gameLoop(t));
 
-    // Power optimization: Throttle rendering
+    // Power optimization: Skip execution completely when tab is hidden/minimized
+    if (this._isTabHidden) return;
+
+    // Power optimization: Throttle rendering during idle/paused/menu states to 15-20 FPS
     if (this.state !== GameState3D.PLAYING && this.state !== GameState3D.VICTORY) {
-      if (timestamp - this.lastRenderTime < 40) return;
+      if (timestamp - this.lastRenderTime < 60) return;
     } else {
       // 60 FPS cap during gameplay to save 50% battery on 120Hz displays
       if (timestamp - this.lastRenderTime < 16) return;
@@ -906,6 +927,15 @@ export class GameEngine3D {
     const rawDt = (timestamp - this.lastTime) / 1000;
     const dt = Math.max(0.001, Math.min(rawDt, 0.05));
     this.lastTime = timestamp;
+
+    // Adaptive Shadow Maps: Only recalculate shadow frustum during active gameplay
+    if (this.renderer && this.renderer.shadowMap.enabled) {
+      const isMotionActive = (this.state === GameState3D.PLAYING || this.state === GameState3D.VICTORY);
+      if (this.renderer.shadowMap.autoUpdate !== isMotionActive) {
+        this.renderer.shadowMap.autoUpdate = isMotionActive;
+        if (isMotionActive) this.renderer.shadowMap.needsUpdate = true;
+      }
+    }
 
     if (this.state === GameState3D.PLAYING) {
       this.update(dt, timestamp * 0.001);
@@ -946,39 +976,77 @@ export class GameEngine3D {
     const activeObstacles = this.trackPool.getAllActiveObstacles(this.player.position.z);
     const hitResult = CollisionManager3D.checkObstacleCollisions(this.player, activeObstacles);
 
-    if (hitResult && hitResult.type === "collision") {
-      if (this.player.hasShield) {
-        // Shield absorbs collision
-        this.player.breakShield();
-        this.safeAudio("playShieldBreak");
-        this.cameraManager.shake(0.45);
+    if (hitResult) {
+      if (hitResult.type === "collision") {
+        if (this.player.hasShield) {
+          // Shield absorbs collision
+          this.player.breakShield();
+          this.safeAudio("playShieldBreak");
+          this.cameraManager.shake(0.45);
 
-        // If hitting a train with a shield, pop cleanly onto the roof rather than clipping through inside
-        if (hitResult.obstacle && hitResult.obstacle.type === "train") {
-          this.player.position.y = 4.15;
-          this.player.groundElevation = 4.15;
-          this.player.isGrounded = true;
-          this.player.velocityY = 1.8;
-        }
-      } else if (this.player.invulnerableTimer <= 0) {
-        if (this.player.healAidTimer > 0) {
-          // Second hit during the 5-second Bujji Aid recovery window -> Run Ends!
-          this.gameOver();
-          return;
-        } else {
-          // First hit: Trigger 5-Second Bujji Aid / Second Chance Healing!
-          this.player.triggerBujjiAid(5.0);
-          this.safeAudio("playHit");
-          this.safeAudio("playDialogue", "bujji");
-          this.cameraManager.shake(0.55);
-
-          // If hitting a train, pop cleanly onto the roof so the player doesn't clip inside
+          // If hitting a train with a shield, pop cleanly onto the roof rather than clipping through inside
           if (hitResult.obstacle && hitResult.obstacle.type === "train") {
             this.player.position.y = 4.15;
             this.player.groundElevation = 4.15;
             this.player.isGrounded = true;
             this.player.velocityY = 1.8;
           }
+        } else if (this.player.invulnerableTimer <= 0) {
+          if (this.player.healAidTimer > 0) {
+            // Second hit during the 5-second Bujji Aid recovery window -> Run Ends!
+            this.gameOver();
+            return;
+          } else {
+            // First hit: Trigger 5-Second Bujji Aid / Second Chance Healing!
+            this.player.triggerBujjiAid(5.0);
+            this.safeAudio("playHit");
+            this.safeAudio("playDialogue", "bujji");
+            this.cameraManager.shake(0.55);
+
+            // If hitting a train, pop cleanly onto the roof so the player doesn't clip inside
+            if (hitResult.obstacle && hitResult.obstacle.type === "train") {
+              this.player.position.y = 4.15;
+              this.player.groundElevation = 4.15;
+              this.player.isGrounded = true;
+              this.player.velocityY = 1.8;
+            }
+          }
+        }
+      } else if (hitResult.type === "bounty_takedown") {
+        const target = hitResult.target;
+        if (target && !target.destroyed) {
+          target.destroyed = true;
+          if (target.mesh) target.mesh.visible = false;
+          const reward = (hitResult.rewardUnits || 5000) * mult;
+          this.units += reward;
+          this.score += reward;
+          this.showFloatingBountyBanner(`🎯 ${hitResult.targetName || "TARGET"} CAPTURED! +${reward.toLocaleString()} U`, "bounty");
+          this.safeAudio("playPowerup");
+          this.cameraManager.shake(0.35);
+        }
+      } else if (hitResult.type === "crate_breached") {
+        const crate = hitResult.crate;
+        if (crate && !crate.destroyed) {
+          crate.destroyed = true;
+          if (crate.mesh) crate.mesh.visible = false;
+          const reward = (hitResult.rewardUnits || 10000) * mult;
+          this.units += reward;
+          this.score += reward;
+          this.showFloatingBountyBanner(`📦 BOUNTY STASH BREACHED! +${reward.toLocaleString()} U`, "bounty");
+          this.safeAudio("playPowerup");
+          this.cameraManager.shake(0.35);
+        }
+      } else if (hitResult.type === "extraction_triggered") {
+        const beacon = hitResult.beacon;
+        if (beacon && !beacon.triggered) {
+          beacon.triggered = true;
+          if (beacon.mesh) beacon.mesh.visible = false;
+          const reward = (hitResult.rewardUnits || 15000) * mult;
+          this.units += reward;
+          this.score += reward;
+          this.showFloatingBountyBanner(`📡 EXTRACTION SECURED! +${reward.toLocaleString()} U`, "bounty");
+          this.safeAudio("playPowerup");
+          this.cameraManager.shake(0.4);
         }
       }
     }
@@ -1011,8 +1079,14 @@ export class GameEngine3D {
           this.player.giveMagnet(dur);
           this.safeAudio("playDialogue", "magnet");
         } else if (item.powerupType === "jetpack") {
-          this.player.giveJetpack(dur);
-          this.safeAudio("playDialogue", "jetpack");
+          if (this.isBigMonsterActive?.() || this.hasActiveMonster?.()) {
+            this.player.giveShield(dur);
+            this.safeAudio("playDialogue", "shield");
+            this.showFloatingBountyBanner("JETPACK CONVERTED TO SHIELD", "shield-convert");
+          } else {
+            this.player.giveJetpack(dur);
+            this.safeAudio("playDialogue", "jetpack");
+          }
         } else if (item.powerupType === "shield") {
           this.player.giveShield(dur);
           this.safeAudio("playDialogue", "shield");
@@ -1023,43 +1097,126 @@ export class GameEngine3D {
       }
     }
 
-    // 7. Monster Robot (Apex Boss at 250k, Mini Titan at 100k) Autonomous Spawn & Update
-    if (this.monsterRobot && this.monsterEnabled) {
+    // 7. Monster Robots: Mini every 150k, Apex every 400k, Nothing after 900k in 1M Heist mode
+    if (this.monsterRobots && this.monsterEnabled) {
       const aheadDist = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.AHEAD_DISTANCE : 38.0;
-      const apexInterval = CONFIG.MONSTER_ROBOT?.APEX_INTERVAL || 250000;
-      const miniInterval = CONFIG.MONSTER_ROBOT?.MINI_INTERVAL || 100000;
+      const miniInterval = CONFIG.MONSTER_ROBOT?.MINI_INTERVAL || 150000;
+      const apexInterval = CONFIG.MONSTER_ROBOT?.APEX_INTERVAL || 400000;
       const isPastHeistLimit = this.gameMode === "heist" && this.score >= (CONFIG.MONSTER_ROBOT?.HEIST_MAX_SPAWN_SCORE || 900000);
 
-      const currentApexMilestone = Math.floor(this.score / apexInterval);
-      const currentMiniMilestone = Math.floor(this.score / miniInterval);
+      if (!isPastHeistLimit) {
+        const currentApexMilestone = Math.floor(this.score / apexInterval);
+        const currentMiniMilestone = Math.floor(this.score / miniInterval);
 
-      if (!this.monsterRobot.active && !isPastHeistLimit) {
+        // Apex boss every 400k (e.g. 400k, 800k)
         if (currentApexMilestone > this.lastApexMilestone) {
           this.lastApexMilestone = currentApexMilestone;
           this.lastMiniMilestone = currentMiniMilestone;
-          const rLane = Math.floor(Math.random() * 3);
-          this.monsterRobot.spawn(rLane, this.player.position.z + aheadDist, "apex");
-          this.showFloatingBountyBanner("🚨 APEX ROGUE HARVESTER INBOUND!", "boss");
-          this.safeAudio("playDialogue", "bujji");
-          this.cameraManager.shake(0.5);
-        } else if (currentMiniMilestone > this.lastMiniMilestone) {
-          // Trigger mini if not currently an apex milestone
-          if (Math.floor(this.score / apexInterval) === this.lastApexMilestone) {
-            this.lastMiniMilestone = currentMiniMilestone;
-            const rLane = Math.floor(Math.random() * 3);
-            this.monsterRobot.spawn(rLane, this.player.position.z + aheadDist, "mini");
-            this.showFloatingBountyBanner("⚠️ ROGUE DRONE TITAN DETECTED!", "boss");
-            this.safeAudio("playDialogue", "bujji");
-            this.cameraManager.shake(0.35);
-          }
+          this.spawnMonster("apex", aheadDist);
+        }
+        // Mini harvester every 150k (e.g. 150k, 300k, 450k, 600k, 750k)
+        else if (currentMiniMilestone > this.lastMiniMilestone) {
+          this.lastMiniMilestone = currentMiniMilestone;
+          this.spawnMonster("mini", aheadDist);
         }
       }
 
-      this.monsterRobot.update(dt, this.currentSpeed, this.player.position.z, activeObstacles, activeCollectibles, this.player);
+      for (let i = 0; i < this.monsterRobots.length; i++) {
+        const bot = this.monsterRobots[i];
+        if (bot) {
+          bot.update(dt, this.currentSpeed, this.player.position.z, activeObstacles, activeCollectibles, this.player);
+        }
+      }
     }
 
     // 8. Update HUD Display
     this.updateHud();
+  }
+
+  /**
+   * Check if Big Monster / Apex Boss is currently active
+   */
+  isBigMonsterActive() {
+    if (!this.monsterRobots || !this.monsterEnabled) return false;
+    return this.monsterRobots.some(b => b && b.active && !b.isGlitching && (b.variant === "apex" || b.scaleFactor > 1.2));
+  }
+
+  /**
+   * Check if any Monster Robot is currently active
+   */
+  hasActiveMonster() {
+    if (!this.monsterRobots || !this.monsterEnabled) return false;
+    return this.monsterRobots.some(b => b && b.active && !b.isGlitching);
+  }
+
+  /**
+   * Spawn a monster robot (Apex or Mini) with intelligent lane diversification and distance staggering (+38m, +52m, +68m)
+   */
+  spawnMonster(variant = "apex", baseDistance = 38.0) {
+    if (!this.monsterRobots || !this.monsterEnabled) return null;
+    const bot = this.monsterRobots.find(b => !b.active);
+    if (!bot) return null;
+
+    // Filter all currently active running monsters
+    const activeBots = this.monsterRobots.filter(b => b.active && !b.isGlitching);
+    const playerZ = this.player.position.z;
+
+    // 1. Calculate occupancy per lane (0: Left, 1: Center, 2: Right)
+    const laneCounts = [0, 0, 0];
+    const occupiedLanes = new Set();
+
+    activeBots.forEach(b => {
+      const lane = b.currentLane !== undefined ? b.currentLane : (b.laneIndex !== undefined ? b.laneIndex : 1);
+      if (lane >= 0 && lane <= 2) {
+        laneCounts[lane]++;
+        occupiedLanes.add(lane);
+      }
+    });
+
+    // 2. Different Lane Selection: When <= 3 active monsters, strictly pick an unoccupied lane if available
+    const emptyLanes = [0, 1, 2].filter(l => laneCounts[l] === 0);
+    let chosenLane;
+
+    if (emptyLanes.length > 0) {
+      // Pick a random unoccupied lane so monsters spread across different lanes
+      chosenLane = emptyLanes[Math.floor(Math.random() * emptyLanes.length)];
+    } else {
+      // All 3 lanes occupied: pick the lane with the minimum bot count (or furthest monster)
+      const minCount = Math.min(...laneCounts);
+      const leastOccupied = [0, 1, 2].filter(l => laneCounts[l] === minCount);
+      chosenLane = leastOccupied[Math.floor(Math.random() * leastOccupied.length)];
+    }
+
+    // 3. Staggered Distance Slots: Dedicated slot allocation at +38m, +52m, and +68m
+    const DISTANCE_SLOTS = [38.0, 52.0, 68.0];
+    let chosenOffset = DISTANCE_SLOTS[0];
+
+    // Find the first slot in [38, 52, 68] not occupied by any active monster within 7m
+    const freeSlot = DISTANCE_SLOTS.find(slot => {
+      return !activeBots.some(b => Math.abs((b.position.z - playerZ) - slot) < 7.0);
+    });
+
+    if (freeSlot !== undefined) {
+      chosenOffset = freeSlot;
+    } else {
+      // All 3 slots occupied, stagger further ahead
+      chosenOffset = 68.0 + (activeBots.length * 14.0);
+    }
+
+    const spawnZ = playerZ + chosenOffset;
+    bot.spawn(chosenLane, spawnZ, variant);
+
+    if (variant === "apex") {
+      this.showFloatingBountyBanner("🚨 APEX ROGUE HARVESTER INBOUND!", "boss");
+      this.safeAudio("playDialogue", "bujji");
+      this.cameraManager.shake(0.5);
+    } else {
+      this.showFloatingBountyBanner("⚠️ ROGUE SCOUT BOT DETECTED!", "warning");
+      this.safeAudio("playDialogue", "bujji");
+      this.cameraManager.shake(0.3);
+    }
+
+    return bot;
   }
 
   getPowerupDuration(type) {
@@ -1162,7 +1319,7 @@ export class GameEngine3D {
           btn.className = "btn-upgrade-action interactive-ui";
           btn.innerHTML = `
             <span class="upgrade-btn-text">UPGRADE (+${durations[level] - dur}s)</span>
-            <span class="upgrade-btn-cost">🪙 ${cost.toLocaleString()}</span>
+            <span class="upgrade-btn-cost"><img src="assets/ui/unit-coin.svg" class="unit-inline-icon" alt="Units"> ${cost.toLocaleString()}</span>
           `;
         }
       }

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="boltFront" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="30%" stop-color="#38BDF8" />
+      <stop offset="70%" stop-color="#00E5FF" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+
+    <linearGradient id="boltBevel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7" />
+      <stop offset="100%" stop-color="#082F49" />
+    </linearGradient>
+
+    <radialGradient id="endlessAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.5" />
+      <stop offset="60%" stop-color="#0284C7" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Ambient Aura -->
+  <circle cx="32" cy="32" r="30" fill="url(#endlessAura)" />
+
+  <!-- Outer Velocity Trails -->
+  <path d="M 12 28 L 22 24" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" opacity="0.6" />
+  <path d="M 8 36 L 18 34" stroke="#00E5FF" stroke-width="2.5" stroke-linecap="round" opacity="0.8" />
+  <path d="M 44 40 L 54 36" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" opacity="0.6" />
+
+  <!-- 3D Lightning Bolt Dropshadow -->
+  <polygon points="36,6 16,33 30,33 24,58 48,27 34,27" fill="#082F49" transform="translate(1.5, 2)" opacity="0.7" />
+
+  <!-- 3D Beveled Extrusion Edge -->
+  <polygon points="36,6 16,33 30,33 24,58 48,27 34,27" fill="url(#boltBevel)" />
+
+  <!-- 3D Front Facet -->
+  <polygon points="37,8 19,32 31,32 26,54 46,28 35,28" fill="url(#boltFront)" stroke="#E0F2FE" stroke-width="0.8" />
+
+  <!-- Core White Laser Glimmer -->
+  <polygon points="36,12 25,29 32,29 28,46 41,29 34,29" fill="#FFFFFF" opacity="0.85" />
+</svg>

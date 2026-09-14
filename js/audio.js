@@ -16,7 +16,7 @@ export class AudioManager3D {
 
     // In-Game Background Music Track (assets/audio/bgm.mp3 with fallbacks, increased by +15% to 0.65)
     this.bgMusic = null;
-    const bgmPaths = ["assets/audio/bgm.mp3", "bgm.mp3", "BUJJI THEME Kalki.mp3"];
+    const bgmPaths = ["assets/audio/bgm.mp3", "bgm.mp3"];
     this.initAudioElement("bgMusic", bgmPaths, 0.65);
 
     // Procedural Web Audio Music Synthesizer (100% Royalty Free, Zero Lag, Speed Adaptive fallback)

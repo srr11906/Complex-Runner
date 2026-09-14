@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <!-- Pyramid Face Gradients -->
+    <linearGradient id="pyrFrontLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FEF08A" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+
+    <linearGradient id="pyrFrontRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24" />
+      <stop offset="50%" stop-color="#D97706" />
+      <stop offset="100%" stop-color="#78350F" />
+    </linearGradient>
+
+    <linearGradient id="pyrTopPlatform" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#FCD34D" />
+    </linearGradient>
+
+    <!-- Cyan Anti-Gravity Core Glow -->
+    <linearGradient id="coreCyanBeam" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.1" />
+      <stop offset="50%" stop-color="#00E5FF" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#00E5FF" stop-opacity="0.1" />
+    </linearGradient>
+
+    <radialGradient id="heistAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.3" />
+      <stop offset="70%" stop-color="#F59E0B" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Ambient Glow -->
+  <circle cx="32" cy="32" r="30" fill="url(#heistAura)" />
+
+  <!-- Orbiting Cyan Anti-Grav Ring -->
+  <ellipse cx="32" cy="32" rx="26" ry="9" fill="none" stroke="#00E5FF" stroke-width="1.8" stroke-dasharray="14 4" opacity="0.8" />
+  <ellipse cx="32" cy="32" rx="26" ry="9" fill="none" stroke="#FFFFFF" stroke-width="0.8" stroke-dasharray="2 16" />
+
+  <!-- Complex Monolith Inverted Pyramid Structure -->
+  <!-- Top Hexagonal Mega-Deck (Flat base of inverted pyramid) -->
+  <polygon points="32,10 50,16 50,20 32,24 14,20 14,16" fill="url(#pyrTopPlatform)" stroke="#B45309" stroke-width="0.8" />
+
+  <!-- Main Inverted Triangular Facets -->
+  <!-- Left Main Inverted Face: Top(14,20) to TopCenter(32,24) down to Tip(32,54) -->
+  <polygon points="14,20 32,24 32,54" fill="url(#pyrFrontLeft)" stroke="#92400E" stroke-width="0.8" />
+
+  <!-- Right Main Inverted Face: TopCenter(32,24) to TopRight(50,20) down to Tip(32,54) -->
+  <polygon points="32,24 50,20 32,54" fill="url(#pyrFrontRight)" stroke="#78350F" stroke-width="0.8" />
+
+  <!-- Futuristic Complex Panel Slits & Core Windows -->
+  <line x1="22" y1="28" x2="30" y2="30" stroke="#00E5FF" stroke-width="1.5" stroke-linecap="round" />
+  <line x1="42" y1="28" x2="34" y2="30" stroke="#00E5FF" stroke-width="1.5" stroke-linecap="round" />
+  <line x1="26" y1="36" x2="30" y2="37" stroke="#00E5FF" stroke-width="1.2" stroke-linecap="round" />
+  <line x1="38" y1="36" x2="34" y2="37" stroke="#00E5FF" stroke-width="1.2" stroke-linecap="round" />
+
+  <!-- Quantum Apex Core (Bottom Tip) -->
+  <polygon points="32,48 35,53 32,56 29,53" fill="#00E5FF" />
+  <circle cx="32" cy="53" r="1.5" fill="#FFFFFF" />
+</svg>

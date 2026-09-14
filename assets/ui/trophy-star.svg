@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <!-- Facet Gradients for 3D Star -->
+    <linearGradient id="starLightTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="60%" stop-color="#FDE047" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+
+    <linearGradient id="starLightMid" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+
+    <linearGradient id="starShadow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#B45309" />
+      <stop offset="100%" stop-color="#78350F" />
+    </linearGradient>
+
+    <linearGradient id="starDeepShadow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#92400E" />
+      <stop offset="100%" stop-color="#451A03" />
+    </linearGradient>
+
+    <radialGradient id="starAura" cx="50%" cy="50%" r="50%">
+      <stop offset="40%" stop-color="#F59E0B" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#F59E0B" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Golden Aura Glow -->
+  <circle cx="32" cy="32" r="30" fill="url(#starAura)" />
+
+  <!-- 3D Star Dropshadow Base -->
+  <!-- 5 Points: Top(32, 6), TopRight(56, 24), BotRight(47, 54), BotLeft(17, 54), TopLeft(8, 24) -->
+  <!-- Inner Valleys: UpperRight(39, 25), LowerRight(41, 38), Bottom(32, 45), LowerLeft(23, 38), UpperLeft(25, 25) -->
+  
+  <!-- Star Outer Shadow -->
+  <polygon points="32,8 39,26 57,26 42,37 48,55 32,44 16,55 22,37 7,26 25,26" fill="#451A03" opacity="0.6" />
+
+  <!-- 3D Star Center-Radiating Facets -->
+  <!-- Top Point Left & Right -->
+  <polygon points="32,6 32,34 25,24" fill="url(#starLightTop)" />
+  <polygon points="32,6 39,24 32,34" fill="url(#starLightMid)" />
+
+  <!-- Top Right Point Upper & Lower -->
+  <polygon points="56,24 32,34 39,24" fill="url(#starLightTop)" />
+  <polygon points="56,24 41,37 32,34" fill="url(#starShadow)" />
+
+  <!-- Bottom Right Point Upper & Lower -->
+  <polygon points="47,54 32,34 41,37" fill="url(#starLightMid)" />
+  <polygon points="47,54 32,44 32,34" fill="url(#starDeepShadow)" />
+
+  <!-- Bottom Left Point Lower & Upper -->
+  <polygon points="17,54 32,34 32,44" fill="url(#starShadow)" />
+  <polygon points="17,54 23,37 32,34" fill="url(#starLightMid)" />
+
+  <!-- Top Left Point Lower & Upper -->
+  <polygon points="8,24 32,34 23,37" fill="url(#starDeepShadow)" />
+  <polygon points="8,24 25,24 32,34" fill="url(#starLightTop)" />
+
+  <!-- Center Specular Highlight -->
+  <circle cx="32" cy="34" r="2.5" fill="#FFFFFF" opacity="0.95" />
+</svg>

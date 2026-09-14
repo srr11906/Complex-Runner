@@ -120,12 +120,17 @@ export class Player3D {
 
     // Power-Up & Aid States
     this.hasShield = false;
+    this.shieldTimer = 0;
+    this.shieldMaxDuration = 8.0;
     this.hasMagnet = false;
     this.magnetTimer = 0;
+    this.magnetMaxDuration = 8.0;
     this.hasJetpack = false;
     this.jetpackTimer = 0;
+    this.jetpackMaxDuration = 8.0;
     this.hasMultiplier = false;
     this.multiplierTimer = 0;
+    this.multiplierMaxDuration = 8.0;
     this.invulnerableTimer = 0;
     this.healAidTimer = 0; // 5-Second Grace Window
 
@@ -292,9 +297,10 @@ export class Player3D {
     if (this.bujji) this.bujji.setAid(false);
   }
 
-  giveShield(duration = 10.0) {
+  giveShield(duration = 8.0) {
     this.hasShield = true;
     this.shieldTimer = duration;
+    this.shieldMaxDuration = duration;
     this.invulnerableTimer = 0;
     if (this.shieldMesh) this.shieldMesh.visible = true;
   }
@@ -306,20 +312,24 @@ export class Player3D {
     if (this.shieldMesh) this.shieldMesh.visible = false;
   }
 
-  giveMagnet(duration = 10.0) {
+  giveMagnet(duration = 8.0) {
     this.hasMagnet = true;
     this.magnetTimer = duration;
+    this.magnetMaxDuration = duration;
   }
 
   giveJetpack(duration = 8.0) {
     this.hasJetpack = true;
     this.jetpackTimer = duration;
+    this.jetpackMaxDuration = duration;
     this.state = "running";
+    window.gameEngine3D?.trackPool?.setJetpackVisibility(true);
   }
 
-  giveMultiplier(duration = 10.0) {
+  giveMultiplier(duration = 8.0) {
     this.hasMultiplier = true;
     this.multiplierTimer = duration;
+    this.multiplierMaxDuration = duration;
   }
 
   update(dt, currentSpeed, time) {
@@ -347,6 +357,7 @@ export class Player3D {
       this.jetpackTimer -= dt;
       if (this.jetpackTimer <= 0) {
         this.hasJetpack = false;
+        window.gameEngine3D?.trackPool?.setJetpackVisibility(false);
       }
     }
 

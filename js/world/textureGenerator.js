@@ -1,6 +1,6 @@
 /**
- * PRABHAS: KASI 2898 AD (3D Runner - AAA Next-Gen)
- * Procedural PBR High-Resolution Texture & Surface Shader Generator
+ * COMPLEX RUNNER - Next-Gen 3D Sci-Fi Runner
+ * AAA Procedural Canvas Texture & Bump Map Generator
  * Creates cached, highly detailed Canvas Textures for PBR Materials & Shanty Architecture
  */
 
@@ -76,7 +76,7 @@ class TextureGenerator {
   }
 
   /**
-   * 1. 2898 AD Dystopian Electromagnetic Highway Trackway
+   * 1. Dystopian Electromagnetic Highway Trackway
    * Monolithic titanium-composite slabs, embedded linear induction maglev rails, sleek optical guideways
    */
   getRoadTexture() {
@@ -256,7 +256,7 @@ class TextureGenerator {
   }
 
   /**
-   * 3. Dystopian Kasi Shanty Megastructure Facade (Weathered Corrugated Metal, Neon Windows, AC Vents)
+   * 3. Dystopian Shanty Megastructure Facade (Weathered Corrugated Metal, Neon Windows, AC Vents)
    */
   getShantyBuildingTexture() {
     if (this.cache.has("shantyBuilding")) return this.cache.get("shantyBuilding");

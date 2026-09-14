@@ -1,5 +1,5 @@
 /**
- * PRABHAS: KASI 2898 AD (3D Runner)
+ * COMPLEX RUNNER - Next-Gen 3D Sci-Fi Runner
  * Input Manager: Keyboard, Touch Swipes, Pointer Tracking
  */
 

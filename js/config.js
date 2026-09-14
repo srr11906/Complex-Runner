@@ -40,23 +40,24 @@ export const CONFIG = {
     MAX_LEVEL: 6
   },
 
-  // Monster Robot Progression Settings (Apex at 250k, Mini at 100k)
+  // Monster Robot Progression Settings (Mini every 150k, Apex every 400k, Nothing after 900k in 1M Heist mode)
   MONSTER_ROBOT: {
-    APEX_INTERVAL: 250000,      // Apex boss every 250k
-    MINI_INTERVAL: 100000,      // Mini titan every 100k
-    APEX_HITS: 25,              // 25 laser hits
-    MINI_HITS: 10,              // 10 laser hits
-    APEX_SCALE: 1.5,            // 1.5x scale
-    MINI_SCALE: 1.0,            // 1.0x scale
-    APEX_BOUNTY: 25000,         // +25,000 Units (Balanced)
-    MINI_BOUNTY: 10000,         // +10,000 Units (Balanced)
-    APEX_COINS_DROP: 2,         // 2 coins per hit
+    MINI_INTERVAL: 150000,      // Mini Harvester every 150,000 score
+    APEX_INTERVAL: 400000,      // Apex Boss Harvester every 400,000 score
+    MAX_ACTIVE_BOTS: 3,         // Up to 3 active monsters across lanes
+    MINI_HITS: 10,              // 10 laser hits for mini
+    MINI_SCALE: 1.05,           // 1.05x scale for mini
+    MINI_BOUNTY: 10000,         // +10,000 Units
     MINI_COINS_DROP: 1,         // 1 coin per hit
-    HEIST_MAX_SPAWN_SCORE: 900000, // No monster spawns after 900k in Heist mode
+    APEX_HITS: 25,              // 25 laser hits for Apex
+    APEX_SCALE: 1.5,            // 1.5x scale for Apex
+    APEX_BOUNTY: 25000,         // +25,000 Units
+    APEX_COINS_DROP: 2,         // 2 coins per hit
+    HEIST_MAX_SPAWN_SCORE: 900000, // In 1M mode, nothing after 900k
     AHEAD_DISTANCE: 38.0,       // Spawns 38m ahead (within 55m laser range)
     TARGET_LEAD_MIN: 30.0,      // Lead distance window minimum
     TARGET_LEAD_MAX: 42.0,      // Lead distance window maximum
-    COIN_MAGNET_RADIUS: 12.0,   // Strong vacuum magnet radius for Apex
+    COIN_MAGNET_RADIUS: 12.0,   // Strong vacuum magnet radius
     COIN_EAT_RADIUS: 3.2        // Ingestion intake core radius
   },
 
@@ -72,6 +73,10 @@ export const CONFIG = {
   JETPACK_BASE_DURATION: 8.0,
   MAGNET_BASE_DURATION: 8.0,
   DOUBLE_POINTS_BASE_DURATION: 8.0,
+  SHIELD_DURATION: 8.0,
+  JETPACK_DURATION: 8.0,
+  MAGNET_DURATION: 8.0,
+  DOUBLE_POINTS_DURATION: 8.0,
   MAGNET_RADIUS: 25.0,
 
   // Rich Dark Brown Desert & Cinematic Golden Amber Palette

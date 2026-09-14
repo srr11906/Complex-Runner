@@ -1,6 +1,6 @@
 /**
- * PRABHAS: KASI 2898 AD (3D Runner - Bounty Hunter System)
- * Bounty Manager: Live Contracts, Hunter Ranks, Streak Multipliers & Boss Showdown
+ * COMPLEX RUNNER (3D Runner - Bounty Hunter System)
+ * Daily Contracts, Bounty Targets, In-Game HUD Notifications & Hunter Ranks
  */
 
 export class BountyManager {
@@ -46,7 +46,7 @@ export class BountyManager {
   generateNewContracts() {
     const contractPool = [
       { id: "c_laser_1", title: "Gauntlet Sniper", desc: "Blast 3 obstacles with Gauntlet Laser", target: 3, current: 0, reward: 5000, type: "shoot_laser" },
-      { id: "c_scav_1", title: "Kasi Cleanup", desc: "Capture 1 Scavenger Raider", target: 1, current: 0, reward: 5000, type: "capture_scavenger" },
+      { id: "c_scav_1", title: "Sector Cleanup", desc: "Capture 1 Scavenger Raider", target: 1, current: 0, reward: 5000, type: "capture_scavenger" },
       { id: "c_crate_1", title: "Crate Breacher", desc: "Breach 2 Bounty Stash Crates", target: 2, current: 0, reward: 10000, type: "break_crate" },
       { id: "c_smug_1", title: "Speeder Intercept", desc: "Capture 1 Smuggler Speeder", target: 1, current: 0, reward: 10000, type: "capture_smuggler" },
       { id: "c_droid_1", title: "Droid Eliminator", desc: "Capture 2 Rogue Surveillance Droids", target: 2, current: 0, reward: 25000, type: "capture_droid" },
@@ -143,6 +143,6 @@ export class BountyManager {
     if (units >= 500000) return { title: "Legendary Complex Raider", rank: 4, badge: "🏆 MASTER", icon: "👑" };
     if (units >= 200000) return { title: "Elite Bounty Hunter", rank: 3, badge: "⚡ ELITE", icon: "🎯" };
     if (units >= 50000) return { title: "Outlaw Tracker", rank: 2, badge: "🔥 TRACKER", icon: "🗡️" };
-    return { title: "Kasi Scavenger", rank: 1, badge: "🌱 NOVICE", icon: "🏜️" };
+    return { title: "Wasteland Scavenger", rank: 1, badge: "🌱 NOVICE", icon: "🏜️" };
   }
 }

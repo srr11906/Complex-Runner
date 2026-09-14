@@ -573,6 +573,7 @@ export class TrackSegmentPool3D {
   spawnCoinLine(chunkData, laneX, startZ, endZ, count, yHeight, isSkyCoin = false, allowPowerup = true) {
     const step = (endZ - startZ) / (count - 1);
     const powerupIndex = (allowPowerup && !isSkyCoin && Math.random() < 0.28) ? Math.floor(count / 2) : -1;
+    const isJetpackActive = !!(window.gameEngine3D?.player?.hasJetpack);
 
     for (let i = 0; i < count; i++) {
       const zPos = startZ + i * step;
@@ -585,7 +586,7 @@ export class TrackSegmentPool3D {
       const coin = this.collectibleFactory.createCoin();
       coin.position.set(laneX, yHeight, zPos);
       coin.userData.isSky = isSkyCoin;
-      coin.visible = !isSkyCoin;
+      coin.visible = isSkyCoin ? isJetpackActive : !isJetpackActive;
 
       coin.userData.cachedCollisionData = {
         mesh: coin,
@@ -615,8 +616,9 @@ export class TrackSegmentPool3D {
     }
 
     let types = ["magnet", "jetpack", "shield", "multiplier"];
-    // When Monster Robot is active, jetpack must not spawn
-    if (window.gameEngine3D?.monsterRobot?.active) {
+    // When Big Monster / Monster Robot is active, jetpack must not spawn
+    const isMonsterActive = window.gameEngine3D?.hasActiveMonster?.() || window.gameEngine3D?.isBigMonsterActive?.() || window.gameEngine3D?.monsterRobots?.some(b => b.active && !b.isGlitching);
+    if (isMonsterActive) {
       types = ["magnet", "shield", "multiplier"];
     }
 
@@ -631,6 +633,8 @@ export class TrackSegmentPool3D {
     const actualY = customY !== undefined ? customY : 1.2;
     powerup.position.set(laneX, actualY, z);
     powerup.userData.isSky = false;
+    const isJetpackActive = !!(window.gameEngine3D?.player?.hasJetpack);
+    powerup.visible = !isJetpackActive;
 
     powerup.userData.cachedCollisionData = {
       mesh: powerup,
@@ -739,12 +743,16 @@ export class TrackSegmentPool3D {
     const time = performance.now() * 0.003;
     for (let c = 0; c < this.activeChunks.length; c++) {
       const chunk = this.activeChunks[c];
+      const inFrustum = (chunk.endZ >= playerZ - 10 && chunk.startZ <= playerZ + 80);
+
       const groundList = chunk.groundCollectibles;
       for (let i = 0; i < groundList.length; i++) {
         const item = groundList[i];
         if (!item.userData.collected) {
           item.visible = !isJetpack;
-          item.rotation.y = time * 2.2;
+          if (inFrustum && !isJetpack) {
+            item.rotation.y = time * 2.2;
+          }
         }
       }
 
@@ -753,7 +761,29 @@ export class TrackSegmentPool3D {
         const item = skyList[i];
         if (!item.userData.collected) {
           item.visible = isJetpack;
-          item.rotation.y = time * 2.5;
+          if (inFrustum && isJetpack) {
+            item.rotation.y = time * 2.5;
+          }
+        }
+      }
+    }
+  }
+
+  setJetpackVisibility(isJetpack) {
+    for (let c = 0; c < this.activeChunks.length; c++) {
+      const chunk = this.activeChunks[c];
+      const groundList = chunk.groundCollectibles;
+      for (let i = 0; i < groundList.length; i++) {
+        const item = groundList[i];
+        if (!item.userData.collected) {
+          item.visible = !isJetpack;
+        }
+      }
+      const skyList = chunk.skyCollectibles;
+      for (let i = 0; i < skyList.length; i++) {
+        const item = skyList[i];
+        if (!item.userData.collected) {
+          item.visible = isJetpack;
         }
       }
     }

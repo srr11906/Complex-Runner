@@ -1,6 +1,6 @@
 /**
- * PRABHAS: KASI 2898 AD (3D Runner - AAA Level 100)
- * High-Poly Aerodynamic 3D Bujji AI Companion Drone Model (Elevated Height Y=1.95m, 45° Inward Angle)
+ * COMPLEX RUNNER - Next-Gen 3D Sci-Fi Runner
+ * Aerodynamic 3D Bujji AI Companion Drone Model
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";

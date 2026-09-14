@@ -1,7 +1,6 @@
 /**
- * PRABHAS: KASI 2898 AD (3D Runner - AAA Next-Gen)
- * Authentic 3D Sculpted Bhairava Model with Flowing Duster Cloak, Kantha Armor, Red Crest & Bujji Drone
- * True Movie Likeness matching 'Bhairava outfit.jpg', 'Bhairava and Bujji look.jpg' and 'World and complex in background.webp'
+ * COMPLEX RUNNER - Next-Gen 3D Sci-Fi Runner
+ * 3D Sculpted Bhairava Model with Flowing Duster Cloak, Armor, Red Crest & Bujji Drone
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";

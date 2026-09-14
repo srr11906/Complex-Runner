@@ -1,27 +1,62 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <defs>
-    <!-- Radiant Shield Orb Gradient -->
-    <radialGradient id="shieldOrbGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#FFF59D" stop-opacity="1.0" />
-      <stop offset="50%" stop-color="#F59E0B" stop-opacity="0.8" />
-      <stop offset="100%" stop-color="#D97706" stop-opacity="0.2" />
+    <!-- Cyan Hexagon Gradients -->
+    <radialGradient id="shieldHexAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#E0F2FE" stop-opacity="0.9" />
+      <stop offset="40%" stop-color="#00E5FF" stop-opacity="0.6" />
+      <stop offset="85%" stop-color="#0284C7" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#0369A1" stop-opacity="0" />
     </radialGradient>
-    <linearGradient id="shieldPlate" x1="0%" y1="0%" x2="100%" y2="100%">
+
+    <linearGradient id="hexRimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#FFFFFF" />
-      <stop offset="40%" stop-color="#FFE07D" />
-      <stop offset="100%" stop-color="#D97706" />
+      <stop offset="30%" stop-color="#38BDF8" />
+      <stop offset="70%" stop-color="#00E5FF" />
+      <stop offset="100%" stop-color="#0369A1" />
+    </linearGradient>
+
+    <linearGradient id="hexFaceGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#075985" />
+      <stop offset="50%" stop-color="#0C4A6E" />
+      <stop offset="100%" stop-color="#082F49" />
+    </linearGradient>
+
+    <linearGradient id="coreStarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="50%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#00E5FF" />
     </linearGradient>
   </defs>
 
-  <!-- Outer Energy Halo -->
-  <circle cx="32" cy="32" r="30" fill="url(#shieldOrbGlow)" />
-  <circle cx="32" cy="32" r="28" fill="rgba(14, 10, 20, 0.4)" stroke="#FFE07D" stroke-width="2.5" />
+  <!-- Ambient Glow -->
+  <circle cx="32" cy="32" r="30" fill="url(#shieldHexAura)" />
 
-  <!-- Royal Golden Shield Crest -->
-  <path d="M 32 14 L 46 20 C 46 34 38 46 32 50 C 26 46 18 34 18 20 Z" fill="url(#shieldPlate)" stroke="#8B5E14" stroke-width="2" />
-  
-  <!-- Royal Lion/Sun Inlay -->
-  <circle cx="32" cy="29" r="6" fill="#8B5E14" />
-  <circle cx="32" cy="29" r="4" fill="#FFE07D" />
-  <line x1="32" y1="36" x2="32" y2="44" stroke="#8B5E14" stroke-width="2.5" />
+  <!-- Outer Holographic Torus Ring (matching in-game shieldRing) -->
+  <circle cx="32" cy="32" r="27" fill="none" stroke="#00E5FF" stroke-width="1.5" stroke-dasharray="8 4" opacity="0.85" />
+
+  <!-- 3D Outer Hexagon Frame (matching in-game shieldHex Cylinder 6-side) -->
+  <!-- Hexagon vertices: (32, 7), (53, 19), (53, 45), (32, 57), (11, 45), (11, 19) -->
+  <polygon points="32,7 53,19 53,45 32,57 11,45 11,19" fill="url(#hexRimGrad)" stroke="#0284C7" stroke-width="1" />
+
+  <!-- Inner Recessed Hexagon Plate -->
+  <polygon points="32,12 48,22 48,42 32,52 16,42 16,22" fill="url(#hexFaceGrad)" stroke="#00E5FF" stroke-width="1.2" />
+
+  <!-- Sci-Fi Sub-Hex Grid / Shield Matrix Lines -->
+  <line x1="32" y1="12" x2="32" y2="52" stroke="#00E5FF" stroke-width="0.8" opacity="0.5" />
+  <line x1="16" y1="22" x2="48" y2="42" stroke="#00E5FF" stroke-width="0.8" opacity="0.5" />
+  <line x1="16" y1="42" x2="48" y2="22" stroke="#00E5FF" stroke-width="0.8" opacity="0.5" />
+
+  <!-- Central Floating 3D Octahedron Core (matching in-game shieldStar) -->
+  <polygon points="32,20 42,32 32,44 22,32" fill="#0369A1" />
+  <!-- Top Left Facet -->
+  <polygon points="32,20 22,32 32,32" fill="#38BDF8" />
+  <!-- Top Right Facet -->
+  <polygon points="32,20 42,32 32,32" fill="#FFFFFF" />
+  <!-- Bottom Left Facet -->
+  <polygon points="22,32 32,44 32,32" fill="#0284C7" />
+  <!-- Bottom Right Facet -->
+  <polygon points="42,32 32,44 32,32" fill="#00E5FF" />
+
+  <!-- Center Energy Core Flare -->
+  <circle cx="32" cy="32" r="3" fill="#FFFFFF" />
 </svg>

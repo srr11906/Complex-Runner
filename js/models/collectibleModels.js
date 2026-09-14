@@ -1,7 +1,6 @@
 /**
- * PRABHAS: KASI 2898 AD (3D Runner - AAA Next-Gen)
+ * COMPLEX RUNNER - Next-Gen 3D Sci-Fi Runner
  * High-Resolution 3D Collectible & Power-Up Models with Floating Iridescent Energy Bubbles
- * OPTIMIZATION: Shared Geometries & Textures for Zero Allocation Spikes
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";

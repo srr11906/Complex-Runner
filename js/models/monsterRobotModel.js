@@ -27,6 +27,7 @@ export class MonsterRobotModel {
     this.hp = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.MAX_HITS : 25;
     this.maxHp = this.hp;
     this.laneIndex = 1;
+    this.currentLane = 1;
     this.targetX = CONFIG.LANES[1];
     this.position = new THREE.Vector3(0, 0, 0);
     this.velocityY = 0;
@@ -47,6 +48,7 @@ export class MonsterRobotModel {
     this.hpBarMesh = null;
     this.hpFillMesh = null;
     this.bountyBeacon = null;
+    this._hasActiveDroppedCoins = false;
 
     this.scaleFactor = CONFIG.MONSTER_ROBOT?.SCALE || 1.5;
 
@@ -462,20 +464,29 @@ export class MonsterRobotModel {
     this.bountyBeacon = beaconGroup;
   }
 
-  spawn(laneIndex, zPos, variant = "apex") {
+  spawn(laneIndex, zPos, variant = "mini") {
     this.active = true;
-    this.variant = variant; // "apex" or "mini"
-    const isMini = variant === "mini";
+    this.variant = variant;
     const cfg = CONFIG.MONSTER_ROBOT;
 
-    this.scaleFactor = isMini ? (cfg?.MINI_SCALE || 1.0) : (cfg?.APEX_SCALE || 1.5);
-    this.hp = isMini ? (cfg?.MINI_HITS || 10) : (cfg?.APEX_HITS || 25);
-    this.maxHp = this.hp;
-    this.coinsPerHit = isMini ? (cfg?.MINI_COINS_DROP || 1) : (cfg?.APEX_COINS_DROP || 3);
-    this.hasMagnet = !isMini; // Mini has no magnet, Apex has long-range magnet
-    this.bountyReward = isMini ? (cfg?.MINI_BOUNTY || 10000) : (cfg?.APEX_BOUNTY || 25000);
+    if (variant === "apex") {
+      this.scaleFactor = cfg?.APEX_SCALE || 1.5;
+      this.hp = cfg?.APEX_HITS || 25;
+      this.maxHp = this.hp;
+      this.coinsPerHit = cfg?.APEX_COINS_DROP || 2;
+      this.hasMagnet = true;
+      this.bountyReward = cfg?.APEX_BOUNTY || 25000;
+    } else {
+      this.scaleFactor = cfg?.MINI_SCALE || 1.05;
+      this.hp = cfg?.MINI_HITS || 10;
+      this.maxHp = this.hp;
+      this.coinsPerHit = cfg?.MINI_COINS_DROP || 1;
+      this.hasMagnet = true;
+      this.bountyReward = cfg?.MINI_BOUNTY || 10000;
+    }
 
     this.laneIndex = Math.max(0, Math.min(2, laneIndex));
+    this.currentLane = this.laneIndex;
     this.targetX = CONFIG.LANES[this.laneIndex];
     this.position.set(this.targetX, 14.0, zPos);
     this.root.position.copy(this.position);
@@ -583,6 +594,9 @@ export class MonsterRobotModel {
         droppedCount++;
       }
     }
+    if (droppedCount > 0) {
+      this._hasActiveDroppedCoins = true;
+    }
   }
 
   startGlitchDespawn() {
@@ -590,7 +604,7 @@ export class MonsterRobotModel {
     this.state = "glitching";
     this.glitchTimer = 0.9;
     if (this.hpBarMesh) this.hpBarMesh.visible = false;
-    this.ejectCoinsBackward(this.variant === "mini" ? 3 : 6);
+    this.ejectCoinsBackward(6);
 
     // Spawn High-Altitude Sky Beacon Beam with accurate ground elevation (elevated if on train)
     const baseElevation = this.groundElevation > 1.0 ? 4.15 : 0.0;
@@ -611,11 +625,20 @@ export class MonsterRobotModel {
    * Main Autonomous AI & Kinematic Animation Update
    */
   update(dt, playerSpeed, playerZ, obstacles = [], collectibles = [], player = null) {
+    const hasActiveBeacon = !!(this.bountyBeacon && this.bountyBeacon.userData && this.bountyBeacon.userData.active);
+
+    // Zero-overhead early exit when robot is completely idle and has no active particles/beacons
+    if (!this.active && !this._hasActiveDroppedCoins && !hasActiveBeacon) return;
+
     // 1. Update Dropped Coin Physics & Player Pickups
-    this.updateDroppedCoins(dt, player);
+    if (this._hasActiveDroppedCoins) {
+      this.updateDroppedCoins(dt, player);
+    }
 
     // 2. Update Sky Bounty Beacon Animation & Collision
-    this.updateBountyBeacon(dt, player);
+    if (hasActiveBeacon) {
+      this.updateBountyBeacon(dt, player);
+    }
 
     if (!this.active) return;
 
@@ -738,55 +761,57 @@ export class MonsterRobotModel {
     if (!this.bountyBeacon || !this.bountyBeacon.userData.active) return;
 
     const time = performance.now() * 0.001;
-    const { skyRay, coreMesh, topCap, bottomCap, ring1, ring2, ring3, baseY } = this.bountyBeacon.userData;
-    const currentBaseY = baseY !== undefined ? baseY : 0.0;
+    const { skyRay, coreMesh, topCap, bottomCap, ring1, ring2, ring3 } = this.bountyBeacon.userData;
 
-    // Levitation & Core Rotation
-    const levitationY = currentBaseY + 1.25 + Math.sin(time * 3.2) * 0.18;
+    // Local Levitation within the beacon group (group is placed at ground elevation)
+    const localLevitationY = 1.25 + Math.sin(time * 3.2) * 0.18;
     if (coreMesh) {
       coreMesh.rotation.y += 2.8 * dt;
       coreMesh.rotation.x += 1.4 * dt;
-      coreMesh.position.y = levitationY;
+      coreMesh.position.y = localLevitationY;
     }
     if (topCap) {
-      topCap.position.y = levitationY + 0.60;
+      topCap.position.y = localLevitationY + 0.60;
       topCap.rotation.y += 2.8 * dt;
     }
     if (bottomCap) {
-      bottomCap.position.y = levitationY - 0.60;
+      bottomCap.position.y = localLevitationY - 0.60;
       bottomCap.rotation.y += 2.8 * dt;
     }
 
     // 3-Axis Gyroscopic Counter-Rotations
     if (ring1) {
-      ring1.position.y = levitationY;
+      ring1.position.y = localLevitationY;
       ring1.rotation.z += 2.6 * dt;
       ring1.rotation.x += 1.1 * dt;
     }
     if (ring2) {
-      ring2.position.y = levitationY;
+      ring2.position.y = localLevitationY;
       ring2.rotation.y -= 3.0 * dt;
       ring2.rotation.z += 1.6 * dt;
     }
     if (ring3) {
-      ring3.position.y = levitationY;
+      ring3.position.y = localLevitationY;
       ring3.rotation.x += 1.8 * dt;
       ring3.rotation.y += 2.2 * dt;
     }
 
     // Pulse Sky Ray
     if (skyRay) {
-      skyRay.position.y = currentBaseY + 19.0;
+      skyRay.position.y = 19.0;
       skyRay.material.opacity = 0.38 + Math.sin(time * 4.0) * 0.12;
     }
 
-    // Check collision with player
+    // Check collision with player (100% infallible pickup across ground, jumps, slides, and train roofs)
     if (player && !this.bountyBeacon.userData.collected) {
       const pPos = player.position;
       const bPos = this.bountyBeacon.position;
-      const dist = Math.hypot(pPos.x - bPos.x, pPos.z - bPos.z);
+      
+      const laneMatch = Math.abs(pPos.x - bPos.x) < 2.6;
+      const zMatch = Math.abs(pPos.z - bPos.z) < 4.8 || (pPos.z >= bPos.z - 2.5 && pPos.z <= bPos.z + 5.5);
+      const yMatch = Math.abs(pPos.y - bPos.y) < 8.0; // Covers jump, slide, ground, and train roofs
 
-      if (dist < 2.5 && Math.abs(pPos.y - levitationY) < 3.2) {
+      if (laneMatch && zMatch && yMatch) {
         this.bountyBeacon.userData.collected = true;
         this.bountyBeacon.userData.active = false;
         this.bountyBeacon.visible = false;
@@ -796,11 +821,15 @@ export class MonsterRobotModel {
           const reward = this.bountyBeacon.userData.rewardUnits || 25000;
           window.gameEngine3D.units += reward;
           window.gameEngine3D.score += reward;
-          window.gameEngine3D.showFloatingBountyBanner(`💎 +${reward.toLocaleString()} BOUNTY SECURED!`, "boss");
+          window.gameEngine3D.showFloatingBountyBanner(`◈ +${reward.toLocaleString()} BOUNTY SECURED!`, "boss");
           window.gameEngine3D.safeAudio("playPowerup");
           window.gameEngine3D.safeAudio("playDialogue", "complex");
           window.gameEngine3D.cameraManager.shake(0.5);
         }
+      } else if (pPos.z > bPos.z + 35.0) {
+        // Passed far behind player without collecting
+        this.bountyBeacon.userData.active = false;
+        this.bountyBeacon.visible = false;
       }
     }
   }
@@ -811,6 +840,7 @@ export class MonsterRobotModel {
     const pY = player.position.y + 0.9;
     const pZ = player.position.z;
     const magnetRadius = player.hasMagnet ? 24.0 : 0;
+    let anyActive = false;
 
     for (let i = 0; i < this.droppedCoins.length; i++) {
       const coin = this.droppedCoins[i];
@@ -822,6 +852,8 @@ export class MonsterRobotModel {
         coin.visible = false;
         continue;
       }
+
+      anyActive = true;
 
       // Air Arc Physics -> Settle on Ground
       if (!coin.userData.isGrounded) {
@@ -868,6 +900,8 @@ export class MonsterRobotModel {
         }
       }
     }
+
+    this._hasActiveDroppedCoins = anyActive;
   }
 
   evaluateAIPathfinding(obstacles) {
@@ -930,6 +964,7 @@ export class MonsterRobotModel {
     this.laneSwitchCooldown = 0.85;
     const offset = Math.random() < 0.5 ? 1 : 2;
     this.laneIndex = (this.laneIndex + offset) % 3;
+    this.currentLane = this.laneIndex;
     this.targetX = CONFIG.LANES[this.laneIndex];
   }
 

@@ -1,7 +1,6 @@
 /**
- * PRABHAS: KASI 2898 AD (3D Runner - AAA Next-Gen)
- * Dystopian Floating Magnetic Repulsor Cargo Trains with High-Intensity Blue Booster Glow & Front Radiator Grills
- * OPTIMIZATION: Shared Geometries, Zero Dynamic PointLight Spams
+ * COMPLEX RUNNER - Next-Gen 3D Sci-Fi Runner
+ * Dystopian Floating Magnetic Repulsor Cargo Trains & Obstacles
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";

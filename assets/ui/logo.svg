@@ -1,124 +1,137 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" width="640" height="180">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 220" width="800" height="220" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <defs>
-    <!-- 3D Metallic Gold & Bronze Shimmer Gradients -->
-    <linearGradient id="goldBevel" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#FFF8E7" />
-      <stop offset="20%" stop-color="#FCD34D" />
-      <stop offset="50%" stop-color="#F59E0B" />
-      <stop offset="85%" stop-color="#B45309" />
+    <!-- Crisp 3D Gold Metallic Linear Gradients -->
+    <linearGradient id="goldBevelTop" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="15%" stop-color="#FEF08A" />
+      <stop offset="45%" stop-color="#F59E0B" />
+      <stop offset="75%" stop-color="#D97706" />
       <stop offset="100%" stop-color="#78350F" />
     </linearGradient>
 
-    <linearGradient id="cyberCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+    <linearGradient id="goldRim" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FDE047" />
+      <stop offset="50%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+
+    <!-- Electric Cyan Plasma Gradients -->
+    <linearGradient id="plasmaCyanCrisp" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#00E5FF" />
       <stop offset="50%" stop-color="#E0F7FA" />
       <stop offset="100%" stop-color="#00B0FF" />
     </linearGradient>
 
-    <linearGradient id="metalPlate" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#241710" stop-opacity="0.95" />
-      <stop offset="40%" stop-color="#150E09" stop-opacity="0.98" />
-      <stop offset="100%" stop-color="#080503" stop-opacity="1.0" />
+    <!-- Obsidian & Carbon Armor Gradients -->
+    <linearGradient id="carbonArmor" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E222D" />
+      <stop offset="35%" stop-color="#111319" />
+      <stop offset="100%" stop-color="#07080B" />
     </linearGradient>
 
-    <linearGradient id="speedStreak" x1="0%" y1="0%" x2="100%" y2="0%">
+    <linearGradient id="amberSpeedStreak" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#F59E0B" stop-opacity="0" />
-      <stop offset="50%" stop-color="#FBBF24" stop-opacity="0.9" />
+      <stop offset="50%" stop-color="#FBBF24" stop-opacity="0.8" />
       <stop offset="100%" stop-color="#00E5FF" stop-opacity="0" />
     </linearGradient>
 
-    <!-- Drop Shadows & Holographic Glows -->
-    <filter id="megaGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="6" result="blur1" />
-      <feGaussianBlur stdDeviation="14" result="blur2" />
-      <feMerge>
-        <feMergeNode in="blur2" />
-        <feMergeNode in="blur1" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-
-    <filter id="plateShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.95" />
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#D97706" flood-opacity="0.4" />
+    <!-- Subtle Clean Background Shadow Filter (Crisp edges preserved) -->
+    <filter id="crispPlateShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.9" />
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#F59E0B" flood-opacity="0.45" />
     </filter>
   </defs>
 
-  <!-- Background Cyber Shield Emblem -->
-  <g filter="url(#plateShadow)">
-    <!-- Carbon Outer Wing -->
-    <path d="M 50,30 L 590,30 L 550,140 L 320,168 L 90,140 Z" fill="url(#metalPlate)" stroke="#D97706" stroke-width="2.5" />
+  <!-- 1. Background Armor Emblem Shield -->
+  <g filter="url(#crispPlateShadow)">
+    <!-- Outer Wing Chassis -->
+    <polygon points="70,42 730,42 675,168 400,198 125,168" fill="url(#carbonArmor)" stroke="#D97706" stroke-width="2.5" />
     
-    <!-- Inner High-Tech Chamfered Cut -->
-    <path d="M 68,40 L 572,40 L 536,132 L 320,158 L 104,132 Z" fill="none" stroke="url(#goldBevel)" stroke-width="1.5" stroke-opacity="0.5" />
+    <!-- Inner High-Tech Facet Border -->
+    <polygon points="92,54 708,54 658,158 400,186 142,158" fill="#0C0D12" stroke="url(#goldRim)" stroke-width="1.5" stroke-opacity="0.6" />
 
-    <!-- Dynamic Neon Speed Slashes (Subway Surfers Vibe) -->
-    <polygon points="120,40 180,40 140,132 80,132" fill="url(#speedStreak)" opacity="0.35" />
-    <polygon points="460,40 520,40 480,132 420,132" fill="url(#speedStreak)" opacity="0.35" />
+    <!-- Angled Speed Slashes -->
+    <polygon points="140,54 200,54 165,158 105,158" fill="url(#amberSpeedStreak)" opacity="0.3" />
+    <polygon points="600,54 660,54 625,158 565,158" fill="url(#amberSpeedStreak)" opacity="0.3" />
 
-    <!-- Top Neon Crown Node -->
-    <polygon points="305,18 320,5 335,18 320,25" fill="url(#cyberCyan)" />
-    <circle cx="320" cy="22" r="3.5" fill="#FFFFFF" filter="url(#megaGlow)" />
+    <!-- Top Apex Tech Node -->
+    <polygon points="380,26 400,10 420,26 400,34" fill="url(#plasmaCyanCrisp)" stroke="#FFFFFF" stroke-width="1" />
+    <circle cx="400" cy="22" r="3.5" fill="#FFFFFF" />
+
+    <!-- Bottom Center V-Accent -->
+    <polygon points="385,188 400,194 415,188 400,178" fill="#F59E0B" />
   </g>
 
-  <!-- Typography 3D Extrusion Layer (Shadow / Depth) -->
-  <text x="320" y="93" 
-        font-family="'Inter', 'Arial Black', 'Impact', sans-serif" 
-        font-size="52" 
+  <!-- 2. Typography 3D Extruded Depth Layers (Sharp, No Blurs) -->
+  <!-- Deep Bottom Dark Base Shadow -->
+  <text x="400" y="112" 
+        font-family="'Impact', 'Arial Black', 'Inter', sans-serif" 
+        font-size="68" 
         font-weight="900" 
         font-style="italic"
-        letter-spacing="8" 
-        fill="#3D1A04" 
-        text-anchor="middle">COMPLEX</text>
-  <text x="320" y="90" 
-        font-family="'Inter', 'Arial Black', 'Impact', sans-serif" 
-        font-size="52" 
-        font-weight="900" 
-        font-style="italic"
-        letter-spacing="8" 
-        fill="#78350F" 
+        letter-spacing="9" 
+        fill="#140700" 
         text-anchor="middle">COMPLEX</text>
 
-  <!-- Typography Primary Layer (3D Metallic Bevel + Glowing Highlight) -->
-  <text x="320" y="87" 
-        font-family="'Inter', 'Arial Black', 'Impact', sans-serif" 
-        font-size="52" 
+  <!-- Middle Bronze Extrusion Layer -->
+  <text x="400" y="108" 
+        font-family="'Impact', 'Arial Black', 'Inter', sans-serif" 
+        font-size="68" 
         font-weight="900" 
         font-style="italic"
-        letter-spacing="8" 
-        fill="url(#goldBevel)" 
+        letter-spacing="9" 
+        fill="#5B2404" 
+        text-anchor="middle">COMPLEX</text>
+
+  <!-- Lower Gold Shadow -->
+  <text x="400" y="105" 
+        font-family="'Impact', 'Arial Black', 'Inter', sans-serif" 
+        font-size="68" 
+        font-weight="900" 
+        font-style="italic"
+        letter-spacing="9" 
+        fill="#9A3412" 
+        text-anchor="middle">COMPLEX</text>
+
+  <!-- 3. Primary Top Golden Metallic Bevel Layer (Razor Sharp) -->
+  <text x="400" y="102" 
+        font-family="'Impact', 'Arial Black', 'Inter', sans-serif" 
+        font-size="68" 
+        font-weight="900" 
+        font-style="italic"
+        letter-spacing="9" 
+        fill="url(#goldBevelTop)" 
         stroke="#FFFBEB"
-        stroke-width="0.75"
-        text-anchor="middle" 
-        filter="url(#megaGlow)">COMPLEX</text>
+        stroke-width="1.2"
+        text-anchor="middle">COMPLEX</text>
 
-  <!-- "RUNNER" - Glowing Cyan Cyber High-Octane Title -->
-  <text x="320" y="125" 
-        font-family="'Inter', 'Montserrat', 'Impact', sans-serif" 
-        font-size="22" 
+  <!-- 4. Sub-title "RUNNER" in Electric Cyan with Crisp 3D Shadow -->
+  <!-- Runner Shadow -->
+  <text x="400" y="152" 
+        font-family="'Impact', 'Arial Black', 'Inter', sans-serif" 
+        font-size="28" 
         font-weight="900" 
         font-style="italic"
-        letter-spacing="16" 
-        fill="url(#cyberCyan)" 
-        stroke="#00E5FF"
-        stroke-width="0.5"
-        text-anchor="middle"
-        filter="url(#megaGlow)">RUNNER</text>
+        letter-spacing="18" 
+        fill="#022B3A" 
+        text-anchor="middle">RUNNER</text>
 
-  <!-- Bottom Accent Tagline & Embellishment -->
-  <text x="320" y="148"
-        font-family="'Inter', sans-serif"
-        font-size="9"
-        font-weight="800"
-        letter-spacing="6"
-        fill="#F59E0B"
-        opacity="0.85"
-        text-anchor="middle">CYBER HEIST</text>
+  <!-- Runner Foreground (Crisp White-Cyan Glow) -->
+  <text x="400" y="149" 
+        font-family="'Impact', 'Arial Black', 'Inter', sans-serif" 
+        font-size="28" 
+        font-weight="900" 
+        font-style="italic"
+        letter-spacing="18" 
+        fill="url(#plasmaCyanCrisp)" 
+        stroke="#E0F7FA"
+        stroke-width="0.8"
+        text-anchor="middle">RUNNER</text>
 
-  <!-- Left & Right Tactical Tech Brackets -->
-  <path d="M 170,122 L 140,122 L 130,132" fill="none" stroke="url(#cyberCyan)" stroke-width="2" stroke-linecap="round" />
-  <circle cx="170" cy="122" r="2.5" fill="#00E5FF" />
+  <!-- 5. Tactical Circuit Brackets & Tech Accents -->
+  <path d="M 210,143 L 175,143 L 160,154" fill="none" stroke="url(#plasmaCyanCrisp)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="210" cy="143" r="3" fill="#00E5FF" />
 
-  <path d="M 470,122 L 500,122 L 510,132" fill="none" stroke="url(#cyberCyan)" stroke-width="2" stroke-linecap="round" />
-  <circle cx="470" cy="122" r="2.5" fill="#00E5FF" />
+  <path d="M 590,143 L 625,143 L 640,154" fill="none" stroke="url(#plasmaCyanCrisp)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="590" cy="143" r="3" fill="#00E5FF" />
 </svg>

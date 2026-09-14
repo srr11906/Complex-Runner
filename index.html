@@ -15,7 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Master Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=20260914_complex_v6">
+  <link rel="stylesheet" href="css/style.css?v=20260914_jetpack_v24">
 </head>
 <body>
   <div id="app-root">
@@ -26,7 +26,7 @@
     <div id="loading-screen" class="loading-overlay active">
       <div class="loading-container">
         <div class="loading-logo-box">
-          <img src="assets/ui/logo.svg" alt="Complex Runner Logo" class="loading-logo-img">
+          <img src="assets/ui/logo.svg?v=20260914_crisp_v1" alt="Complex Runner Logo" class="loading-logo-img">
         </div>
         <div class="loading-progress-box">
           <div class="loading-track">
@@ -82,7 +82,7 @@
       <div id="hud-powerup-stack" class="hud-bottom-left">
         <!-- Jetpack Badge -->
         <div id="badge-jetpack" class="powerup-badge badge-jetpack" style="display: none;">
-          <span class="powerup-icon">🚀</span>
+          <img src="assets/ui/jetpack-powerup.svg" class="powerup-icon-img" alt="Jetpack">
           <div class="powerup-details">
             <div class="powerup-name">JETPACK</div>
             <div class="powerup-track">
@@ -93,7 +93,7 @@
 
         <!-- Magnet Badge -->
         <div id="badge-magnet" class="powerup-badge badge-magnet" style="display: none;">
-          <span class="powerup-icon">🧲</span>
+          <img src="assets/ui/magnet-powerup.svg" class="powerup-icon-img" alt="Magnet">
           <div class="powerup-details">
             <div class="powerup-name">MAGNET</div>
             <div class="powerup-track">
@@ -104,7 +104,7 @@
 
         <!-- 2X Multiplier Badge -->
         <div id="badge-multiplier" class="powerup-badge badge-multiplier" style="display: none;">
-          <span class="powerup-icon">⚡</span>
+          <img src="assets/ui/multiplier-powerup.svg" class="powerup-icon-img" alt="2X Multiplier">
           <div class="powerup-details">
             <div class="powerup-name">2X UNITS</div>
             <div class="powerup-track">
@@ -115,11 +115,11 @@
 
         <!-- Shield Badge -->
         <div id="badge-shield" class="powerup-badge badge-shield" style="display: none;">
-          <span class="powerup-icon">🛡️</span>
+          <img src="assets/ui/shield-powerup.svg" class="powerup-icon-img" alt="Shield">
           <div class="powerup-details">
             <div class="powerup-name">SHIELD ACTIVE</div>
             <div class="powerup-track">
-              <div class="powerup-fill" style="width: 100%;"></div>
+              <div id="shield-timer-fill" class="powerup-fill" style="width: 100%;"></div>
             </div>
           </div>
         </div>
@@ -135,9 +135,8 @@
             <img id="menu-sound-icon-img" src="assets/ui/sound-on.svg" alt="Sound">
           </button>
           <button id="btn-monster-toggle" class="menu-action-pill compact-pill interactive-ui" aria-label="Bounty Mode Toggle" title="Toggle Bounty Mode">
-            <span class="pill-icon">🎯</span>
             <div class="pill-col">
-              <span class="pill-label">BOUNTY</span>
+              <span class="pill-label">BOUNTY MODE</span>
               <span id="monster-toggle-status" class="pill-value text-emerald">ON</span>
             </div>
           </button>
@@ -145,7 +144,7 @@
 
         <div class="menu-header-badges">
           <div class="menu-stat-pill compact-pill" title="High Score">
-            <span class="pill-icon">🏆</span>
+            <img src="assets/ui/trophy-star.svg" class="pill-icon-img" alt="High Score">
             <div class="pill-col">
               <span class="pill-label">BEST</span>
               <span id="menu-high-score-val" class="pill-value">000000</span>
@@ -153,7 +152,7 @@
           </div>
 
           <button id="btn-open-armory" class="menu-action-pill gold-accent interactive-ui" aria-label="Open Armory Shop" title="Armory Upgrades">
-            <span class="pill-icon">🪙</span>
+            <img src="assets/ui/unit-coin.svg" class="pill-icon-img" alt="Units">
             <div class="pill-col">
               <span class="pill-label">VAULT / ARMORY</span>
               <span id="menu-vault-units-val" class="pill-value text-amber">0</span>
@@ -165,18 +164,18 @@
       <!-- Center Logo & Mode Switcher -->
       <div class="menu-center-box">
         <div class="menu-logo-wrap">
-          <img src="assets/ui/logo.svg" alt="Complex Runner Logo" class="menu-main-logo">
+          <img src="assets/ui/logo.svg?v=20260914_crisp_v1" alt="Complex Runner Logo" class="menu-main-logo">
         </div>
 
         <!-- Segmented Mission Mode Switcher -->
         <div class="mode-segmented-control">
           <button id="mode-btn-heist" class="mode-tab-btn active" type="button">
-            <span class="tab-icon">🎯</span>
+            <img src="assets/ui/mode-heist.svg" class="tab-icon-img" alt="Complex Heist">
             <span class="tab-title">COMPLEX HEIST</span>
             <span class="tab-sub">1M Units Goal</span>
           </button>
           <button id="mode-btn-endless" class="mode-tab-btn" type="button">
-            <span class="tab-icon">⚡</span>
+            <img src="assets/ui/mode-endless.svg" class="tab-icon-img" alt="Endless Run">
             <span class="tab-title">ENDLESS RUN</span>
             <span class="tab-sub">Survive & Score</span>
           </button>
@@ -263,7 +262,9 @@
     <section id="victory-screen" class="game-modal-screen">
       <div class="squircle-card desert-theme victory-highlight">
         <div class="card-header">
-          <div class="victory-trophy-badge">🏆</div>
+          <div class="victory-trophy-badge">
+            <img src="assets/ui/mode-heist.svg" class="victory-trophy-img" alt="Complex Access Unlocked">
+          </div>
           <h2 class="game-title">1,000,000 UNITS!</h2>
           <p class="game-tagline text-amber">COMPLEX ACCESS UNLOCKED</p>
         </div>
@@ -284,11 +285,11 @@
       <div class="squircle-card desert-theme armory-card">
         <div class="armory-header">
           <div class="armory-title-box">
-            <span class="armory-icon">🛡️</span>
+            <img src="assets/ui/mode-heist.svg" class="armory-title-icon-img" alt="Armory">
             <h2 class="game-title">ARMORY SHOP</h2>
           </div>
           <div class="armory-vault-pill">
-            <span class="pill-icon">🪙</span>
+            <img src="assets/ui/unit-coin.svg" class="pill-icon-img" alt="Units">
             <span id="shop-vault-units-val" class="vault-val">0</span>
           </div>
           <button id="btn-close-armory" class="squircle-icon-btn interactive-ui close-btn" aria-label="Close Shop">
@@ -302,7 +303,7 @@
           <!-- Shield Upgrade Card -->
           <div class="armory-item-card" data-powerup="shield">
             <div class="item-header">
-              <span class="item-icon">🛡️</span>
+              <img src="assets/ui/shield-powerup.svg" class="item-icon-img" alt="Shield">
               <div class="item-info">
                 <span class="item-name">DEFENSE SHIELD</span>
                 <span class="item-stat" id="stat-shield-dur">Duration: 8s</span>
@@ -311,14 +312,14 @@
             <div class="item-level-pips" id="pips-shield"></div>
             <button class="btn-upgrade-action interactive-ui" id="btn-upgrade-shield" data-powerup="shield">
               <span class="upgrade-btn-text">UPGRADE</span>
-              <span class="upgrade-btn-cost" id="cost-shield">🪙 15,000</span>
+              <span class="upgrade-btn-cost" id="cost-shield"><img src="assets/ui/unit-coin.svg" class="unit-inline-icon" alt="Units"> 15,000</span>
             </button>
           </div>
 
           <!-- Magnet Upgrade Card -->
           <div class="armory-item-card" data-powerup="magnet">
             <div class="item-header">
-              <span class="item-icon">🧲</span>
+              <img src="assets/ui/magnet-powerup.svg" class="item-icon-img" alt="Magnet">
               <div class="item-info">
                 <span class="item-name">COIN MAGNET</span>
                 <span class="item-stat" id="stat-magnet-dur">Duration: 8s</span>
@@ -327,14 +328,14 @@
             <div class="item-level-pips" id="pips-magnet"></div>
             <button class="btn-upgrade-action interactive-ui" id="btn-upgrade-magnet" data-powerup="magnet">
               <span class="upgrade-btn-text">UPGRADE</span>
-              <span class="upgrade-btn-cost" id="cost-magnet">🪙 15,000</span>
+              <span class="upgrade-btn-cost" id="cost-magnet"><img src="assets/ui/unit-coin.svg" class="unit-inline-icon" alt="Units"> 15,000</span>
             </button>
           </div>
 
           <!-- Jetpack Upgrade Card -->
           <div class="armory-item-card" data-powerup="jetpack">
             <div class="item-header">
-              <span class="item-icon">🚀</span>
+              <img src="assets/ui/jetpack-powerup.svg" class="item-icon-img" alt="Jetpack">
               <div class="item-info">
                 <span class="item-name">WARP JETPACK</span>
                 <span class="item-stat" id="stat-jetpack-dur">Duration: 8s</span>
@@ -343,14 +344,14 @@
             <div class="item-level-pips" id="pips-jetpack"></div>
             <button class="btn-upgrade-action interactive-ui" id="btn-upgrade-jetpack" data-powerup="jetpack">
               <span class="upgrade-btn-text">UPGRADE</span>
-              <span class="upgrade-btn-cost" id="cost-jetpack">🪙 15,000</span>
+              <span class="upgrade-btn-cost" id="cost-jetpack"><img src="assets/ui/unit-coin.svg" class="unit-inline-icon" alt="Units"> 15,000</span>
             </button>
           </div>
 
           <!-- Multiplier Upgrade Card -->
           <div class="armory-item-card" data-powerup="multiplier">
             <div class="item-header">
-              <span class="item-icon">💎</span>
+              <img src="assets/ui/multiplier-powerup.svg" class="item-icon-img" alt="Multiplier">
               <div class="item-info">
                 <span class="item-name">2X MULTIPLIER</span>
                 <span class="item-stat" id="stat-multiplier-dur">Duration: 8s</span>
@@ -359,7 +360,7 @@
             <div class="item-level-pips" id="pips-multiplier"></div>
             <button class="btn-upgrade-action interactive-ui" id="btn-upgrade-multiplier" data-powerup="multiplier">
               <span class="upgrade-btn-text">UPGRADE</span>
-              <span class="upgrade-btn-cost" id="cost-multiplier">🪙 15,000</span>
+              <span class="upgrade-btn-cost" id="cost-multiplier"><img src="assets/ui/unit-coin.svg" class="unit-inline-icon" alt="Units"> 15,000</span>
             </button>
           </div>
         </div>
@@ -368,6 +369,6 @@
   </div>
 
   <!-- Main ES Module Script -->
-  <script type="module" src="js/script.js?v=20260914_complex_v6"></script>
+  <script type="module" src="js/script.js?v=20260914_jetpack_v24"></script>
 </body>
 </html>

@@ -105,11 +105,11 @@ export class CollisionManager3D {
           }
         }
       } else if (type === "bounty_target" || type === "rival_hunter") {
-        const targetHalfW = 1.1;
+        const targetHalfW = 1.8;
         const targetMinX = oPos.x - targetHalfW;
         const targetMaxX = oPos.x + targetHalfW;
-        const targetMinZ = oPos.z - 1.2;
-        const targetMaxZ = oPos.z + 1.2;
+        const targetMinZ = oPos.z - 3.2;
+        const targetMaxZ = oPos.z + 3.2;
 
         const overlapX = pBounds.maxX > targetMinX && pBounds.minX < targetMaxX;
         const overlapZ = pBounds.maxZ > targetMinZ && pBounds.minZ < targetMaxZ;
@@ -123,11 +123,11 @@ export class CollisionManager3D {
           };
         }
       } else if (type === "bounty_crate") {
-        const crateHalfW = 1.0;
+        const crateHalfW = 1.8;
         const crateMinX = oPos.x - crateHalfW;
         const crateMaxX = oPos.x + crateHalfW;
-        const crateMinZ = oPos.z - 0.9;
-        const crateMaxZ = oPos.z + 0.9;
+        const crateMinZ = oPos.z - 3.0;
+        const crateMaxZ = oPos.z + 3.0;
 
         const overlapX = pBounds.maxX > crateMinX && pBounds.minX < crateMaxX;
         const overlapZ = pBounds.maxZ > crateMinZ && pBounds.minZ < crateMaxZ;
@@ -141,10 +141,11 @@ export class CollisionManager3D {
         }
       } else if (type === "extraction_beacon") {
         const dist = Math.hypot(pBounds.centerX - oPos.x, pBounds.centerZ - oPos.z);
-        if (dist < (obs.radius || 3.5)) {
+        if (dist < (obs.radius || 5.2)) {
           return {
             type: "extraction_triggered",
-            beacon: obs
+            beacon: obs,
+            rewardUnits: obs.rewardUnits || 15000
           };
         }
       } else if (type === "hurdle") {
@@ -194,18 +195,21 @@ export class CollisionManager3D {
     const startZ = laserData.playerZ;
     const maxRange = laserData.range || 38.0;
 
-    // Check Monster Robot
-    if (monsterRobot && monsterRobot.active && !monsterRobot.isGlitching) {
-      const isRobotLane = Math.abs(monsterRobot.position.x - laneX) < 1.6;
-      if (isRobotLane) {
-        const distFromPlayer = monsterRobot.position.z - startZ;
-        if (distFromPlayer >= 0.0 && distFromPlayer <= maxRange) {
-          candidates.push({
-            type: "laser_monster_robot_hit",
-            robot: monsterRobot,
-            distance: Math.max(0.5, distFromPlayer),
-            targetName: "Scavenger Mecha Bot"
-          });
+    // Check Monster Robots (supports single instance or multiple active robots)
+    const robotList = Array.isArray(monsterRobot) ? monsterRobot : (monsterRobot ? [monsterRobot] : []);
+    for (const bot of robotList) {
+      if (bot && bot.active && !bot.isGlitching) {
+        const isRobotLane = Math.abs(bot.position.x - laneX) < 1.6;
+        if (isRobotLane) {
+          const distFromPlayer = bot.position.z - startZ;
+          if (distFromPlayer >= 0.0 && distFromPlayer <= maxRange) {
+            candidates.push({
+              type: "laser_monster_robot_hit",
+              robot: bot,
+              distance: Math.max(0.5, distFromPlayer),
+              targetName: "Apex Harvester"
+            });
+          }
         }
       }
     }
