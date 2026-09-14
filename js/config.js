@@ -48,10 +48,11 @@ export const CONFIG = {
     MINI_HITS: 10,              // 10 laser hits
     APEX_SCALE: 1.5,            // 1.5x scale
     MINI_SCALE: 1.0,            // 1.0x scale
-    APEX_BOUNTY: 50000,         // +50,000 Units
-    MINI_BOUNTY: 25000,         // +25,000 Units
-    APEX_COINS_DROP: 3,         // 3 coins per hit
+    APEX_BOUNTY: 25000,         // +25,000 Units (Balanced)
+    MINI_BOUNTY: 10000,         // +10,000 Units (Balanced)
+    APEX_COINS_DROP: 2,         // 2 coins per hit
     MINI_COINS_DROP: 1,         // 1 coin per hit
+    HEIST_MAX_SPAWN_SCORE: 900000, // No monster spawns after 900k in Heist mode
     AHEAD_DISTANCE: 38.0,       // Spawns 38m ahead (within 55m laser range)
     TARGET_LEAD_MIN: 30.0,      // Lead distance window minimum
     TARGET_LEAD_MAX: 42.0,      // Lead distance window maximum

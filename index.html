@@ -15,7 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Master Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=20260910_realgame_v1">
+  <link rel="stylesheet" href="css/style.css?v=20260914_complex_v6">
 </head>
 <body>
   <div id="app-root">
@@ -128,45 +128,37 @@
 
     <!-- 1. Real-World 3D Game Main Menu (Immersive Console Overlay) -->
     <section id="start-screen" class="game-modal-screen active menu-viewport">
-      <!-- Top Bar: Sound Toggle & Currency Badges -->
+      <!-- Top Bar: Sound, Monster Toggle, High Score & Combined Vault/Armory -->
       <div class="menu-top-bar">
         <div class="menu-top-left-actions">
           <button id="btn-menu-sound-toggle" class="squircle-icon-btn interactive-ui" aria-label="Toggle Sound" title="Sound">
             <img id="menu-sound-icon-img" src="assets/ui/sound-on.svg" alt="Sound">
           </button>
-          <button id="btn-monster-toggle" class="menu-action-pill interactive-ui" aria-label="Monster Mode Toggle" title="Toggle Monster Mode">
-            <span class="pill-icon">👾</span>
+          <button id="btn-monster-toggle" class="menu-action-pill compact-pill interactive-ui" aria-label="Bounty Mode Toggle" title="Toggle Bounty Mode">
+            <span class="pill-icon">🎯</span>
             <div class="pill-col">
-              <span class="pill-label">MONSTER MODE</span>
+              <span class="pill-label">BOUNTY</span>
               <span id="monster-toggle-status" class="pill-value text-emerald">ON</span>
             </div>
           </button>
         </div>
 
         <div class="menu-header-badges">
-          <button id="btn-open-armory" class="menu-action-pill gold-accent interactive-ui" aria-label="Open Armory Shop" title="Armory Upgrades">
-            <span class="pill-icon">⚡</span>
-            <div class="pill-col">
-              <span class="pill-label">ARMORY</span>
-              <span class="pill-value text-amber">SHOP</span>
-            </div>
-          </button>
-
-          <div class="menu-stat-pill" title="High Score">
+          <div class="menu-stat-pill compact-pill" title="High Score">
             <span class="pill-icon">🏆</span>
             <div class="pill-col">
-              <span class="pill-label">HIGH SCORE</span>
+              <span class="pill-label">BEST</span>
               <span id="menu-high-score-val" class="pill-value">000000</span>
             </div>
           </div>
 
-          <div class="menu-stat-pill gold-accent" title="Vault Units">
+          <button id="btn-open-armory" class="menu-action-pill gold-accent interactive-ui" aria-label="Open Armory Shop" title="Armory Upgrades">
             <span class="pill-icon">🪙</span>
             <div class="pill-col">
-              <span class="pill-label">VAULT UNITS</span>
-              <span id="menu-vault-units-val" class="pill-value">0</span>
+              <span class="pill-label">VAULT / ARMORY</span>
+              <span id="menu-vault-units-val" class="pill-value text-amber">0</span>
             </div>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -292,7 +284,7 @@
       <div class="squircle-card desert-theme armory-card">
         <div class="armory-header">
           <div class="armory-title-box">
-            <span class="armory-icon">⚡</span>
+            <span class="armory-icon">🛡️</span>
             <h2 class="game-title">ARMORY SHOP</h2>
           </div>
           <div class="armory-vault-pill">
@@ -358,7 +350,7 @@
           <!-- Multiplier Upgrade Card -->
           <div class="armory-item-card" data-powerup="multiplier">
             <div class="item-header">
-              <span class="item-icon">⚡</span>
+              <span class="item-icon">💎</span>
               <div class="item-info">
                 <span class="item-name">2X MULTIPLIER</span>
                 <span class="item-stat" id="stat-multiplier-dur">Duration: 8s</span>
@@ -371,17 +363,11 @@
             </button>
           </div>
         </div>
-
-        <div class="card-actions">
-          <button id="btn-armory-back" class="btn-squircle-secondary">
-            <span>BACK TO MENU</span>
-          </button>
-        </div>
       </div>
     </section>
   </div>
 
   <!-- Main ES Module Script -->
-  <script type="module" src="js/script.js?v=20260910_realgame_v1"></script>
+  <script type="module" src="js/script.js?v=20260914_complex_v6"></script>
 </body>
 </html>

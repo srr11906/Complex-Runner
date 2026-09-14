@@ -3,7 +3,7 @@
  * Main Web Application Entry Point
  */
 
-import { GameEngine3D } from "./game3D.js";
+import { GameEngine3D } from "./game3D.js?v=20260914_complex_v6";
 
 window.addEventListener("DOMContentLoaded", () => {
   const game = new GameEngine3D();

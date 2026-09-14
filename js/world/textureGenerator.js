@@ -876,6 +876,188 @@ class TextureGenerator {
     this.cache.set("container_norm", texture);
     return texture;
   }
+
+  /**
+   * 15. The Complex - Pristine Carrara White Marble & Gold Trackway
+   */
+  getComplexMarbleTexture() {
+    return this.getComplexMarbleRoadTexture();
+  }
+
+  getComplexMarbleRoadTexture() {
+    if (this.cache.has("complex_marble_road")) return this.cache.get("complex_marble_road");
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext("2d");
+
+    // Pristine White-Ivory Carrara Marble Base
+    ctx.fillStyle = "#F8FAFC";
+    ctx.fillRect(0, 0, 1024, 1024);
+
+    // Subtle natural marble veining
+    ctx.strokeStyle = "rgba(203, 213, 225, 0.4)";
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 12; i++) {
+      ctx.beginPath();
+      let startX = Math.random() * 1024;
+      let startY = 0;
+      ctx.moveTo(startX, startY);
+      for (let step = 0; step < 6; step++) {
+        const nextX = startX + (Math.random() - 0.5) * 160;
+        const nextY = startY + 180 + Math.random() * 60;
+        ctx.quadraticCurveTo(startX + (Math.random() - 0.5) * 60, startY + 80, nextX, nextY);
+        startX = nextX;
+        startY = nextY;
+      }
+      ctx.stroke();
+    }
+
+    // Polished Marble Slab Tile Grid (512x512)
+    ctx.fillStyle = "rgba(226, 232, 240, 0.8)";
+    for (let y = 0; y <= 1024; y += 256) {
+      ctx.fillRect(0, y - 1, 1024, 2);
+    }
+    for (let x = 0; x <= 1024; x += 256) {
+      ctx.fillRect(x - 1, 0, 2, 1024);
+    }
+
+    // Inlaid Royal Gold Linear Geometry
+    ctx.strokeStyle = "rgba(217, 119, 6, 0.75)";
+    ctx.lineWidth = 4.0;
+    ctx.strokeRect(32, 32, 960, 960);
+    ctx.strokeRect(64, 64, 896, 896);
+
+    // 3 Maglev Superconducting Slots with Cyan Aura
+    const lanes = [170, 512, 854];
+    for (const lx of lanes) {
+      // Recessed groove
+      ctx.fillStyle = "#E2E8F0";
+      ctx.fillRect(lx - 10, 0, 20, 1024);
+      // Gold trim lines
+      ctx.fillStyle = "#F59E0B";
+      ctx.fillRect(lx - 10, 0, 2, 1024);
+      ctx.fillRect(lx + 8, 0, 2, 1024);
+      // Cyan beam
+      ctx.fillStyle = "rgba(0, 229, 255, 0.9)";
+      ctx.fillRect(lx - 2, 0, 4, 1024);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    this.cache.set("complex_marble_road", texture);
+    return texture;
+  }
+
+  /**
+   * 16. The Complex - Crystal Cyan Hydroponic Water Caustics
+   */
+  getComplexWaterTexture() {
+    if (this.cache.has("complex_water")) return this.cache.get("complex_water");
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext("2d");
+
+    // Deep Aqua-Cyan Water Gradient
+    const grad = ctx.createLinearGradient(0, 0, 512, 512);
+    grad.addColorStop(0, "#0891B2");
+    grad.addColorStop(0.5, "#06B6D4");
+    grad.addColorStop(1, "#0284C7");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Animated Caustic Rings / Ripple Network
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.45)";
+    ctx.lineWidth = 2.0;
+    for (let i = 0; i < 28; i++) {
+      ctx.beginPath();
+      const cx = (i * 73) % 512;
+      const cy = (i * 97) % 512;
+      const r = 24 + (i % 5) * 12;
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    this.cache.set("complex_water", texture);
+    return texture;
+  }
+
+  /**
+   * 17. The Complex - Fluted Greco-Futuristic Colonnade Pillar
+   */
+  getComplexColonnadeTexture() {
+    if (this.cache.has("complex_colonnade")) return this.cache.get("complex_colonnade");
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#F1F5F9";
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Vertical Fluting Grooves
+    const fluteWidth = 32;
+    for (let x = 0; x < 512; x += fluteWidth) {
+      const g = ctx.createLinearGradient(x, 0, x + fluteWidth, 0);
+      g.addColorStop(0, "#E2E8F0");
+      g.addColorStop(0.5, "#FFFFFF");
+      g.addColorStop(1, "#CBD5E1");
+      ctx.fillStyle = g;
+      ctx.fillRect(x, 0, fluteWidth, 512);
+
+      // Gold inlay rib
+      ctx.fillStyle = "#D97706";
+      ctx.fillRect(x, 0, 1.5, 512);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    this.cache.set("complex_colonnade", texture);
+    return texture;
+  }
+
+  /**
+   * 18. The Complex - Elysian Hydroponic Garden Topiary & Foliage
+   */
+  getComplexHedgeTexture() {
+    if (this.cache.has("complex_hedge")) return this.cache.get("complex_hedge");
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext("2d");
+
+    // Deep Emerald Botanical Base
+    ctx.fillStyle = "#064E3B";
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Leaf cluster stippling with vibrant jade & gold flecks
+    for (let i = 0; i < 4000; i++) {
+      const x = Math.random() * 512;
+      const y = Math.random() * 512;
+      const r = 2 + Math.random() * 3.5;
+      const palette = ["#047857", "#10B981", "#34D399", "#059669", "#F59E0B"];
+      ctx.fillStyle = palette[Math.floor(Math.random() * palette.length)];
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    this.cache.set("complex_hedge", texture);
+    return texture;
+  }
 }
 
 export const textureGen = new TextureGenerator();

@@ -5,8 +5,8 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "../config.js";
-import { textureGen } from "./textureGenerator.js";
+import { CONFIG } from "../config.js?v=20260914_complex_v6";
+import { textureGen } from "./textureGenerator.js?v=20260914_complex_v6";
 
 export class Environment3D {
   constructor(scene) {
@@ -231,6 +231,29 @@ export class Environment3D {
     if (this.sunLight && this.sunTarget) {
       this.sunLight.position.set(35, 75, playerZ - 40);
       this.sunTarget.position.set(0, 0, playerZ + 20);
+    }
+  }
+
+  setTheme(theme = "wasteland") {
+    const isComplex = theme === "complex" || theme === "complex_beta";
+    if (isComplex) {
+      this.scene.background = new THREE.Color(0x061826);
+      if (this.scene.fog) {
+        this.scene.fog.color.setHex(0x08253B);
+      }
+      if (this.sunLight) {
+        this.sunLight.color.setHex(0xE0F2FE);
+        this.sunLight.intensity = 3.6;
+      }
+    } else {
+      this.scene.background = new THREE.Color(CONFIG.COLORS.SKY_TOP);
+      if (this.scene.fog) {
+        this.scene.fog.color.setHex(CONFIG.COLORS.FOG);
+      }
+      if (this.sunLight) {
+        this.sunLight.color.setHex(CONFIG.COLORS.SUN_LIGHT);
+        this.sunLight.intensity = 3.4;
+      }
     }
   }
 }

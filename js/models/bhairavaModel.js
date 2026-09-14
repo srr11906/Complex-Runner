@@ -5,8 +5,8 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "../config.js";
-import { textureGen } from "../world/textureGenerator.js";
+import { CONFIG } from "../config.js?v=20260914_complex_v6";
+import { textureGen } from "../world/textureGenerator.js?v=20260914_complex_v6";
 
 export class BhairavaModel {
   constructor() {
@@ -23,110 +23,104 @@ export class BhairavaModel {
 
   buildModel() {
     // 1. High-Fidelity Photorealistic PBR Materials with Tactile Micro-Detail Bump Maps
-    const skinMat = new THREE.MeshStandardMaterial({
-      color: 0xB8805A, // Balanced, natural cinematic warm Indian skin tone (calibrated)
-      roughness: 0.52,
-      metalness: 0.08
-    });
-
-    const beardMat = new THREE.MeshStandardMaterial({
-      color: 0x14100E,
-      roughness: 0.85,
-      metalness: 0.05
-    });
-
-    const hairMat = new THREE.MeshStandardMaterial({
-      color: 0x120E0C,
-      roughness: 0.75,
-      metalness: 0.08
-    });
-
     const clothBump = textureGen.getClothBumpMap();
 
-    const vestMat = new THREE.MeshStandardMaterial({
-      color: 0x5C4A3A, // Balanced Scavenger Khaki / Sand
-      roughness: 0.72,
-      metalness: 0.10,
-      bumpMap: clothBump,
-      bumpScale: 0.03
-    });
+    this.materials = {
+      skinMat: new THREE.MeshStandardMaterial({
+        color: 0xB8805A,
+        roughness: 0.52,
+        metalness: 0.08
+      }),
+      beardMat: new THREE.MeshStandardMaterial({
+        color: 0x14100E,
+        roughness: 0.85,
+        metalness: 0.05
+      }),
+      hairMat: new THREE.MeshStandardMaterial({
+        color: 0x120E0C,
+        roughness: 0.75,
+        metalness: 0.08
+      }),
+      vestMat: new THREE.MeshStandardMaterial({
+        color: 0x5C4A3A,
+        roughness: 0.72,
+        metalness: 0.10,
+        bumpMap: clothBump,
+        bumpScale: 0.03
+      }),
+      kanthaArmorMat: new THREE.MeshStandardMaterial({
+        color: 0x2A231E,
+        roughness: 0.55,
+        metalness: 0.38
+      }),
+      redInsigniaMat: new THREE.MeshBasicMaterial({
+        color: 0xEF4444
+      }),
+      bronzeTrimMat: new THREE.MeshStandardMaterial({
+        color: 0xD9982E,
+        roughness: 0.26,
+        metalness: 0.88
+      }),
+      cyberGauntletMat: new THREE.MeshStandardMaterial({
+        color: 0x242C38,
+        map: textureGen.getCyberGauntletTexture(),
+        roughness: 0.25,
+        metalness: 0.90
+      }),
+      cyanCellMat: new THREE.MeshBasicMaterial({
+        color: 0x00E5FF
+      }),
+      dusterCloakMat: new THREE.MeshStandardMaterial({
+        color: 0x3E3228,
+        roughness: 0.78,
+        metalness: 0.08,
+        bumpMap: clothBump,
+        bumpScale: 0.04,
+        side: THREE.DoubleSide
+      }),
+      pantsMat: new THREE.MeshStandardMaterial({
+        color: 0x2A2A32,
+        roughness: 0.80,
+        metalness: 0.06,
+        bumpMap: clothBump,
+        bumpScale: 0.02
+      }),
+      bootMat: new THREE.MeshStandardMaterial({
+        color: 0x1A1715,
+        roughness: 0.55,
+        metalness: 0.40
+      }),
+      darkTitaniumMat: new THREE.MeshStandardMaterial({
+        color: 0x0F172A,
+        roughness: 0.3,
+        metalness: 0.95
+      }),
+      plasmaFlameMat: new THREE.MeshBasicMaterial({
+        color: 0x00E5FF,
+        transparent: true,
+        opacity: 0.85,
+        side: THREE.DoubleSide
+      }),
+      thermalCoreMat: new THREE.MeshBasicMaterial({
+        color: 0xFFFDF0,
+        transparent: true,
+        opacity: 0.95,
+        side: THREE.DoubleSide
+      }),
+      shockRingMat: new THREE.MeshBasicMaterial({
+        color: 0x38BDF8,
+        transparent: true,
+        opacity: 0.9,
+        side: THREE.DoubleSide
+      })
+    };
 
-    const kanthaArmorMat = new THREE.MeshStandardMaterial({
-      color: 0x2A231E, // Dark Kantha Armor Plating
-      roughness: 0.55,
-      metalness: 0.38
-    });
-
-    const redInsigniaMat = new THREE.MeshBasicMaterial({
-      color: 0xEF4444 // Iconic Red Y-Collar Emblem
-    });
-
-    const bronzeTrimMat = new THREE.MeshStandardMaterial({
-      color: 0xD9982E, // Warm Antique Brass / Gold Buckles
-      roughness: 0.26,
-      metalness: 0.88
-    });
-
-    const cyberGauntletMat = new THREE.MeshStandardMaterial({
-      color: 0x242C38,
-      map: textureGen.getCyberGauntletTexture(),
-      roughness: 0.25,
-      metalness: 0.90
-    });
-
-    const cyanCellMat = new THREE.MeshBasicMaterial({
-      color: 0x00E5FF // Glowing Teal/Cyan Gauntlet Energy Cell
-    });
-
-    const dusterCloakMat = new THREE.MeshStandardMaterial({
-      color: 0x3E3228, // Balanced Scavenger Duster Trench Coat
-      roughness: 0.78,
-      metalness: 0.08,
-      bumpMap: clothBump,
-      bumpScale: 0.04,
-      side: THREE.DoubleSide
-    });
-
-    const pantsMat = new THREE.MeshStandardMaterial({
-      color: 0x2A2A32, // Balanced Tactical Combat Pants
-      roughness: 0.80,
-      metalness: 0.06,
-      bumpMap: clothBump,
-      bumpScale: 0.02
-    });
-
-    const bootMat = new THREE.MeshStandardMaterial({
-      color: 0x1A1715,
-      roughness: 0.55,
-      metalness: 0.40
-    });
-
-    const darkTitaniumMat = new THREE.MeshStandardMaterial({
-      color: 0x0F172A,
-      roughness: 0.3,
-      metalness: 0.95
-    });
-
-    const plasmaFlameMat = new THREE.MeshBasicMaterial({
-      color: 0x00E5FF,
-      transparent: true,
-      opacity: 0.85,
-      side: THREE.DoubleSide
-    });
-
-    const thermalCoreMat = new THREE.MeshBasicMaterial({
-      color: 0xFFFDF0,
-      transparent: true,
-      opacity: 0.95,
-      side: THREE.DoubleSide
-    });
-
-    const shockRingMat = new THREE.MeshBasicMaterial({
-      color: 0x38BDF8,
-      transparent: true,
-      opacity: 0.9,
-      side: THREE.DoubleSide
-    });
+    const {
+      skinMat, beardMat, hairMat, vestMat, kanthaArmorMat,
+      redInsigniaMat, bronzeTrimMat, cyberGauntletMat, cyanCellMat,
+      dusterCloakMat, pantsMat, bootMat, darkTitaniumMat,
+      plasmaFlameMat, thermalCoreMat, shockRingMat
+    } = this.materials;
 
     // 2. Root Hips & Pelvis
     const hips = new THREE.Group();
@@ -686,6 +680,92 @@ export class BhairavaModel {
       rightArm.rotation.x = runCycle * 0.88;
       rightArm.rotation.y = THREE.MathUtils.lerp(rightArm.rotation.y, 0, 0.2);
       rightArm.rotation.z = THREE.MathUtils.lerp(rightArm.rotation.z, 0, 0.2);
+    }
+  }
+
+  /**
+   * Dynamically switch Bhairava's outfit between Wastelands Scavenger & Complex High-Tech Infiltration Suit
+   */
+  setOutfit(theme = "wasteland") {
+    this.outfitTheme = theme;
+    const isComplex = theme === "complex" || theme === "complex_beta";
+    const m = this.materials;
+    if (!m) return;
+
+    const clothBump = textureGen.getClothBumpMap();
+
+    if (isComplex) {
+      // High-Tech Complex Infiltration Suit (Pristine White / Ceramic Armor / Gold Trims / Cyan Emblems)
+      m.vestMat.color.setHex(0xF8FAFC);
+      m.vestMat.metalness = 0.78;
+      m.vestMat.roughness = 0.16;
+      m.vestMat.bumpMap = null;
+
+      m.kanthaArmorMat.color.setHex(0x0A0F1D);
+      m.kanthaArmorMat.metalness = 0.88;
+      m.kanthaArmorMat.roughness = 0.20;
+
+      m.dusterCloakMat.color.setHex(0xF1F5F9);
+      m.dusterCloakMat.metalness = 0.35;
+      m.dusterCloakMat.roughness = 0.28;
+      m.dusterCloakMat.bumpMap = null;
+
+      m.redInsigniaMat.color.setHex(0x00E5FF); // Quantum Cyan Crest
+
+      m.bronzeTrimMat.color.setHex(0xFBBF24); // Radiant Imperial Complex Gold
+      m.bronzeTrimMat.metalness = 0.98;
+      m.bronzeTrimMat.roughness = 0.12;
+
+      m.pantsMat.color.setHex(0x1E293B);
+      m.pantsMat.metalness = 0.55;
+      m.pantsMat.roughness = 0.25;
+      m.pantsMat.bumpMap = null;
+
+      m.bootMat.color.setHex(0xE2E8F0);
+      m.bootMat.metalness = 0.85;
+      m.bootMat.roughness = 0.20;
+
+      m.cyberGauntletMat.color.setHex(0x0F172A);
+      m.cyberGauntletMat.metalness = 0.95;
+      m.cyberGauntletMat.roughness = 0.12;
+
+      m.cyanCellMat.color.setHex(0x00E5FF);
+    } else {
+      // Authentic Movie Wasteland Scavenger Gear (Khaki / Kantha Armor / Brass / Red Crest)
+      m.vestMat.color.setHex(0x5C4A3A);
+      m.vestMat.metalness = 0.10;
+      m.vestMat.roughness = 0.72;
+      m.vestMat.bumpMap = clothBump;
+
+      m.kanthaArmorMat.color.setHex(0x2A231E);
+      m.kanthaArmorMat.metalness = 0.38;
+      m.kanthaArmorMat.roughness = 0.55;
+
+      m.dusterCloakMat.color.setHex(0x3E3228);
+      m.dusterCloakMat.metalness = 0.08;
+      m.dusterCloakMat.roughness = 0.78;
+      m.dusterCloakMat.bumpMap = clothBump;
+
+      m.redInsigniaMat.color.setHex(0xEF4444);
+
+      m.bronzeTrimMat.color.setHex(0xD9982E);
+      m.bronzeTrimMat.metalness = 0.88;
+      m.bronzeTrimMat.roughness = 0.26;
+
+      m.pantsMat.color.setHex(0x2A2A32);
+      m.pantsMat.metalness = 0.06;
+      m.pantsMat.roughness = 0.80;
+      m.pantsMat.bumpMap = clothBump;
+
+      m.bootMat.color.setHex(0x1A1715);
+      m.bootMat.metalness = 0.40;
+      m.bootMat.roughness = 0.55;
+
+      m.cyberGauntletMat.color.setHex(0x242C38);
+      m.cyberGauntletMat.metalness = 0.90;
+      m.cyberGauntletMat.roughness = 0.25;
+
+      m.cyanCellMat.color.setHex(0x00E5FF);
     }
   }
 }

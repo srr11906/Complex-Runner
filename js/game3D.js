@@ -4,15 +4,15 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "./config.js";
-import { AudioManager3D } from "./audio.js";
-import { InputManager3D } from "./input.js";
-import { Player3D } from "./player3D.js";
-import { Environment3D } from "./world/environment.js";
-import { TrackSegmentPool3D } from "./world/segmentPool.js";
-import { CameraManager3D } from "./cameraManager.js";
-import { CollisionManager3D } from "./collision3D.js";
-import { MonsterRobotModel } from "./models/monsterRobotModel.js";
+import { CONFIG } from "./config.js?v=20260914_complex_v6";
+import { AudioManager3D } from "./audio.js?v=20260914_complex_v6";
+import { InputManager3D } from "./input.js?v=20260914_complex_v6";
+import { Player3D } from "./player3D.js?v=20260914_complex_v6";
+import { Environment3D } from "./world/environment.js?v=20260914_complex_v6";
+import { TrackSegmentPool3D } from "./world/segmentPool.js?v=20260914_complex_v6";
+import { CameraManager3D } from "./cameraManager.js?v=20260914_complex_v6";
+import { CollisionManager3D } from "./collision3D.js?v=20260914_complex_v6";
+import { MonsterRobotModel } from "./models/monsterRobotModel.js?v=20260914_complex_v6";
 
 export const GameState3D = {
   MENU: "menu",
@@ -24,8 +24,8 @@ export const GameState3D = {
 
 export class GameEngine3D {
   constructor() {
-    this.state = GameState3D.MENU;
-    this.gameMode = localStorage.getItem("prabhas3DGameMode") || "heist"; // "heist" | "endless"
+    const savedMode = localStorage.getItem("prabhas3DGameMode");
+    this.gameMode = savedMode === "endless" ? "endless" : "heist";
     this.score = 0;
     this.units = 0;
     this.highScore = parseInt(localStorage.getItem("prabhas3DHighScore") || "0", 10);
@@ -235,6 +235,7 @@ export class GameEngine3D {
       // Mission Mode Selectors
       btnModeHeist: document.getElementById("mode-btn-heist"),
       btnModeEndless: document.getElementById("mode-btn-endless"),
+      btnModeComplex: document.getElementById("mode-btn-complex"),
 
       startScreen: document.getElementById("start-screen"),
       pauseScreen: document.getElementById("pause-screen"),
@@ -274,6 +275,9 @@ export class GameEngine3D {
     }
     if (this.dom.btnModeEndless) {
       this.dom.btnModeEndless.addEventListener("click", () => this.setGameMode("endless"));
+    }
+    if (this.dom.btnModeComplex) {
+      this.dom.btnModeComplex.addEventListener("click", () => this.setGameMode("complex"));
     }
     if (this.dom.btnStartRun) {
       this.dom.btnStartRun.addEventListener("click", () => this.startNewGame());
@@ -357,6 +361,15 @@ export class GameEngine3D {
     if (this.dom.btnModeEndless) {
       this.dom.btnModeEndless.classList.toggle("active", mode === "endless");
     }
+    if (this.dom.btnModeComplex) {
+      this.dom.btnModeComplex.classList.toggle("active", mode === "complex");
+    }
+
+    const isComplex = mode === "complex";
+    if (this.player) this.player.setOutfit(isComplex ? "complex" : "wasteland");
+    if (this.trackPool) this.trackPool.setTheme(isComplex ? "complex" : "wasteland");
+    if (this.environment) this.environment.setTheme(isComplex ? "complex" : "wasteland");
+
     this.updateHud();
   }
 
@@ -385,8 +398,14 @@ export class GameEngine3D {
     this._lastGoalPct = null;
     this._lastGoalPillDisplay = null;
 
+    const isComplex = this.gameMode === "complex";
     this.player.reset();
+    this.player.setOutfit(isComplex ? "complex" : "wasteland");
+
     this.trackPool.init();
+    this.trackPool.setTheme(isComplex ? "complex" : "wasteland");
+    if (this.environment) this.environment.setTheme(isComplex ? "complex" : "wasteland");
+
     this.lastMonsterSpawnScore = 0;
     this.monsterSpawnCount = 0;
     this.lastApexMilestone = 0;
@@ -697,7 +716,7 @@ export class GameEngine3D {
     this.units += reward;
     this.score += reward;
     this.audio.playDialogue("complex");
-    this.showFloatingBountyBanner(`🏆 CONTRACT COMPLETED: ${contract.title} (+${reward.toLocaleString()} UNITS)`);
+    this.showFloatingBountyBanner(`🏆 CONTRACT COMPLETED: ${contract.title}`);
     this.updateBountyBoard();
   }
 
@@ -773,7 +792,7 @@ export class GameEngine3D {
     }
     
     // Mode-Aware Units & Complex Goal Progress Bar
-    if (this.gameMode === "heist") {
+    if (this.gameMode === "heist" || this.gameMode === "complex") {
       if (this.dom.hudGoalPill && this._lastGoalPillDisplay !== "flex") {
         this.dom.hudGoalPill.style.display = "flex";
         this._lastGoalPillDisplay = "flex";
@@ -1009,17 +1028,18 @@ export class GameEngine3D {
       const aheadDist = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.AHEAD_DISTANCE : 38.0;
       const apexInterval = CONFIG.MONSTER_ROBOT?.APEX_INTERVAL || 250000;
       const miniInterval = CONFIG.MONSTER_ROBOT?.MINI_INTERVAL || 100000;
+      const isPastHeistLimit = this.gameMode === "heist" && this.score >= (CONFIG.MONSTER_ROBOT?.HEIST_MAX_SPAWN_SCORE || 900000);
 
       const currentApexMilestone = Math.floor(this.score / apexInterval);
       const currentMiniMilestone = Math.floor(this.score / miniInterval);
 
-      if (!this.monsterRobot.active) {
+      if (!this.monsterRobot.active && !isPastHeistLimit) {
         if (currentApexMilestone > this.lastApexMilestone) {
           this.lastApexMilestone = currentApexMilestone;
           this.lastMiniMilestone = currentMiniMilestone;
           const rLane = Math.floor(Math.random() * 3);
           this.monsterRobot.spawn(rLane, this.player.position.z + aheadDist, "apex");
-          this.showFloatingBountyBanner("🚨 APEX ROGUE HARVESTER INBOUND! (+50K BOUNTY)", "boss");
+          this.showFloatingBountyBanner("🚨 APEX ROGUE HARVESTER INBOUND!", "boss");
           this.safeAudio("playDialogue", "bujji");
           this.cameraManager.shake(0.5);
         } else if (currentMiniMilestone > this.lastMiniMilestone) {
@@ -1028,7 +1048,7 @@ export class GameEngine3D {
             this.lastMiniMilestone = currentMiniMilestone;
             const rLane = Math.floor(Math.random() * 3);
             this.monsterRobot.spawn(rLane, this.player.position.z + aheadDist, "mini");
-            this.showFloatingBountyBanner("⚠️ ROGUE DRONE TITAN DETECTED! (+25K BOUNTY)", "boss");
+            this.showFloatingBountyBanner("⚠️ ROGUE DRONE TITAN DETECTED!", "boss");
             this.safeAudio("playDialogue", "bujji");
             this.cameraManager.shake(0.35);
           }

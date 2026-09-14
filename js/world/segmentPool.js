@@ -5,11 +5,11 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "../config.js";
-import { ObstacleFactory3D } from "../models/obstacleModels.js";
-import { CollectibleFactory3D } from "../models/collectibleModels.js";
-import { BountyModelFactory } from "../models/bountyModels.js";
-import { textureGen } from "./textureGenerator.js";
+import { CONFIG } from "../config.js?v=20260914_complex_v6";
+import { ObstacleFactory3D } from "../models/obstacleModels.js?v=20260914_complex_v6";
+import { CollectibleFactory3D } from "../models/collectibleModels.js?v=20260914_complex_v6";
+import { BountyModelFactory } from "../models/bountyModels.js?v=20260914_complex_v6";
+import { textureGen } from "./textureGenerator.js?v=20260914_complex_v6";
 
 export class TrackSegmentPool3D {
   constructor(scene) {
@@ -796,5 +796,46 @@ export class TrackSegmentPool3D {
       }
     }
     return this._activeCollectiblesList;
+  }
+
+  /**
+   * Switch environmental track segment textures between Wastelands & Complex High-Tech Realm
+   */
+  setTheme(theme = "wasteland") {
+    const isComplex = theme === "complex" || theme === "complex_beta";
+    if (isComplex) {
+      if (typeof textureGen.getComplexMarbleTexture === "function") {
+        this.materials.ground.map = textureGen.getComplexMarbleTexture();
+      }
+      this.materials.ground.shininess = 60;
+      this.materials.ground.specular.setHex(0x666666);
+      if (typeof textureGen.getComplexWaterTexture === "function") {
+        this.materials.sandTerrain.map = textureGen.getComplexWaterTexture();
+      }
+      if (typeof textureGen.getComplexColonnadeTexture === "function") {
+        this.materials.shantyBuilding.map = textureGen.getComplexColonnadeTexture();
+      }
+      this.materials.tinRoof.color.setHex(0xE2E8F0);
+      this.materials.roadBorder.color.setHex(0x00E5FF);
+      this.materials.roadSlab.color.setHex(0x0F172A);
+    } else {
+      if (typeof textureGen.getRoadTexture === "function") {
+        this.materials.ground.map = textureGen.getRoadTexture();
+      }
+      this.materials.ground.shininess = 16;
+      this.materials.ground.specular.setHex(0x222222);
+      if (typeof textureGen.getSandTerrainTexture === "function") {
+        this.materials.sandTerrain.map = textureGen.getSandTerrainTexture();
+      }
+      if (typeof textureGen.getShantyBuildingTexture === "function") {
+        this.materials.shantyBuilding.map = textureGen.getShantyBuildingTexture();
+      }
+      this.materials.tinRoof.color.setHex(0x554B42);
+      this.materials.roadBorder.color.setHex(0xD97706);
+      this.materials.roadSlab.color.setHex(0x241D17);
+    }
+    this.materials.ground.needsUpdate = true;
+    this.materials.sandTerrain.needsUpdate = true;
+    this.materials.shantyBuilding.needsUpdate = true;
   }
 }

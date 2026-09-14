@@ -62,28 +62,29 @@ export class MonsterRobotModel {
   }
 
   buildMaterials() {
-    // 1. Full Silver Shiny Metallic Chrome Armor (Vibrant & Lustrous under all lighting)
+    // 1. Polished Gunmetal Titanium Chrome Armor (High Metalness, Slate-Silver Specular)
     this.materials.silverArmor = new THREE.MeshStandardMaterial({
-      color: 0xF8FAFC,
-      metalness: 0.42,
-      roughness: 0.20,
-      emissive: 0x323742
+      color: 0x94A3B8,
+      metalness: 0.90,
+      roughness: 0.22,
+      emissive: 0x1E293B,
+      emissiveIntensity: 0.35
     });
 
-    // 2. Dark Titanium Skeletal Joints
+    // 2. Dark Titanium Skeletal Joints & Carbon Insets
     this.materials.darkTitanium = new THREE.MeshStandardMaterial({
-      color: 0x384152,
-      metalness: 0.88,
-      roughness: 0.28,
+      color: 0x1E2430,
+      metalness: 0.92,
+      roughness: 0.32,
       emissive: 0x000000
     });
 
     // 3. Simple Crisp Red Accent Plating & Stripes
     this.materials.redAccent = new THREE.MeshStandardMaterial({
       color: 0xEF4444,
-      metalness: 0.35,
-      roughness: 0.35,
-      emissive: 0x220000
+      metalness: 0.45,
+      roughness: 0.28,
+      emissive: 0x330000
     });
 
     // 4. Crimson Glowing Optic Visor
@@ -366,72 +367,95 @@ export class MonsterRobotModel {
   }
 
   /**
-   * High-Visibility Sky Beacon & 50,000 Bounty Drop
+   * High-Visibility Quantum Bounty Prism & Triple Gyro Sky Beacon
    */
   buildBountyBeacon() {
     const beaconGroup = new THREE.Group();
     beaconGroup.visible = false;
 
-    // 1. Sleek Sky Light Ray (Vertical Glowing Pillar shooting 50m up into the clouds)
-    const skyRayGeo = new THREE.CylinderGeometry(0.2, 0.4, 50.0, 16, 1, true);
+    // 1. Sleek Radiant Sky Light Ray (Vertical Sci-Fi Pillar)
+    const skyRayGeo = new THREE.CylinderGeometry(0.10, 0.24, 38.0, 16, 1, true);
     const skyRayMat = new THREE.MeshBasicMaterial({
       color: 0xF59E0B,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.45,
       side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending
     });
     const skyRay = new THREE.Mesh(skyRayGeo, skyRayMat);
-    skyRay.position.y = 25.0;
+    skyRay.position.y = 19.0;
     beaconGroup.add(skyRay);
 
     // Inner White Core Ray
-    const coreRayGeo = new THREE.CylinderGeometry(0.06, 0.11, 50.0, 8, 1, true);
+    const coreRayGeo = new THREE.CylinderGeometry(0.03, 0.06, 38.0, 8, 1, true);
     const coreRayMat = new THREE.MeshBasicMaterial({
       color: 0xFFFFFF,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.60,
       side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending
     });
     const coreRay = new THREE.Mesh(coreRayGeo, coreRayMat);
-    coreRay.position.y = 25.0;
+    coreRay.position.y = 19.0;
     beaconGroup.add(coreRay);
 
-    // 2. Floating Golden Bounty Crate / Power Core
-    const crateGeo = new THREE.BoxGeometry(1.4, 1.4, 1.4);
-    const crateMat = new THREE.MeshStandardMaterial({
+    // 2. High-Impact Floating Golden Octahedral Quantum Core
+    const coreGeo = new THREE.OctahedronGeometry(0.62, 0);
+    const coreMat = new THREE.MeshStandardMaterial({
       color: 0xF59E0B,
       metalness: 0.95,
       roughness: 0.15,
       emissive: 0xD97706,
-      emissiveIntensity: 0.5
+      emissiveIntensity: 0.38
     });
-    const crateMesh = new THREE.Mesh(crateGeo, crateMat);
-    crateMesh.position.y = 1.4;
-    beaconGroup.add(crateMesh);
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    coreMesh.position.y = 1.25;
+    beaconGroup.add(coreMesh);
 
-    // Glowing Cyan Energy Rings around crate
-    const ringGeo = new THREE.TorusGeometry(1.1, 0.08, 8, 24);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0x00E5FF });
-    const ring1 = new THREE.Mesh(ringGeo, ringMat);
-    ring1.rotation.x = Math.PI / 2;
-    ring1.position.y = 1.4;
+    // Twin Emitter Cones
+    const coneGeo = new THREE.ConeGeometry(0.20, 0.38, 6);
+    const coneMat = new THREE.MeshStandardMaterial({
+      color: 0x1E2430,
+      metalness: 0.92,
+      roughness: 0.22
+    });
+    const topCap = new THREE.Mesh(coneGeo, coneMat);
+    topCap.position.y = 1.85;
+    beaconGroup.add(topCap);
+
+    const bottomCap = new THREE.Mesh(coneGeo, coneMat);
+    bottomCap.position.y = 0.65;
+    bottomCap.rotation.x = Math.PI;
+    beaconGroup.add(bottomCap);
+
+    // 3. Impressive Triple Holographic Counter-Rotating Gyro Rings
+    const ringMat1 = new THREE.MeshBasicMaterial({ color: 0x00E5FF, transparent: true, opacity: 0.85 });
+    const ring1 = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.032, 8, 28), ringMat1);
+    ring1.position.y = 1.25;
     beaconGroup.add(ring1);
 
-    const ring2 = new THREE.Mesh(ringGeo, ringMat);
-    ring2.rotation.y = Math.PI / 2;
-    ring2.position.y = 1.4;
+    const ringMat2 = new THREE.MeshBasicMaterial({ color: 0xFBBF24, transparent: true, opacity: 0.85 });
+    const ring2 = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.028, 8, 28), ringMat2);
+    ring2.position.y = 1.25;
     beaconGroup.add(ring2);
+
+    const ringMat3 = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.75 });
+    const ring3 = new THREE.Mesh(new THREE.TorusGeometry(1.25, 0.024, 8, 28), ringMat3);
+    ring3.position.y = 1.25;
+    beaconGroup.add(ring3);
 
     beaconGroup.userData = {
       active: false,
       collected: false,
-      rewardUnits: 50000,
+      rewardUnits: 25000,
+      baseY: 0,
       skyRay,
-      crateMesh,
+      coreMesh,
+      topCap,
+      bottomCap,
       ring1,
-      ring2
+      ring2,
+      ring3
     };
 
     if (this.scene) this.scene.add(beaconGroup);
@@ -448,8 +472,8 @@ export class MonsterRobotModel {
     this.hp = isMini ? (cfg?.MINI_HITS || 10) : (cfg?.APEX_HITS || 25);
     this.maxHp = this.hp;
     this.coinsPerHit = isMini ? (cfg?.MINI_COINS_DROP || 1) : (cfg?.APEX_COINS_DROP || 3);
-    this.hasMagnet = !isMini;
-    this.bountyReward = isMini ? (cfg?.MINI_BOUNTY || 25000) : (cfg?.APEX_BOUNTY || 50000);
+    this.hasMagnet = !isMini; // Mini has no magnet, Apex has long-range magnet
+    this.bountyReward = isMini ? (cfg?.MINI_BOUNTY || 10000) : (cfg?.APEX_BOUNTY || 25000);
 
     this.laneIndex = Math.max(0, Math.min(2, laneIndex));
     this.targetX = CONFIG.LANES[this.laneIndex];
@@ -475,10 +499,10 @@ export class MonsterRobotModel {
   }
 
   restoreMaterials() {
-    this.materials.silverArmor.emissive.setHex(0x323742);
-    this.materials.silverArmor.color.setHex(0xF8FAFC);
+    this.materials.silverArmor.emissive.setHex(0x1E293B);
+    this.materials.silverArmor.color.setHex(0x94A3B8);
     this.materials.darkTitanium.emissive.setHex(0x000000);
-    this.materials.redAccent.emissive.setHex(0x220000);
+    this.materials.redAccent.emissive.setHex(0x330000);
     this.materials.redAccent.color.setHex(0xEF4444);
 
     this.root.traverse((child) => {
@@ -517,13 +541,13 @@ export class MonsterRobotModel {
     this.parts.main.position.y = (Math.random() - 0.5) * 0.2;
 
     // Emissive Flash on armor without changing base colors
-    this.materials.silverArmor.emissive.setHex(0x888888);
+    this.materials.silverArmor.emissive.setHex(0x94A3B8);
     this.materials.redAccent.emissive.setHex(0x991111);
 
     setTimeout(() => {
       if (this.parts && this.parts.main) this.parts.main.position.set(0, 0, 0);
-      if (this.materials && this.materials.silverArmor) this.materials.silverArmor.emissive.setHex(0x323742);
-      if (this.materials && this.materials.redAccent) this.materials.redAccent.emissive.setHex(0x220000);
+      if (this.materials && this.materials.silverArmor) this.materials.silverArmor.emissive.setHex(0x1E293B);
+      if (this.materials && this.materials.redAccent) this.materials.redAccent.emissive.setHex(0x330000);
     }, 60);
 
     // Eject Reclaimable Coins Backward out of the salvage exhaust
@@ -568,17 +592,19 @@ export class MonsterRobotModel {
     if (this.hpBarMesh) this.hpBarMesh.visible = false;
     this.ejectCoinsBackward(this.variant === "mini" ? 3 : 6);
 
-    // Spawn High-Altitude Sky Beacon Beam on the road
-    this.spawnBountyBeacon(this.position.x, this.position.z + 2.0);
+    // Spawn High-Altitude Sky Beacon Beam with accurate ground elevation (elevated if on train)
+    const baseElevation = this.groundElevation > 1.0 ? 4.15 : 0.0;
+    this.spawnBountyBeacon(this.position.x, this.position.z + 2.0, baseElevation);
   }
 
-  spawnBountyBeacon(x, z) {
+  spawnBountyBeacon(x, z, baseElevation = 0.0) {
     if (!this.bountyBeacon) return;
-    this.bountyBeacon.position.set(x, 0, z);
+    this.bountyBeacon.position.set(x, baseElevation, z);
     this.bountyBeacon.visible = true;
     this.bountyBeacon.userData.active = true;
     this.bountyBeacon.userData.collected = false;
-    this.bountyBeacon.userData.rewardUnits = this.bountyReward || 50000;
+    this.bountyBeacon.userData.baseY = baseElevation;
+    this.bountyBeacon.userData.rewardUnits = this.bountyReward || 25000;
   }
 
   /**
@@ -712,19 +738,46 @@ export class MonsterRobotModel {
     if (!this.bountyBeacon || !this.bountyBeacon.userData.active) return;
 
     const time = performance.now() * 0.001;
-    const { skyRay, crateMesh, ring1, ring2 } = this.bountyBeacon.userData;
+    const { skyRay, coreMesh, topCap, bottomCap, ring1, ring2, ring3, baseY } = this.bountyBeacon.userData;
+    const currentBaseY = baseY !== undefined ? baseY : 0.0;
 
-    // Rotate crate and energy rings
-    if (crateMesh) {
-      crateMesh.rotation.y += 2.5 * dt;
-      crateMesh.position.y = 1.4 + Math.sin(time * 4.0) * 0.25;
+    // Levitation & Core Rotation
+    const levitationY = currentBaseY + 1.25 + Math.sin(time * 3.2) * 0.18;
+    if (coreMesh) {
+      coreMesh.rotation.y += 2.8 * dt;
+      coreMesh.rotation.x += 1.4 * dt;
+      coreMesh.position.y = levitationY;
     }
-    if (ring1) ring1.rotation.z += 3.5 * dt;
-    if (ring2) ring2.rotation.x += 3.5 * dt;
+    if (topCap) {
+      topCap.position.y = levitationY + 0.60;
+      topCap.rotation.y += 2.8 * dt;
+    }
+    if (bottomCap) {
+      bottomCap.position.y = levitationY - 0.60;
+      bottomCap.rotation.y += 2.8 * dt;
+    }
+
+    // 3-Axis Gyroscopic Counter-Rotations
+    if (ring1) {
+      ring1.position.y = levitationY;
+      ring1.rotation.z += 2.6 * dt;
+      ring1.rotation.x += 1.1 * dt;
+    }
+    if (ring2) {
+      ring2.position.y = levitationY;
+      ring2.rotation.y -= 3.0 * dt;
+      ring2.rotation.z += 1.6 * dt;
+    }
+    if (ring3) {
+      ring3.position.y = levitationY;
+      ring3.rotation.x += 1.8 * dt;
+      ring3.rotation.y += 2.2 * dt;
+    }
 
     // Pulse Sky Ray
     if (skyRay) {
-      skyRay.material.opacity = 0.65 + Math.sin(time * 6.0) * 0.2;
+      skyRay.position.y = currentBaseY + 19.0;
+      skyRay.material.opacity = 0.38 + Math.sin(time * 4.0) * 0.12;
     }
 
     // Check collision with player
@@ -733,14 +786,14 @@ export class MonsterRobotModel {
       const bPos = this.bountyBeacon.position;
       const dist = Math.hypot(pPos.x - bPos.x, pPos.z - bPos.z);
 
-      if (dist < 2.4 && Math.abs(pPos.y - bPos.y) < 3.5) {
+      if (dist < 2.5 && Math.abs(pPos.y - levitationY) < 3.2) {
         this.bountyBeacon.userData.collected = true;
         this.bountyBeacon.userData.active = false;
         this.bountyBeacon.visible = false;
 
-        // Reward Units & Trigger Victory Toast Banner
+        // Reward Units & Trigger Victory Toast Banner with amount
         if (window.gameEngine3D) {
-          const reward = this.bountyBeacon.userData.rewardUnits || 50000;
+          const reward = this.bountyBeacon.userData.rewardUnits || 25000;
           window.gameEngine3D.units += reward;
           window.gameEngine3D.score += reward;
           window.gameEngine3D.showFloatingBountyBanner(`💎 +${reward.toLocaleString()} BOUNTY SECURED!`, "boss");
@@ -893,10 +946,43 @@ export class MonsterRobotModel {
   }
 
   vacuumCoinsWithMagnet(collectibles, dt) {
-    if (!this.hasMagnet) return; // Mini variant has NO magnet
+    const isMini = this.variant === "mini";
+    const botPos = this.position;
+
+    if (isMini) {
+      // Mini Monster: No magnet attraction. Collects coins only on its direct running path
+      const directIntakeX = 0.85; // directly within current lane
+      const directIntakeY = 1.6;  // body height reach
+      const directIntakeZ = 1.35; // direct forward sweep
+
+      for (let i = 0; i < collectibles.length; i++) {
+        const item = collectibles[i];
+        if (!item || !item.itemRef || item.itemRef.userData.collected || !item.itemRef.visible) continue;
+        if (item.type !== "coin") continue;
+
+        const itemPos = item.worldPos;
+        const dx = Math.abs(itemPos.x - botPos.x);
+        const dy = Math.abs(itemPos.y - (botPos.y + 0.8));
+        const dz = Math.abs(itemPos.z - botPos.z);
+
+        if (dx < directIntakeX && dy < directIntakeY && dz < directIntakeZ) {
+          item.itemRef.userData.collected = true;
+          item.itemRef.visible = false;
+
+          if (this.parts.vacuumCore) {
+            this.parts.vacuumCore.scale.set(1.2, 1.2, 1.2);
+            setTimeout(() => {
+              if (this.parts.vacuumCore) this.parts.vacuumCore.scale.set(1, 1, 1);
+            }, 60);
+          }
+        }
+      }
+      return;
+    }
+
+    // Apex Harvester: 12-Meter High-Power Long-Range Magnetic Vacuum
     const magnetRadius = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.COIN_MAGNET_RADIUS : 12.0;
     const eatRadius = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.COIN_EAT_RADIUS : 3.2;
-    const botPos = this.position;
     const vortexCenterY = botPos.y + 2.0;
 
     for (let i = 0; i < collectibles.length; i++) {

@@ -4,9 +4,9 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "./config.js";
-import { BhairavaModel } from "./models/bhairavaModel.js";
-import { BujjiModel } from "./models/bujjiModel.js";
+import { CONFIG } from "./config.js?v=20260914_complex_v6";
+import { BhairavaModel } from "./models/bhairavaModel.js?v=20260914_complex_v6";
+import { BujjiModel } from "./models/bujjiModel.js?v=20260914_complex_v6";
 
 export class Player3D {
   constructor(scene) {
@@ -542,5 +542,11 @@ export class Player3D {
     this._bounds.isSliding = isSliding;
 
     return this._bounds;
+  }
+
+  setOutfit(theme) {
+    if (this.bhairava && typeof this.bhairava.setOutfit === "function") {
+      this.bhairava.setOutfit(theme);
+    }
   }
 }

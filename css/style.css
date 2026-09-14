@@ -418,12 +418,13 @@ html, body {
   flex-direction: column !important;
   justify-content: space-between !important;
   align-items: center !important;
-  padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
   background: linear-gradient(180deg, rgba(13, 9, 6, 0.65) 0%, rgba(13, 9, 6, 0.15) 45%, rgba(13, 9, 6, 0.8) 100%);
   pointer-events: auto;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s;
+  overflow: hidden;
 }
 
 #start-screen.menu-viewport.active,
@@ -436,28 +437,30 @@ html, body {
 /* Top Navigation Header */
 .menu-top-bar {
   width: 100%;
-  max-width: 680px;
+  max-width: 580px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   z-index: 110;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
+.menu-top-left-actions,
 .menu-header-badges {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .menu-stat-pill {
   background: var(--hud-bg);
   border: 1px solid var(--hud-border);
-  border-radius: 16px;
-  padding: 6px 14px;
+  border-radius: 14px;
+  padding: 5px 12px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -469,7 +472,7 @@ html, body {
 }
 
 .pill-icon {
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1;
 }
 
@@ -479,14 +482,14 @@ html, body {
 }
 
 .pill-label {
-  font-size: 8px;
+  font-size: 7.5px;
   font-weight: 800;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.6px;
   color: var(--text-sub);
 }
 
 .pill-value {
-  font-size: clamp(12px, 3.2vw, 14px);
+  font-size: clamp(11px, 3vw, 13px);
   font-weight: 900;
   color: #FFFFFF;
   font-variant-numeric: tabular-nums;
@@ -501,21 +504,23 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: clamp(8px, 2vh, 16px);
   width: 100%;
-  max-width: 460px;
+  max-width: 440px;
   z-index: 110;
   margin: auto 0;
 }
 
 .menu-logo-wrap {
   animation: logoFloat 2.8s ease-in-out infinite;
-  filter: drop-shadow(0 12px 32px rgba(245, 158, 11, 0.4));
+  filter: drop-shadow(0 10px 28px rgba(245, 158, 11, 0.35));
 }
 
 .menu-main-logo {
-  width: clamp(280px, 75vw, 440px);
+  width: clamp(220px, 65vw, 380px);
+  max-height: clamp(65px, 16vh, 110px);
   height: auto;
+  object-fit: contain;
   display: block;
 }
 
@@ -523,12 +528,12 @@ html, body {
 .mode-segmented-control {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
   background: rgba(18, 12, 8, 0.88);
   border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  padding: 6px;
+  border-radius: 18px;
+  padding: 5px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
@@ -537,8 +542,8 @@ html, body {
 .mode-tab-btn {
   background: transparent;
   border: 1.5px solid transparent;
-  border-radius: 14px;
-  padding: 10px 12px;
+  border-radius: 12px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -559,14 +564,14 @@ html, body {
 }
 
 .tab-icon {
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1;
 }
 
 .tab-title {
-  font-size: clamp(11px, 2.9vw, 13px);
+  font-size: clamp(11px, 2.7vw, 12.5px);
   font-weight: 900;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.5px;
   color: #FFFFFF;
 }
 
@@ -574,8 +579,12 @@ html, body {
   color: var(--amber-gold);
 }
 
+#mode-btn-complex.active .tab-title {
+  color: #38BDF8;
+}
+
 .tab-sub {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
   color: var(--text-sub);
 }
@@ -589,25 +598,25 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  max-width: 440px;
+  max-width: 420px;
   z-index: 110;
-  margin-bottom: max(10px, env(safe-area-inset-bottom));
+  margin-bottom: max(6px, env(safe-area-inset-bottom));
 }
 
 .btn-play-massive {
   position: relative;
   width: 100%;
-  max-width: 340px;
-  height: 72px;
+  max-width: 320px;
+  height: clamp(56px, 10vh, 68px);
   background: linear-gradient(180deg, #FBBF24 0%, #F59E0B 40%, #D97706 100%);
   border: 2px solid #FFFBEB;
-  border-radius: 24px;
+  border-radius: 22px;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   cursor: pointer;
   box-shadow: 0 12px 36px rgba(217, 119, 6, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.8), inset 0 -4px 8px rgba(0, 0, 0, 0.3);
   transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease;
@@ -1195,4 +1204,88 @@ html, body {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
+
+/* ==========================================================================
+   MOBILE RESPONSIVE RULES (Zero Viewport Overflow)
+   ========================================================================== */
+@media (max-width: 480px) {
+  #start-screen.menu-viewport {
+    padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom)) 10px;
+  }
+  .menu-top-bar {
+    gap: 4px;
+  }
+  .menu-top-left-actions,
+  .menu-header-badges {
+    gap: 4px;
+  }
+  .menu-stat-pill,
+  .menu-action-pill {
+    padding: 4px 8px;
+    border-radius: 12px;
+    gap: 4px;
+  }
+  .pill-icon {
+    font-size: 13px;
+  }
+  .pill-label {
+    font-size: 6.5px;
+    letter-spacing: 0.3px;
+  }
+  .pill-value {
+    font-size: 10.5px;
+  }
+  .menu-main-logo {
+    width: clamp(190px, 58vw, 260px);
+  }
+  .mode-tab-btn {
+    padding: 6px 6px;
+  }
+  .tab-icon {
+    font-size: 14px;
+  }
+  .tab-title {
+    font-size: 10.5px;
+  }
+  .tab-sub {
+    font-size: 8.5px;
+  }
+  .btn-play-massive {
+    height: 54px;
+    max-width: 270px;
+    border-radius: 18px;
+    gap: 10px;
+  }
+  .play-arrow {
+    font-size: 20px;
+  }
+  .play-main-text {
+    font-size: 17px;
+    letter-spacing: 1.2px;
+  }
+  .play-sub-text {
+    font-size: 8px;
+  }
+  .menu-controls-pill {
+    font-size: 9px;
+    padding: 3px 8px;
+  }
+}
+
+@media (max-height: 680px) {
+  .menu-center-box {
+    gap: 6px;
+  }
+  .menu-main-logo {
+    max-height: 55px;
+    width: auto;
+  }
+  .btn-play-massive {
+    height: 48px;
+  }
+  .menu-controls-pill {
+    display: none;
+  }
+}
+
 
