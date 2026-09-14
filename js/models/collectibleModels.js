@@ -56,6 +56,18 @@ export class CollectibleFactory3D {
         metalness: 0.95,
         emissive: 0xF59E0B,
         emissiveIntensity: 0.9
+      }),
+      bubbleMat: new THREE.MeshBasicMaterial({
+        color: 0x00E5FF,
+        transparent: true,
+        opacity: 0.32,
+        side: THREE.DoubleSide
+      }),
+      bubbleRingMat: new THREE.MeshBasicMaterial({
+        color: 0xFFFFFF,
+        transparent: true,
+        opacity: 0.7,
+        side: THREE.DoubleSide
       })
     };
 
@@ -100,25 +112,12 @@ export class CollectibleFactory3D {
     this.multiplierMaterial = new THREE.MeshBasicMaterial({ map: this.multiplierTexture, transparent: true, side: THREE.DoubleSide });
   }
 
-  createEnergyBubble(colorHex = 0x00E5FF) {
+  createEnergyBubble() {
     const bubbleGroup = new THREE.Group();
-
-    const bubbleMat = new THREE.MeshBasicMaterial({
-      color: colorHex,
-      transparent: true,
-      opacity: 0.32,
-      side: THREE.DoubleSide
-    });
-    const bubble = new THREE.Mesh(this.geometries.bubbleSphere, bubbleMat);
+    const bubble = new THREE.Mesh(this.geometries.bubbleSphere, this.materials.bubbleMat);
     bubbleGroup.add(bubble);
 
-    const ringMat = new THREE.MeshBasicMaterial({
-      color: 0xFFFFFF,
-      transparent: true,
-      opacity: 0.7,
-      side: THREE.DoubleSide
-    });
-    const ring = new THREE.Mesh(this.geometries.bubbleRing, ringMat);
+    const ring = new THREE.Mesh(this.geometries.bubbleRing, this.materials.bubbleRingMat);
     ring.rotation.x = Math.PI / 4;
     bubbleGroup.add(ring);
 
@@ -132,7 +131,6 @@ export class CollectibleFactory3D {
 
     const rim = new THREE.Mesh(this.geometries.coinRim, this.materials.goldMedallion);
     rim.rotation.x = Math.PI / 2;
-    rim.castShadow = true;
     group.add(rim);
 
     const innerTorus = new THREE.Mesh(this.geometries.coinInnerTorus, this.materials.goldMedallion);

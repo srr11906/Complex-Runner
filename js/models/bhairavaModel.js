@@ -329,7 +329,6 @@ export class BhairavaModel {
       vestMat
     );
     leftShoulderBall.position.set(0, 0, 0);
-    leftShoulderBall.castShadow = true;
     leftArm.add(leftShoulderBall);
 
     const leftShoulderCap = new THREE.Mesh(
@@ -337,7 +336,6 @@ export class BhairavaModel {
       kanthaArmorMat
     );
     leftShoulderCap.position.set(0, -0.02, 0);
-    leftShoulderCap.castShadow = true;
     leftArm.add(leftShoulderCap);
 
     // Upper Arm / Muscular Bicep
@@ -355,7 +353,6 @@ export class BhairavaModel {
       skinMat
     );
     leftElbow.position.y = -0.29;
-    leftElbow.castShadow = true;
     leftArm.add(leftElbow);
 
     // Forearm / Kantha Bracer
@@ -384,7 +381,6 @@ export class BhairavaModel {
       bronzeTrimMat
     );
     leftWrist.position.y = -0.54;
-    leftWrist.castShadow = true;
     leftArm.add(leftWrist);
 
     const leftHand = new THREE.Mesh(
@@ -392,7 +388,6 @@ export class BhairavaModel {
       skinMat
     );
     leftHand.position.y = -0.59;
-    leftHand.castShadow = true;
     leftArm.add(leftHand);
 
     const leftThumb = new THREE.Mesh(
@@ -415,7 +410,6 @@ export class BhairavaModel {
       vestMat
     );
     rightShoulderBall.position.set(0, 0, 0);
-    rightShoulderBall.castShadow = true;
     rightArm.add(rightShoulderBall);
 
     const rightShoulderCap = new THREE.Mesh(
@@ -423,7 +417,6 @@ export class BhairavaModel {
       kanthaArmorMat
     );
     rightShoulderCap.position.set(0, -0.02, 0);
-    rightShoulderCap.castShadow = true;
     rightArm.add(rightShoulderCap);
 
     // Upper Arm / Muscular Bicep
@@ -441,7 +434,6 @@ export class BhairavaModel {
       darkTitaniumMat
     );
     rightElbow.position.y = -0.29;
-    rightElbow.castShadow = true;
     rightArm.add(rightElbow);
 
     // Cybernetic Gauntlet Forearm
@@ -477,7 +469,6 @@ export class BhairavaModel {
       cyberGauntletMat
     );
     rightWrist.position.y = -0.54;
-    rightWrist.castShadow = true;
     rightArm.add(rightWrist);
 
     const rightHand = new THREE.Mesh(
@@ -485,7 +476,6 @@ export class BhairavaModel {
       cyberGauntletMat
     );
     rightHand.position.y = -0.59;
-    rightHand.castShadow = true;
     rightArm.add(rightHand);
 
     const rightThumb = new THREE.Mesh(

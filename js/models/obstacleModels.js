@@ -83,7 +83,9 @@ export class ObstacleFactory3D {
       gateCrossBeam: new THREE.BoxGeometry(3.6, 0.25, 0.25),
       gateLaser: new THREE.CylinderGeometry(0.05, 0.05, 3.2, 8),
       hurdleBarricade: new THREE.BoxGeometry(2.4, 1.90, 0.55),
-      hurdleStripe: new THREE.BoxGeometry(2.42, 0.28, 0.57)
+      hurdleStripe: new THREE.BoxGeometry(2.42, 0.28, 0.57),
+      rampGuideEdge: new THREE.BoxGeometry(0.06, 0.12, 9.0),
+      rampCenterTread: new THREE.BoxGeometry(0.7, 0.04, 8.8)
     };
 
     this.trainBodyGeos = {};
@@ -275,7 +277,7 @@ export class ObstacleFactory3D {
         group.add(railBase);
 
         const guideEdge = new THREE.Mesh(
-          new THREE.BoxGeometry(0.06, 0.12, 9.0),
+          this.geometries.rampGuideEdge,
           this.materials.plasmaBeam
         );
         guideEdge.position.set(s * (width / 2 - 0.04), totalTopY / 2 + 0.06, rampZOffset);
@@ -285,7 +287,7 @@ export class ObstacleFactory3D {
 
       // Center Induction Grip Tread
       const centerTread = new THREE.Mesh(
-        new THREE.BoxGeometry(0.7, 0.04, 8.8),
+        this.geometries.rampCenterTread,
         this.materials.roofGrating
       );
       centerTread.position.set(0, totalTopY / 2 + 0.02, rampZOffset);

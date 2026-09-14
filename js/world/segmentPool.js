@@ -314,6 +314,7 @@ export class TrackSegmentPool3D {
           this.freezeStatic(strut);
           acGroup.add(strut);
         }
+        this.freezeStatic(acGroup);
         chunkRoot.add(acGroup);
 
         const dish = new THREE.Mesh(this.geometries.dish, this.materials.dishMat);
@@ -365,6 +366,7 @@ export class TrackSegmentPool3D {
         this.freezeStatic(arm);
         signGroup.add(arm);
 
+        this.freezeStatic(signGroup);
         chunkRoot.add(signGroup);
       } else if (archType === 3) {
         // ARCHETYPE 3: Heavy Steel Structure & Rooftop Cistern
@@ -401,6 +403,7 @@ export class TrackSegmentPool3D {
           this.freezeStatic(hazard);
           gantryGroup.add(hazard);
 
+          this.freezeStatic(gantryGroup);
           chunkRoot.add(gantryGroup);
         }
       }

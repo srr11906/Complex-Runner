@@ -300,13 +300,10 @@ export class MonsterRobotModel {
     this.parts.leftLeg = buildLeg(-1);
     this.parts.rightLeg = buildLeg(1);
 
-    // Shadows
-    this.root.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-      }
-    });
+    // GPU Optimization: Cast shadows only on primary structural solids
+    pelvisMesh.castShadow = true;
+    torsoMesh.castShadow = true;
+    headMesh.castShadow = true;
   }
 
   buildHpBar() {
@@ -375,8 +372,8 @@ export class MonsterRobotModel {
     const beaconGroup = new THREE.Group();
     beaconGroup.visible = false;
 
-    // 1. Massive Sky Light Ray (Vertical Glowing Pillar shooting 50m up into the clouds)
-    const skyRayGeo = new THREE.CylinderGeometry(0.4, 0.8, 50.0, 16, 1, true);
+    // 1. Sleek Sky Light Ray (Vertical Glowing Pillar shooting 50m up into the clouds)
+    const skyRayGeo = new THREE.CylinderGeometry(0.2, 0.4, 50.0, 16, 1, true);
     const skyRayMat = new THREE.MeshBasicMaterial({
       color: 0xF59E0B,
       transparent: true,
@@ -389,7 +386,7 @@ export class MonsterRobotModel {
     beaconGroup.add(skyRay);
 
     // Inner White Core Ray
-    const coreRayGeo = new THREE.CylinderGeometry(0.12, 0.22, 50.0, 8, 1, true);
+    const coreRayGeo = new THREE.CylinderGeometry(0.06, 0.11, 50.0, 8, 1, true);
     const coreRayMat = new THREE.MeshBasicMaterial({
       color: 0xFFFFFF,
       transparent: true,
@@ -538,15 +535,16 @@ export class MonsterRobotModel {
       if (!coin.userData.active) {
         coin.userData.active = true;
         coin.userData.collected = false;
-        coin.userData.life = 4.0;
+        coin.userData.isGrounded = false;
+        coin.userData.life = 18.0; // Persist on ground for up to 18s
         coin.position.set(
-          this.position.x + (Math.random() - 0.5) * 1.2,
-          this.position.y + 2.0 + Math.random() * 0.8,
+          this.position.x + (Math.random() - 0.5) * 1.6,
+          this.position.y + 1.6 + Math.random() * 0.6,
           this.position.z - 1.0
         );
-        coin.userData.velX = (Math.random() - 0.5) * 3.5;
-        coin.userData.velY = 5.0 + Math.random() * 3.5;
-        coin.userData.velZ = -14.0 - Math.random() * 5.0;
+        coin.userData.velX = (Math.random() - 0.5) * 2.2;
+        coin.userData.velY = 3.6 + Math.random() * 2.2;
+        coin.userData.velZ = -4.0 - Math.random() * 3.0; // Gentle backward arc
         coin.visible = true;
         droppedCount++;
       }
@@ -556,8 +554,9 @@ export class MonsterRobotModel {
   startGlitchDespawn() {
     this.isGlitching = true;
     this.state = "glitching";
-    this.glitchTimer = 1.3;
-    this.ejectCoinsBackward(8);
+    this.glitchTimer = 0.9;
+    if (this.hpBarMesh) this.hpBarMesh.visible = false;
+    this.ejectCoinsBackward(6);
 
     // Spawn High-Altitude Sky Beacon Beam on the road
     this.spawnBountyBeacon(this.position.x, this.position.z + 2.0);
@@ -594,27 +593,26 @@ export class MonsterRobotModel {
       }
     }
 
-    // 3. Glitch Disintegration Phase
+    // 3. Smooth Mechanical Collapse & Disintegration Phase (Zero material glitching)
     if (this.isGlitching) {
       this.glitchTimer -= dt;
-      const progress = 1.0 - (this.glitchTimer / 1.3);
+      const progress = Math.max(0, Math.min(1.0, 1.0 - (this.glitchTimer / 0.9)));
 
-      this.root.position.x = this.targetX + (Math.random() - 0.5) * (0.6 + progress * 1.0);
-      this.root.position.y = this.position.y + (Math.random() - 0.5) * (0.4 + progress * 0.8);
-      const glitchScale = Math.max(0.01, (1.0 - progress * 0.95) * (1.0 + (Math.random() - 0.5) * 0.3));
-      this.root.scale.set(glitchScale, glitchScale, glitchScale);
+      // Smooth cinematic mechanical collapse & shrink
+      const collapseScale = Math.max(0.001, (1.0 - Math.pow(progress, 2.2))) * this.scaleFactor;
+      this.parts.main.scale.set(collapseScale, collapseScale, collapseScale);
 
-      this.root.traverse((child) => {
-        if (child.isMesh && child.material) {
-          child.material.transparent = true;
-          child.material.opacity = Math.random() > 0.25 ? (1.0 - progress) : 0.08;
-        }
-      });
+      // Smooth recoil tilt & descent
+      this.parts.torso.rotation.x = THREE.MathUtils.lerp(this.parts.torso.rotation.x, 0.75, 10 * dt);
+      this.position.y = THREE.MathUtils.lerp(this.position.y, -0.4, 6 * dt);
+      this.root.position.copy(this.position);
 
       if (this.glitchTimer <= 0) {
         this.active = false;
         this.root.visible = false;
         this.isGlitching = false;
+        this.parts.main.scale.set(this.scaleFactor, this.scaleFactor, this.scaleFactor);
+        this.parts.torso.rotation.x = 0;
         this.restoreMaterials();
       }
       return;
@@ -748,33 +746,54 @@ export class MonsterRobotModel {
     const pX = player.position.x;
     const pY = player.position.y + 0.9;
     const pZ = player.position.z;
+    const magnetRadius = player.hasMagnet ? 24.0 : 0;
 
     for (let i = 0; i < this.droppedCoins.length; i++) {
       const coin = this.droppedCoins[i];
       if (!coin.userData.active) continue;
 
       coin.userData.life -= dt;
-      if (coin.userData.life <= 0 || coin.userData.collected) {
+      if (coin.userData.life <= 0 || coin.userData.collected || coin.position.z < pZ - 18) {
         coin.userData.active = false;
         coin.visible = false;
         continue;
       }
 
-      // Physics
-      coin.userData.velY += CONFIG.GRAVITY * 0.7 * dt;
-      coin.position.x += coin.userData.velX * dt;
-      coin.position.y += coin.userData.velY * dt;
-      coin.position.z += coin.userData.velZ * dt;
+      // Air Arc Physics -> Settle on Ground
+      if (!coin.userData.isGrounded) {
+        coin.userData.velY += CONFIG.GRAVITY * 0.8 * dt;
+        coin.position.x += coin.userData.velX * dt;
+        coin.position.y += coin.userData.velY * dt;
+        coin.position.z += coin.userData.velZ * dt;
 
-      if (coin.position.y < 0.85) {
+        if (coin.position.y <= 0.85) {
+          coin.position.y = 0.85;
+          coin.userData.velY = 0;
+          coin.userData.velX = 0;
+          coin.userData.velZ = 0;
+          coin.userData.isGrounded = true;
+        }
+      } else {
+        // Settled on road surface
         coin.position.y = 0.85;
-        coin.userData.velY = -coin.userData.velY * 0.4;
       }
 
-      coin.rotation.y += 6.0 * dt;
+      // Magnet attraction if Bhairava has active magnet
+      if (player.hasMagnet) {
+        const dist = Math.hypot(pX - coin.position.x, pY - coin.position.y, pZ - coin.position.z);
+        if (dist < magnetRadius) {
+          const pullSpeed = 36.0 * dt;
+          coin.position.x = THREE.MathUtils.lerp(coin.position.x, pX, pullSpeed * 0.25);
+          coin.position.y = THREE.MathUtils.lerp(coin.position.y, pY, pullSpeed * 0.25);
+          coin.position.z = THREE.MathUtils.lerp(coin.position.z, pZ, pullSpeed * 0.25);
+        }
+      }
 
+      coin.rotation.y += 4.5 * dt;
+
+      // Collection collision check
       const distToPlayer = Math.hypot(coin.position.x - pX, coin.position.y - pY, coin.position.z - pZ);
-      if (distToPlayer < 1.8) {
+      if (distToPlayer < 2.0) {
         coin.userData.collected = true;
         coin.userData.active = false;
         coin.visible = false;
