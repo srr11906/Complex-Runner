@@ -161,6 +161,7 @@ export class Player3D {
     this.turnDirection = 0;
 
     this.hasShield = false;
+    this.shieldTimer = 0;
     this.hasMagnet = false;
     this.magnetTimer = 0;
     this.hasJetpack = false;
@@ -291,36 +292,47 @@ export class Player3D {
     if (this.bujji) this.bujji.setAid(false);
   }
 
-  giveShield() {
+  giveShield(duration = 10.0) {
     this.hasShield = true;
+    this.shieldTimer = duration;
     this.invulnerableTimer = 0;
     if (this.shieldMesh) this.shieldMesh.visible = true;
   }
 
   breakShield() {
     this.hasShield = false;
+    this.shieldTimer = 0;
     this.invulnerableTimer = 1.6;
     if (this.shieldMesh) this.shieldMesh.visible = false;
   }
 
-  giveMagnet(duration = CONFIG.MAGNET_DURATION) {
+  giveMagnet(duration = 10.0) {
     this.hasMagnet = true;
     this.magnetTimer = duration;
   }
 
-  giveJetpack(duration = CONFIG.JETPACK_DURATION) {
+  giveJetpack(duration = 8.0) {
     this.hasJetpack = true;
     this.jetpackTimer = duration;
     this.state = "running";
   }
 
-  giveMultiplier(duration = CONFIG.DOUBLE_POINTS_DURATION) {
+  giveMultiplier(duration = 10.0) {
     this.hasMultiplier = true;
     this.multiplierTimer = duration;
   }
 
   update(dt, currentSpeed, time) {
     // 1. Power-Up & Action Timers
+    if (this.hasShield) {
+      this.shieldTimer -= dt;
+      if (this.shieldTimer <= 0) {
+        this.hasShield = false;
+        this.shieldTimer = 0;
+        if (this.shieldMesh) this.shieldMesh.visible = false;
+      }
+    }
+
     if (this.hasMagnet) {
       this.magnetTimer -= dt;
       if (this.magnetTimer <= 0) this.hasMagnet = false;

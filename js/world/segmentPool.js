@@ -609,13 +609,17 @@ export class TrackSegmentPool3D {
   }
 
   spawnRandomPowerup(chunkData, laneX, z, customY = 1.2, force = false) {
-    // 60% frequency reduction gate (only 40% spawn rate when unforced)
     if (!force) {
-      const spawnRate = CONFIG.POWERUP_SPAWN_CHANCE !== undefined ? CONFIG.POWERUP_SPAWN_CHANCE : 0.40;
+      const spawnRate = CONFIG.POWERUP_SPAWN_CHANCE !== undefined ? CONFIG.POWERUP_SPAWN_CHANCE : 0.16;
       if (Math.random() > spawnRate) return;
     }
 
-    const types = ["magnet", "jetpack", "shield", "multiplier"];
+    let types = ["magnet", "jetpack", "shield", "multiplier"];
+    // When Monster Robot is active, jetpack must not spawn
+    if (window.gameEngine3D?.monsterRobot?.active) {
+      types = ["magnet", "shield", "multiplier"];
+    }
+
     const chosen = types[Math.floor(Math.random() * types.length)];
     let powerup;
 
@@ -716,7 +720,7 @@ export class TrackSegmentPool3D {
   }
 
   update(playerZ, isJetpack = false, dt = 0.016) {
-    if (this.activeChunks.length > 0 && playerZ > this.activeChunks[0].endZ + 75) {
+    if (this.activeChunks.length > 0 && playerZ > this.activeChunks[0].endZ + 12.0) {
       const oldChunk = this.activeChunks.shift();
       this.scene.remove(oldChunk.root);
       this.spawnChunk(false);

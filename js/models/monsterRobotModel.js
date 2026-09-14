@@ -62,12 +62,12 @@ export class MonsterRobotModel {
   }
 
   buildMaterials() {
-    // 1. Full Silver Shiny Metallic Chrome Armor
+    // 1. Full Silver Shiny Metallic Chrome Armor (Vibrant & Lustrous under all lighting)
     this.materials.silverArmor = new THREE.MeshStandardMaterial({
-      color: 0xE8ECF2,
-      metalness: 0.96,
-      roughness: 0.14,
-      emissive: 0x000000
+      color: 0xF8FAFC,
+      metalness: 0.42,
+      roughness: 0.20,
+      emissive: 0x323742
     });
 
     // 2. Dark Titanium Skeletal Joints
@@ -438,15 +438,24 @@ export class MonsterRobotModel {
     this.bountyBeacon = beaconGroup;
   }
 
-  spawn(laneIndex, zPos) {
+  spawn(laneIndex, zPos, variant = "apex") {
     this.active = true;
-    this.hp = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.MAX_HITS : 25;
+    this.variant = variant; // "apex" or "mini"
+    const isMini = variant === "mini";
+    const cfg = CONFIG.MONSTER_ROBOT;
+
+    this.scaleFactor = isMini ? (cfg?.MINI_SCALE || 1.0) : (cfg?.APEX_SCALE || 1.5);
+    this.hp = isMini ? (cfg?.MINI_HITS || 10) : (cfg?.APEX_HITS || 25);
     this.maxHp = this.hp;
+    this.coinsPerHit = isMini ? (cfg?.MINI_COINS_DROP || 1) : (cfg?.APEX_COINS_DROP || 3);
+    this.hasMagnet = !isMini;
+    this.bountyReward = isMini ? (cfg?.MINI_BOUNTY || 25000) : (cfg?.APEX_BOUNTY || 50000);
+
     this.laneIndex = Math.max(0, Math.min(2, laneIndex));
     this.targetX = CONFIG.LANES[this.laneIndex];
     this.position.set(this.targetX, 14.0, zPos);
     this.root.position.copy(this.position);
-    this.root.scale.set(1, 1, 1);
+    this.parts.main.scale.set(this.scaleFactor, this.scaleFactor, this.scaleFactor);
     this.root.visible = true;
     this.velocityY = -35.0;
     this.isGrounded = false;
@@ -462,11 +471,12 @@ export class MonsterRobotModel {
     // Ensure all materials are fully restored
     this.restoreMaterials();
     this.updateHpBar();
+    if (this.hpBarMesh) this.hpBarMesh.visible = true;
   }
 
   restoreMaterials() {
-    this.materials.silverArmor.emissive.setHex(0x000000);
-    this.materials.silverArmor.color.setHex(0xE8ECF2);
+    this.materials.silverArmor.emissive.setHex(0x323742);
+    this.materials.silverArmor.color.setHex(0xF8FAFC);
     this.materials.darkTitanium.emissive.setHex(0x000000);
     this.materials.redAccent.emissive.setHex(0x220000);
     this.materials.redAccent.color.setHex(0xEF4444);
@@ -507,17 +517,17 @@ export class MonsterRobotModel {
     this.parts.main.position.y = (Math.random() - 0.5) * 0.2;
 
     // Emissive Flash on armor without changing base colors
-    this.materials.silverArmor.emissive.setHex(0x666666);
+    this.materials.silverArmor.emissive.setHex(0x888888);
     this.materials.redAccent.emissive.setHex(0x991111);
 
     setTimeout(() => {
-      this.parts.main.position.set(0, 0, 0);
-      this.materials.silverArmor.emissive.setHex(0x000000);
-      this.materials.redAccent.emissive.setHex(0x220000);
+      if (this.parts && this.parts.main) this.parts.main.position.set(0, 0, 0);
+      if (this.materials && this.materials.silverArmor) this.materials.silverArmor.emissive.setHex(0x323742);
+      if (this.materials && this.materials.redAccent) this.materials.redAccent.emissive.setHex(0x220000);
     }, 60);
 
     // Eject Reclaimable Coins Backward out of the salvage exhaust
-    const coinsToDrop = CONFIG.MONSTER_ROBOT?.COINS_PER_HIT_DROP || 3;
+    const coinsToDrop = this.coinsPerHit || 1;
     this.ejectCoinsBackward(coinsToDrop);
 
     if (this.hp <= 0) {
@@ -556,7 +566,7 @@ export class MonsterRobotModel {
     this.state = "glitching";
     this.glitchTimer = 0.9;
     if (this.hpBarMesh) this.hpBarMesh.visible = false;
-    this.ejectCoinsBackward(6);
+    this.ejectCoinsBackward(this.variant === "mini" ? 3 : 6);
 
     // Spawn High-Altitude Sky Beacon Beam on the road
     this.spawnBountyBeacon(this.position.x, this.position.z + 2.0);
@@ -568,6 +578,7 @@ export class MonsterRobotModel {
     this.bountyBeacon.visible = true;
     this.bountyBeacon.userData.active = true;
     this.bountyBeacon.userData.collected = false;
+    this.bountyBeacon.userData.rewardUnits = this.bountyReward || 50000;
   }
 
   /**
@@ -584,8 +595,8 @@ export class MonsterRobotModel {
 
     this.lifetime += dt;
 
-    // Despawn check if too far ahead, behind, or timeout
-    if (this.position.z < playerZ - 10 || this.position.z > playerZ + 90 || this.lifetime > (CONFIG.MONSTER_ROBOT?.DESPAWN_TIME || 55.0)) {
+    // Never auto-despawn while ahead. Only despawn if player bypassed far behind or glitch complete
+    if (this.position.z < playerZ - 20) {
       if (!this.isGlitching) {
         this.active = false;
         this.root.visible = false;
@@ -727,12 +738,12 @@ export class MonsterRobotModel {
         this.bountyBeacon.userData.active = false;
         this.bountyBeacon.visible = false;
 
-        // Reward +50,000 Units & Trigger Victory Toast Banner
+        // Reward Units & Trigger Victory Toast Banner
         if (window.gameEngine3D) {
           const reward = this.bountyBeacon.userData.rewardUnits || 50000;
           window.gameEngine3D.units += reward;
           window.gameEngine3D.score += reward;
-          window.gameEngine3D.showFloatingBountyBanner(`💎 +50,000 BOUNTY SECURED!`, "boss");
+          window.gameEngine3D.showFloatingBountyBanner(`💎 +${reward.toLocaleString()} BOUNTY SECURED!`, "boss");
           window.gameEngine3D.safeAudio("playPowerup");
           window.gameEngine3D.safeAudio("playDialogue", "complex");
           window.gameEngine3D.cameraManager.shake(0.5);
@@ -882,6 +893,7 @@ export class MonsterRobotModel {
   }
 
   vacuumCoinsWithMagnet(collectibles, dt) {
+    if (!this.hasMagnet) return; // Mini variant has NO magnet
     const magnetRadius = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.COIN_MAGNET_RADIUS : 12.0;
     const eatRadius = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.COIN_EAT_RADIUS : 3.2;
     const botPos = this.position;

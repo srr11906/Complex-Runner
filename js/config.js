@@ -15,10 +15,10 @@ export const CONFIG = {
   ACTIVE_CHUNKS: 7, // 7 Chunks = 420m view horizon (High performance 60 FPS)
   GROUND_Y: 0.0,
 
-  // Speed & Progression (Reduced by 15% for optimal reaction time)
-  INITIAL_SPEED: 18.7, // m/s (~67 km/h, reduced from 22.0)
-  MAX_SPEED: 39.1,     // m/s (~140 km/h, reduced from 46.0)
-  SPEED_ACCELERATION: 0.007,
+  // Speed & Progression (15% Speed Boost for Intense Reflex Gameplay)
+  INITIAL_SPEED: 21.5, // m/s (~77 km/h)
+  MAX_SPEED: 45.0,     // m/s (~162 km/h)
+  SPEED_ACCELERATION: 0.008,
 
   // Kinematic Jump & Slide Physics (Subway Surfers Mathematical Model)
   GRAVITY: -44.0,           // m/s^2
@@ -33,21 +33,30 @@ export const CONFIG = {
   PLAYER_WIDTH: 0.9,
   PLAYER_DEPTH: 0.7,
 
-  // Monster Robot ("Wastelands Rogue Harvester") Rival Mecha Settings
+  // Power-Up Armory Upgrade Progression (6 Tiers: Base 8s -> +2s -> +3s -> +4s -> +5s -> +8s)
+  UPGRADE_TIERS: {
+    DURATIONS: [8.0, 10.0, 13.0, 17.0, 22.0, 30.0],
+    COSTS: [0, 15000, 35000, 75000, 150000, 300000],
+    MAX_LEVEL: 6
+  },
+
+  // Monster Robot Progression Settings (Apex at 250k, Mini at 100k)
   MONSTER_ROBOT: {
-    HEIST_SPAWN_THRESHOLDS: [250000, 550000, 820000], // Spawns exactly 3 times in 1M Heist Mode
-    MAX_SPAWNS_HEIST: 3,                               // Max 3 spawns in 1M goal run
-    ENDLESS_SPAWN_INTERVAL: 280000,                    // Recurring boss interval in Endless mode
-    MAX_HITS: 25,                                      // 25 laser hits to destroy
-    AHEAD_DISTANCE: 38.0,                              // Spawns 38m ahead (within 55m laser range)
-    TARGET_LEAD_MIN: 30.0,                             // Lead distance window minimum
-    TARGET_LEAD_MAX: 42.0,                             // Lead distance window maximum
-    SCALE: 1.5,                                        // 1.5x balanced mecha scale (sleek, athletic, screen-fit)
-    BOUNTY_REWARD_UNITS: 50000,                        // +50,000 Vault Units on destruction
-    COIN_MAGNET_RADIUS: 12.0,                          // Strong vacuum magnet radius
-    COIN_EAT_RADIUS: 3.2,                              // Ingestion intake core radius
-    COINS_PER_HIT_DROP: 3,                             // Coins ejected backwards on each laser strike
-    DESPAWN_TIME: 55.0                                 // Max active duration in seconds
+    APEX_INTERVAL: 250000,      // Apex boss every 250k
+    MINI_INTERVAL: 100000,      // Mini titan every 100k
+    APEX_HITS: 25,              // 25 laser hits
+    MINI_HITS: 10,              // 10 laser hits
+    APEX_SCALE: 1.5,            // 1.5x scale
+    MINI_SCALE: 1.0,            // 1.0x scale
+    APEX_BOUNTY: 50000,         // +50,000 Units
+    MINI_BOUNTY: 25000,         // +25,000 Units
+    APEX_COINS_DROP: 3,         // 3 coins per hit
+    MINI_COINS_DROP: 1,         // 1 coin per hit
+    AHEAD_DISTANCE: 38.0,       // Spawns 38m ahead (within 55m laser range)
+    TARGET_LEAD_MIN: 30.0,      // Lead distance window minimum
+    TARGET_LEAD_MAX: 42.0,      // Lead distance window maximum
+    COIN_MAGNET_RADIUS: 12.0,   // Strong vacuum magnet radius for Apex
+    COIN_EAT_RADIUS: 3.2        // Ingestion intake core radius
   },
 
   // Bujji Companion Offset (Left Shoulder Side)
@@ -55,13 +64,14 @@ export const CONFIG = {
   BUJJI_OFFSET_Y: 1.35,
   BUJJI_OFFSET_Z: -0.35,
 
-  // Power-Up Parameters (Spawn frequency reduced by 60%)
-  POWERUP_SPAWN_CHANCE: 0.40,
+  // Power-Up Parameters (Rare & Rewarding Spawn Rate)
+  POWERUP_SPAWN_CHANCE: 0.16,
   JETPACK_ALTITUDE: 8.0,
-  JETPACK_DURATION: 8.0,
+  SHIELD_BASE_DURATION: 8.0,
+  JETPACK_BASE_DURATION: 8.0,
+  MAGNET_BASE_DURATION: 8.0,
+  DOUBLE_POINTS_BASE_DURATION: 8.0,
   MAGNET_RADIUS: 25.0,
-  MAGNET_DURATION: 10.0,
-  DOUBLE_POINTS_DURATION: 12.0,
 
   // Rich Dark Brown Desert & Cinematic Golden Amber Palette
   COLORS: {

@@ -53,6 +53,19 @@ export class GameEngine3D {
     this.lastMonsterSpawnScore = 0;
     this.monsterSpawnCount = 0;
 
+    // Power-Up Upgrades (Persistent levels 1-6)
+    const defaultUpgrades = { shield: 1, magnet: 1, jetpack: 1, multiplier: 1 };
+    try {
+      this.powerupUpgrades = JSON.parse(localStorage.getItem("prabhas3DPowerupUpgrades")) || defaultUpgrades;
+    } catch (e) {
+      this.powerupUpgrades = defaultUpgrades;
+    }
+
+    // Monster Mode Toggle (ON by default)
+    this.monsterEnabled = localStorage.getItem("prabhas3DMonsterToggle") !== "false";
+    this.lastApexMilestone = 0;
+    this.lastMiniMilestone = 0;
+
     // Loop
     this.lastTime = 0;
     this.animId = null;
@@ -94,6 +107,7 @@ export class GameEngine3D {
 
     this.bindUi();
     this.setGameMode(this.gameMode);
+    this.updateMonsterToggleUI();
     this.updateMenuStats();
     this.updateHud();
     this.showScreen(GameState3D.MENU);
@@ -241,7 +255,16 @@ export class GameEngine3D {
       btnVictoryMenu: document.getElementById("btn-victory-menu"),
       btnSound: document.getElementById("btn-sound-toggle"),
       soundIcon: document.getElementById("sound-icon-img"),
-      btnPause: document.getElementById("btn-pause-toggle")
+      btnPause: document.getElementById("btn-pause-toggle"),
+
+      // Monster Toggle & Armory Shop
+      btnMonsterToggle: document.getElementById("btn-monster-toggle"),
+      monsterToggleStatus: document.getElementById("monster-toggle-status"),
+      btnOpenArmory: document.getElementById("btn-open-armory"),
+      armoryModal: document.getElementById("armory-modal-screen"),
+      btnCloseArmory: document.getElementById("btn-close-armory"),
+      btnArmoryBack: document.getElementById("btn-armory-back"),
+      shopVaultUnits: document.getElementById("shop-vault-units-val")
     };
   }
 
@@ -279,6 +302,27 @@ export class GameEngine3D {
     if (this.dom.btnPause) {
       this.dom.btnPause.addEventListener("click", () => this.togglePause());
     }
+    if (this.dom.btnMonsterToggle) {
+      this.dom.btnMonsterToggle.addEventListener("click", () => this.toggleMonsterMode());
+    }
+    if (this.dom.btnOpenArmory) {
+      this.dom.btnOpenArmory.addEventListener("click", () => this.openArmoryShop());
+    }
+    if (this.dom.btnCloseArmory) {
+      this.dom.btnCloseArmory.addEventListener("click", () => this.closeArmoryShop());
+    }
+    if (this.dom.btnArmoryBack) {
+      this.dom.btnArmoryBack.addEventListener("click", () => this.closeArmoryShop());
+    }
+
+    // Power-Up Upgrade Buttons
+    const upgradeTypes = ["shield", "magnet", "jetpack", "multiplier"];
+    upgradeTypes.forEach(type => {
+      const btn = document.getElementById(`btn-upgrade-${type}`);
+      if (btn) {
+        btn.addEventListener("click", () => this.upgradePowerup(type));
+      }
+    });
 
     const updateAudioIcons = (isMuted) => {
       const iconSrc = isMuted ? "assets/ui/sound-off.svg" : "assets/ui/sound-on.svg";
@@ -345,6 +389,8 @@ export class GameEngine3D {
     this.trackPool.init();
     this.lastMonsterSpawnScore = 0;
     this.monsterSpawnCount = 0;
+    this.lastApexMilestone = 0;
+    this.lastMiniMilestone = 0;
     if (this.monsterRobot) {
       this.monsterRobot.active = false;
       this.monsterRobot.root.visible = false;
@@ -439,6 +485,8 @@ export class GameEngine3D {
     this.trackPool.clear();
     this.lastMonsterSpawnScore = 0;
     this.monsterSpawnCount = 0;
+    this.lastApexMilestone = 0;
+    this.lastMiniMilestone = 0;
     if (this.monsterRobot) {
       this.monsterRobot.active = false;
       this.monsterRobot.root.visible = false;
@@ -939,51 +987,52 @@ export class GameEngine3D {
         }
       } else if (item.type === "powerup") {
         this.safeAudio("playPowerup");
+        const dur = this.getPowerupDuration(item.powerupType);
         if (item.powerupType === "magnet") {
-          this.player.giveMagnet(item.duration);
+          this.player.giveMagnet(dur);
           this.safeAudio("playDialogue", "magnet");
         } else if (item.powerupType === "jetpack") {
-          this.player.giveJetpack(item.duration);
+          this.player.giveJetpack(dur);
           this.safeAudio("playDialogue", "jetpack");
         } else if (item.powerupType === "shield") {
-          this.player.giveShield();
+          this.player.giveShield(dur);
           this.safeAudio("playDialogue", "shield");
         } else if (item.powerupType === "multiplier") {
-          this.player.giveMultiplier(item.duration);
+          this.player.giveMultiplier(dur);
           this.safeAudio("playDialogue", "multiplier");
         }
       }
     }
 
-    // 7. Monster Robot (Wastelands Rogue Harvester) Autonomous Spawn & Update
-    if (this.monsterRobot) {
+    // 7. Monster Robot (Apex Boss at 250k, Mini Titan at 100k) Autonomous Spawn & Update
+    if (this.monsterRobot && this.monsterEnabled) {
       const aheadDist = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.AHEAD_DISTANCE : 38.0;
-      let shouldSpawn = false;
+      const apexInterval = CONFIG.MONSTER_ROBOT?.APEX_INTERVAL || 250000;
+      const miniInterval = CONFIG.MONSTER_ROBOT?.MINI_INTERVAL || 100000;
 
-      if (this.gameMode === "heist") {
-        const thresholds = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.HEIST_SPAWN_THRESHOLDS : [250000, 550000, 820000];
-        const maxSpawns = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.MAX_SPAWNS_HEIST : 3;
-        if (this.monsterSpawnCount < maxSpawns && !this.monsterRobot.active) {
-          if (this.score >= thresholds[this.monsterSpawnCount]) {
-            shouldSpawn = true;
+      const currentApexMilestone = Math.floor(this.score / apexInterval);
+      const currentMiniMilestone = Math.floor(this.score / miniInterval);
+
+      if (!this.monsterRobot.active) {
+        if (currentApexMilestone > this.lastApexMilestone) {
+          this.lastApexMilestone = currentApexMilestone;
+          this.lastMiniMilestone = currentMiniMilestone;
+          const rLane = Math.floor(Math.random() * 3);
+          this.monsterRobot.spawn(rLane, this.player.position.z + aheadDist, "apex");
+          this.showFloatingBountyBanner("🚨 APEX ROGUE HARVESTER INBOUND! (+50K BOUNTY)", "boss");
+          this.safeAudio("playDialogue", "bujji");
+          this.cameraManager.shake(0.5);
+        } else if (currentMiniMilestone > this.lastMiniMilestone) {
+          // Trigger mini if not currently an apex milestone
+          if (Math.floor(this.score / apexInterval) === this.lastApexMilestone) {
+            this.lastMiniMilestone = currentMiniMilestone;
+            const rLane = Math.floor(Math.random() * 3);
+            this.monsterRobot.spawn(rLane, this.player.position.z + aheadDist, "mini");
+            this.showFloatingBountyBanner("⚠️ ROGUE DRONE TITAN DETECTED! (+25K BOUNTY)", "boss");
+            this.safeAudio("playDialogue", "bujji");
+            this.cameraManager.shake(0.35);
           }
         }
-      } else {
-        // Endless mode (Spawns periodically every interval)
-        const interval = CONFIG.MONSTER_ROBOT ? CONFIG.MONSTER_ROBOT.ENDLESS_SPAWN_INTERVAL : 280000;
-        if (!this.monsterRobot.active && this.score >= interval && (this.score - this.lastMonsterSpawnScore >= interval)) {
-          shouldSpawn = true;
-        }
-      }
-
-      if (shouldSpawn) {
-        const rLane = Math.floor(Math.random() * 3);
-        this.monsterRobot.spawn(rLane, this.player.position.z + aheadDist);
-        this.monsterSpawnCount++;
-        this.lastMonsterSpawnScore = this.score;
-        this.showFloatingBountyBanner("⚠️ WASTELANDS ROGUE HARVESTER INBOUND!", "boss");
-        this.safeAudio("playDialogue", "bujji");
-        this.cameraManager.shake(0.4);
       }
 
       this.monsterRobot.update(dt, this.currentSpeed, this.player.position.z, activeObstacles, activeCollectibles, this.player);
@@ -991,5 +1040,112 @@ export class GameEngine3D {
 
     // 8. Update HUD Display
     this.updateHud();
+  }
+
+  getPowerupDuration(type) {
+    const level = (this.powerupUpgrades && this.powerupUpgrades[type]) || 1;
+    const durations = CONFIG.UPGRADE_TIERS?.DURATIONS || [8.0, 10.0, 13.0, 17.0, 22.0, 30.0];
+    const index = Math.max(0, Math.min(durations.length - 1, level - 1));
+    return durations[index];
+  }
+
+  toggleMonsterMode() {
+    this.monsterEnabled = !this.monsterEnabled;
+    localStorage.setItem("prabhas3DMonsterToggle", this.monsterEnabled ? "true" : "false");
+    this.updateMonsterToggleUI();
+    this.safeAudio("playPowerup");
+  }
+
+  updateMonsterToggleUI() {
+    if (this.dom.monsterToggleStatus) {
+      this.dom.monsterToggleStatus.textContent = this.monsterEnabled ? "ON" : "OFF";
+      this.dom.monsterToggleStatus.className = `pill-value ${this.monsterEnabled ? "text-emerald" : "text-red"}`;
+    }
+  }
+
+  openArmoryShop() {
+    this.updateShopUI();
+    if (this.dom.armoryModal) {
+      this.dom.armoryModal.classList.add("active");
+    }
+  }
+
+  closeArmoryShop() {
+    if (this.dom.armoryModal) {
+      this.dom.armoryModal.classList.remove("active");
+    }
+  }
+
+  upgradePowerup(type) {
+    const currentLevel = (this.powerupUpgrades && this.powerupUpgrades[type]) || 1;
+    const maxLevel = CONFIG.UPGRADE_TIERS?.MAX_LEVEL || 6;
+    if (currentLevel >= maxLevel) return;
+
+    const costs = CONFIG.UPGRADE_TIERS?.COSTS || [0, 15000, 35000, 75000, 150000, 300000];
+    const cost = costs[currentLevel];
+
+    if (this.vaultUnits < cost) {
+      this.safeAudio("playHit");
+      return;
+    }
+
+    this.vaultUnits -= cost;
+    localStorage.setItem("prabhas3DVaultUnits", this.vaultUnits.toString());
+    this.powerupUpgrades[type] = currentLevel + 1;
+    localStorage.setItem("prabhas3DPowerupUpgrades", JSON.stringify(this.powerupUpgrades));
+
+    this.safeAudio("playPowerup");
+    this.safeAudio("playDialogue", "milestone");
+    this.updateMenuStats();
+    this.updateShopUI();
+  }
+
+  updateShopUI() {
+    if (this.dom.shopVaultUnits) {
+      this.dom.shopVaultUnits.textContent = this.vaultUnits.toLocaleString();
+    }
+
+    const types = ["shield", "magnet", "jetpack", "multiplier"];
+    const durations = CONFIG.UPGRADE_TIERS?.DURATIONS || [8.0, 10.0, 13.0, 17.0, 22.0, 30.0];
+    const costs = CONFIG.UPGRADE_TIERS?.COSTS || [0, 15000, 35000, 75000, 150000, 300000];
+    const maxLevel = CONFIG.UPGRADE_TIERS?.MAX_LEVEL || 6;
+
+    types.forEach(type => {
+      const level = (this.powerupUpgrades && this.powerupUpgrades[type]) || 1;
+      const dur = durations[level - 1];
+
+      // Update stat text
+      const statEl = document.getElementById(`stat-${type}-dur`);
+      if (statEl) {
+        statEl.textContent = `Duration: ${dur}s${level < maxLevel ? ` (Next: ${durations[level]}s)` : " (MAX)"}`;
+      }
+
+      // Update level pips
+      const pipsEl = document.getElementById(`pips-${type}`);
+      if (pipsEl) {
+        pipsEl.innerHTML = Array.from({ length: maxLevel }, (_, i) => 
+          `<div class="level-pip ${i < level ? 'active' : ''}"></div>`
+        ).join('');
+      }
+
+      // Update button
+      const btn = document.getElementById(`btn-upgrade-${type}`);
+      if (btn) {
+        if (level >= maxLevel) {
+          btn.disabled = true;
+          btn.className = "btn-upgrade-action maxed";
+          btn.innerHTML = `<span class="upgrade-btn-text">MAX LEVEL (${dur}s)</span>`;
+        } else {
+          const cost = costs[level];
+          const canAfford = this.vaultUnits >= cost;
+          btn.disabled = !canAfford;
+          btn.className = "btn-upgrade-action interactive-ui";
+          btn.innerHTML = `
+            <span class="upgrade-btn-text">UPGRADE (+${durations[level] - dur}s)</span>
+            <span class="upgrade-btn-cost">🪙 ${cost.toLocaleString()}</span>
+          `;
+        }
+      }
+    });
   }
 }

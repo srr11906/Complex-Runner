@@ -130,11 +130,28 @@
     <section id="start-screen" class="game-modal-screen active menu-viewport">
       <!-- Top Bar: Sound Toggle & Currency Badges -->
       <div class="menu-top-bar">
-        <button id="btn-menu-sound-toggle" class="squircle-icon-btn interactive-ui" aria-label="Toggle Sound" title="Sound">
-          <img id="menu-sound-icon-img" src="assets/ui/sound-on.svg" alt="Sound">
-        </button>
+        <div class="menu-top-left-actions">
+          <button id="btn-menu-sound-toggle" class="squircle-icon-btn interactive-ui" aria-label="Toggle Sound" title="Sound">
+            <img id="menu-sound-icon-img" src="assets/ui/sound-on.svg" alt="Sound">
+          </button>
+          <button id="btn-monster-toggle" class="menu-action-pill interactive-ui" aria-label="Monster Mode Toggle" title="Toggle Monster Mode">
+            <span class="pill-icon">👾</span>
+            <div class="pill-col">
+              <span class="pill-label">MONSTER MODE</span>
+              <span id="monster-toggle-status" class="pill-value text-emerald">ON</span>
+            </div>
+          </button>
+        </div>
 
         <div class="menu-header-badges">
+          <button id="btn-open-armory" class="menu-action-pill gold-accent interactive-ui" aria-label="Open Armory Shop" title="Armory Upgrades">
+            <span class="pill-icon">⚡</span>
+            <div class="pill-col">
+              <span class="pill-label">ARMORY</span>
+              <span class="pill-value text-amber">SHOP</span>
+            </div>
+          </button>
+
           <div class="menu-stat-pill" title="High Score">
             <span class="pill-icon">🏆</span>
             <div class="pill-col">
@@ -265,6 +282,99 @@
           </button>
           <button id="btn-victory-menu" class="btn-squircle-secondary">
             <span>MAIN MENU</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Armory Power-Up Shop Modal -->
+    <section id="armory-modal-screen" class="game-modal-screen">
+      <div class="squircle-card desert-theme armory-card">
+        <div class="armory-header">
+          <div class="armory-title-box">
+            <span class="armory-icon">⚡</span>
+            <h2 class="game-title">ARMORY SHOP</h2>
+          </div>
+          <div class="armory-vault-pill">
+            <span class="pill-icon">🪙</span>
+            <span id="shop-vault-units-val" class="vault-val">0</span>
+          </div>
+          <button id="btn-close-armory" class="squircle-icon-btn interactive-ui close-btn" aria-label="Close Shop">
+            <span>✕</span>
+          </button>
+        </div>
+
+        <p class="armory-tagline">Upgrade power-up durations permanently using Vault Units.</p>
+
+        <div class="armory-items-grid">
+          <!-- Shield Upgrade Card -->
+          <div class="armory-item-card" data-powerup="shield">
+            <div class="item-header">
+              <span class="item-icon">🛡️</span>
+              <div class="item-info">
+                <span class="item-name">DEFENSE SHIELD</span>
+                <span class="item-stat" id="stat-shield-dur">Duration: 8s</span>
+              </div>
+            </div>
+            <div class="item-level-pips" id="pips-shield"></div>
+            <button class="btn-upgrade-action interactive-ui" id="btn-upgrade-shield" data-powerup="shield">
+              <span class="upgrade-btn-text">UPGRADE</span>
+              <span class="upgrade-btn-cost" id="cost-shield">🪙 15,000</span>
+            </button>
+          </div>
+
+          <!-- Magnet Upgrade Card -->
+          <div class="armory-item-card" data-powerup="magnet">
+            <div class="item-header">
+              <span class="item-icon">🧲</span>
+              <div class="item-info">
+                <span class="item-name">COIN MAGNET</span>
+                <span class="item-stat" id="stat-magnet-dur">Duration: 8s</span>
+              </div>
+            </div>
+            <div class="item-level-pips" id="pips-magnet"></div>
+            <button class="btn-upgrade-action interactive-ui" id="btn-upgrade-magnet" data-powerup="magnet">
+              <span class="upgrade-btn-text">UPGRADE</span>
+              <span class="upgrade-btn-cost" id="cost-magnet">🪙 15,000</span>
+            </button>
+          </div>
+
+          <!-- Jetpack Upgrade Card -->
+          <div class="armory-item-card" data-powerup="jetpack">
+            <div class="item-header">
+              <span class="item-icon">🚀</span>
+              <div class="item-info">
+                <span class="item-name">WARP JETPACK</span>
+                <span class="item-stat" id="stat-jetpack-dur">Duration: 8s</span>
+              </div>
+            </div>
+            <div class="item-level-pips" id="pips-jetpack"></div>
+            <button class="btn-upgrade-action interactive-ui" id="btn-upgrade-jetpack" data-powerup="jetpack">
+              <span class="upgrade-btn-text">UPGRADE</span>
+              <span class="upgrade-btn-cost" id="cost-jetpack">🪙 15,000</span>
+            </button>
+          </div>
+
+          <!-- Multiplier Upgrade Card -->
+          <div class="armory-item-card" data-powerup="multiplier">
+            <div class="item-header">
+              <span class="item-icon">⚡</span>
+              <div class="item-info">
+                <span class="item-name">2X MULTIPLIER</span>
+                <span class="item-stat" id="stat-multiplier-dur">Duration: 8s</span>
+              </div>
+            </div>
+            <div class="item-level-pips" id="pips-multiplier"></div>
+            <button class="btn-upgrade-action interactive-ui" id="btn-upgrade-multiplier" data-powerup="multiplier">
+              <span class="upgrade-btn-text">UPGRADE</span>
+              <span class="upgrade-btn-cost" id="cost-multiplier">🪙 15,000</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button id="btn-armory-back" class="btn-squircle-secondary">
+            <span>BACK TO MENU</span>
           </button>
         </div>
       </div>
