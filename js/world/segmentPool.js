@@ -5,11 +5,11 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "../config.js?v=20260914_complex_v6";
-import { ObstacleFactory3D } from "../models/obstacleModels.js?v=20260914_complex_v6";
-import { CollectibleFactory3D } from "../models/collectibleModels.js?v=20260914_complex_v6";
-import { BountyModelFactory } from "../models/bountyModels.js?v=20260914_complex_v6";
-import { textureGen } from "./textureGenerator.js?v=20260914_complex_v6";
+import { CONFIG } from "../config.js?v=20260919_triangle_neon_v38";
+import { ObstacleFactory3D } from "../models/obstacleModels.js?v=20260919_train_speed_fix_v40";
+import { CollectibleFactory3D } from "../models/collectibleModels.js?v=20260919_gold_neon_tri_v39";
+import { BountyModelFactory } from "../models/bountyModels.js?v=20260919_triangle_neon_v38";
+import { textureGen } from "./textureGenerator.js?v=20260919_triangle_neon_v38";
 
 export class TrackSegmentPool3D {
   constructor(scene) {
@@ -20,6 +20,10 @@ export class TrackSegmentPool3D {
 
     this.activeChunks = [];
     this.nextChunkZ = 0;
+
+    // Stateful Thematic Zone Cadence Engine (3 to 5 chunk wave stretches)
+    this.currentZone = "train_yard"; // "train_yard" | "obstacle_parkour" | "transit_chaos" | "reward_dash"
+    this.zoneChunksRemaining = 4;
 
     // Pre-allocated active query arrays to eliminate Garbage Collection churn
     this._activeObstaclesList = [];
@@ -163,6 +167,8 @@ export class TrackSegmentPool3D {
   init() {
     this.clear();
     this.nextChunkZ = -20;
+    this.currentZone = "train_yard";
+    this.zoneChunksRemaining = 4;
 
     for (let i = 0; i < 2; i++) {
       this.spawnChunk(true);
@@ -482,76 +488,379 @@ export class TrackSegmentPool3D {
   populateChunkPatterns(chunkData) {
     const chunkRoot = chunkData.root;
     const lanes = CONFIG.LANES;
-    const patternType = Math.floor(Math.random() * 5);
-    const trainRooftopCoinY = 5.65;
+    const isDownstream = chunkData.startZ > 120;
+    const trainRooftopCoinY = 5.00;
 
-    if (patternType === 0) {
-      const trainLane = Math.floor(Math.random() * 3);
-      const train = this.obstacleFactory.createMaglevTrain(true, false, 24.0);
-      train.position.set(lanes[trainLane], 0, 26);
-      this.registerObstacle(chunkData, train);
-
-      this.spawnCoinLine(chunkData, lanes[trainLane], 14, 38, 6, trainRooftopCoinY, false);
-
-      const sideLane = (trainLane + 1) % 3;
-      const hurdle = this.obstacleFactory.createLowHurdle();
-      hurdle.position.set(lanes[sideLane], 0, 20);
-      this.registerObstacle(chunkData, hurdle);
-
-      const pLane = (trainLane + 2) % 3;
-      this.spawnRandomPowerup(chunkData, lanes[pLane], 28);
-    } else if (patternType === 1) {
-      // Rightmost lane (User POV): Moving Maglev Train advancing towards player at balanced speed
-      const movingTrain = this.obstacleFactory.createMaglevTrain(false, true, 22.0);
-      movingTrain.position.set(lanes[0], 0, 54);
-      this.registerObstacle(chunkData, movingTrain);
-
-      // Leftmost lane (User POV): Climbable Ramp Train with rooftop coins
-      const rampTrain = this.obstacleFactory.createMaglevTrain(true, false, 22.0);
-      rampTrain.position.set(lanes[2], 0, 25);
-      this.registerObstacle(chunkData, rampTrain);
-
-      this.spawnCoinLine(chunkData, lanes[2], 14, 36, 5, trainRooftopCoinY, false);
-      this.spawnCoinLine(chunkData, lanes[1], 10, 48, 6, 0.85, false);
-    } else if (patternType === 2) {
-      for (let l of [0, 2]) {
-        const train = this.obstacleFactory.createMaglevTrain(l === 2, false, 24.0);
-        train.position.set(lanes[l], 0, 28);
-        this.registerObstacle(chunkData, train);
+    // Early Game: Gentle readable introductory chunks for the first 250 meters
+    if (chunkData.startZ < 250) {
+      this.populateIntroductoryPattern(chunkData, lanes, trainRooftopCoinY);
+    } else {
+      // Mid-to-Late Game: Dynamic Mixed Flow with RARE Special Highlight Surges (max 2 chunks)
+      if (this.zoneChunksRemaining <= 0) {
+        const roll = Math.random();
+        if (roll < 0.70) {
+          // 70%: Dynamic Varied Transit Flow (balanced mix of trains, hurdles, gates, powerups)
+          this.currentZone = "transit_chaos";
+          this.zoneChunksRemaining = 1 + Math.floor(Math.random() * 2);
+        } else if (roll < 0.85) {
+          // 15%: Reward Oasis / Dash (relaxing high-density coin dash)
+          this.currentZone = "reward_dash";
+          this.zoneChunksRemaining = 1;
+        } else if (roll < 0.93) {
+          // 8%: Rare Freight Rush Surge (intense multi-train highway)
+          this.currentZone = "train_yard";
+          this.zoneChunksRemaining = 2;
+        } else {
+          // 7%: Rare Agility Parkour Surge (rhythmic hurdle jumping)
+          this.currentZone = "obstacle_parkour";
+          this.zoneChunksRemaining = 2;
+        }
       }
-      this.spawnCoinLine(chunkData, lanes[1], 8, 50, 7, 0.85, false);
-      this.spawnRandomPowerup(chunkData, lanes[1], 28);
-    } else if (patternType === 3) {
-      const train1 = this.obstacleFactory.createMaglevTrain(true, false, 22.0);
-      train1.position.set(lanes[0], 0, 24);
-      this.registerObstacle(chunkData, train1);
+      this.zoneChunksRemaining--;
 
-      const train2 = this.obstacleFactory.createMaglevTrain(false, false, 22.0);
-      train2.position.set(lanes[1], 0, 28);
-      this.registerObstacle(chunkData, train2);
-
-      this.spawnCoinLine(chunkData, lanes[0], 12, 34, 5, trainRooftopCoinY, false);
-
-      const gate = this.obstacleFactory.createPlasmaGate();
-      gate.position.set(lanes[2], 0, 26);
-      this.registerObstacle(chunkData, gate);
-    } else if (patternType === 4) {
-      const train = this.obstacleFactory.createMaglevTrain(true, false, 26.0);
-      train.position.set(lanes[1], 0, 26);
-      this.registerObstacle(chunkData, train);
-      this.spawnCoinLine(chunkData, lanes[1], 12, 40, 6, trainRooftopCoinY, false);
-
-      for (let side of [0, 2]) {
-        const hurdle = this.obstacleFactory.createLowHurdle();
-        hurdle.position.set(lanes[side], 0, 18);
-        this.registerObstacle(chunkData, hurdle);
+      if (this.currentZone === "train_yard") {
+        this.populateTrainYardPattern(chunkData, lanes, isDownstream, trainRooftopCoinY);
+      } else if (this.currentZone === "obstacle_parkour") {
+        this.populateObstacleParkourPattern(chunkData, lanes);
+      } else if (this.currentZone === "transit_chaos") {
+        this.populateTransitChaosPattern(chunkData, lanes, isDownstream, trainRooftopCoinY);
+      } else {
+        this.populateRewardDashPattern(chunkData, lanes, trainRooftopCoinY);
       }
     }
-    /* Bounty patterns 5 & 6 commented out for now - will be implemented one by one */
 
-    // Sky Coins for Jetpack Flight
+    // Sky Coins for Jetpack Flight (Strictly isolated at JETPACK_ALTITUDE)
     const skyLane = Math.floor(Math.random() * 3);
     this.spawnCoinLine(chunkData, lanes[skyLane], 8, 52, 7, CONFIG.JETPACK_ALTITUDE, true);
+  }
+
+  /**
+   * EARLY GAME INTRODUCTORY FLOW (Z < 250m)
+   * Clear, readable single hazards & welcoming coin arcs before intense thematic zones begin
+   */
+  populateIntroductoryPattern(chunkData, lanes, trainRooftopCoinY) {
+    const zStart = chunkData.startZ;
+
+    if (zStart < 60) {
+      // Warmup Chunk 0: Pure open run with center coin ribbon
+      this.spawnCoinLine(chunkData, lanes[1], 10, 50, 7, 0.85, false, true);
+    } else if (zStart < 120) {
+      // Warmup Chunk 1: Single Ramp Train on Lane 0 + Clear Center Run with Coins
+      const trainL = this.obstacleFactory.createMaglevTrain(true, false, 20.0);
+      trainL.position.set(lanes[0], 0, 24);
+      this.registerObstacle(chunkData, trainL);
+      this.spawnRampTrainCoins(chunkData, lanes[0], 24, 20.0, true, trainRooftopCoinY);
+
+      this.spawnCoinLine(chunkData, lanes[1], 8, 48, 6, 0.85, false, true);
+    } else if (zStart < 180) {
+      // Warmup Chunk 2: Synchronized Hurdle Row at Z = 25 (---)
+      const h0 = this.obstacleFactory.createLowHurdle();
+      h0.position.set(lanes[0], 0, 25);
+      this.registerObstacle(chunkData, h0);
+      this.spawnCoinArc(chunkData, lanes[0], 25);
+
+      const h1 = this.obstacleFactory.createLowHurdle();
+      h1.position.set(lanes[1], 0, 25);
+      this.registerObstacle(chunkData, h1);
+      this.spawnCoinArc(chunkData, lanes[1], 25);
+
+      this.spawnCoinLine(chunkData, lanes[2], 8, 48, 6, 0.85, false, false);
+      if (Math.random() < 0.35) {
+        this.spawnRandomPowerup(chunkData, lanes[2], 25, 1.2, true);
+      }
+    } else {
+      // Warmup Chunk 3 (180 <= Z < 250): Synchronized Dual Slide Gate at Z = 28 (- -)
+      const gateL = this.obstacleFactory.createPlasmaGate();
+      gateL.position.set(lanes[0], 0, 28);
+      this.registerObstacle(chunkData, gateL);
+
+      const gateR = this.obstacleFactory.createPlasmaGate();
+      gateR.position.set(lanes[2], 0, 28);
+      this.registerObstacle(chunkData, gateR);
+
+      this.spawnCoinLine(chunkData, lanes[1], 8, 48, 6, 0.85, false, true);
+      this.spawnCoinLine(chunkData, lanes[0], 34, 52, 3, 0.85, false, false);
+    }
+  }
+
+  /**
+   * ZONE 1: FREIGHT YARD RUSH (Rare Highlight Surge: Pure Train Yard Corridors)
+   * High-fun climbable ramps, roof-hopping links, and multi-car cargo highways
+   */
+  populateTrainYardPattern(chunkData, lanes, isDownstream, trainRooftopCoinY) {
+    const sub = Math.floor(Math.random() * 4);
+
+    if (sub === 0) {
+      // Pattern 0: Roof-Hop Bridge (Climb ramp on Lane 0 or 2, hop across to Lane 1 roof)
+      const train0 = this.obstacleFactory.createMaglevTrain(true, false, 20.0);
+      train0.position.set(lanes[0], 0, 20);
+      this.registerObstacle(chunkData, train0);
+      this.spawnRampTrainCoins(chunkData, lanes[0], 20, 20.0, true, trainRooftopCoinY);
+
+      const train1 = this.obstacleFactory.createMaglevTrain(false, false, 20.0);
+      train1.position.set(lanes[1], 0, 32);
+      this.registerObstacle(chunkData, train1);
+      this.spawnRampTrainCoins(chunkData, lanes[1], 32, 20.0, false, trainRooftopCoinY);
+      this.spawnRandomPowerup(chunkData, lanes[1], 32, trainRooftopCoinY, true);
+
+      const train2 = this.obstacleFactory.createMaglevTrain(true, false, 20.0);
+      train2.position.set(lanes[2], 0, 20);
+      this.registerObstacle(chunkData, train2);
+      this.spawnRampTrainCoins(chunkData, lanes[2], 20, 20.0, true, trainRooftopCoinY);
+    } else if (sub === 1) {
+      // Pattern 1: Twin Parallel 2-Car Express Highway with Open Center Canyon
+      const train0 = this.obstacleFactory.createTwoCompartmentTrain(true, false, 13.5);
+      train0.position.set(lanes[0], 0, 24);
+      this.registerObstacle(chunkData, train0);
+      this.spawnRampTrainCoins(chunkData, lanes[0], 24, 28.6, true, trainRooftopCoinY);
+
+      const train2 = this.obstacleFactory.createTwoCompartmentTrain(true, false, 13.5);
+      train2.position.set(lanes[2], 0, 24);
+      this.registerObstacle(chunkData, train2);
+      this.spawnRampTrainCoins(chunkData, lanes[2], 24, 28.6, true, trainRooftopCoinY);
+
+      // Center clear canyon speed run with powerup
+      this.spawnCoinLine(chunkData, lanes[1], 6, 48, 8, 0.85, false, true);
+    } else if (sub === 2) {
+      // Pattern 2: Wide Staggered Slalom (Generous 30m buffer between Lane 0 and Lane 2)
+      const train0 = this.obstacleFactory.createMaglevTrain(true, false, 20.0);
+      train0.position.set(lanes[0], 0, 16);
+      this.registerObstacle(chunkData, train0);
+      this.spawnRampTrainCoins(chunkData, lanes[0], 16, 20.0, true, trainRooftopCoinY);
+
+      this.spawnCoinLine(chunkData, lanes[1], 6, 54, 8, 0.85, false, true);
+
+      const train2 = this.obstacleFactory.createMaglevTrain(true, false, 20.0);
+      train2.position.set(lanes[2], 0, 44);
+      this.registerObstacle(chunkData, train2);
+      this.spawnRampTrainCoins(chunkData, lanes[2], 44, 20.0, true, trainRooftopCoinY);
+    } else {
+      // Pattern 3: Center Articulated Maglev Cruiser with Ramp + Powerup Cache on Roof
+      const train1 = this.obstacleFactory.createTwoCompartmentTrain(true, false, 13.5);
+      train1.position.set(lanes[1], 0, 24);
+      this.registerObstacle(chunkData, train1);
+      this.spawnRampTrainCoins(chunkData, lanes[1], 24, 28.6, true, trainRooftopCoinY);
+      this.spawnRandomPowerup(chunkData, lanes[1], 24, trainRooftopCoinY, true);
+
+      this.spawnCoinLine(chunkData, lanes[0], 6, 50, 7, 0.85, false, false);
+      this.spawnCoinLine(chunkData, lanes[2], 6, 50, 7, 0.85, false, false);
+    }
+  }
+
+  /**
+   * ZONE 2: GROUND AGILITY GAUNTLET (Rare Highlight Surge: Spaced Obstacle Formations)
+   * Generous 30m+ runway spacing with clean readable jump arcs and slide gates
+   */
+  populateObstacleParkourPattern(chunkData, lanes) {
+    const sub = Math.floor(Math.random() * 4);
+
+    if (sub === 0) {
+      // Single Major Encounter at Z = 26: Slide - Jump Arc - Slide Row (---)
+      const gateL = this.obstacleFactory.createPlasmaGate();
+      gateL.position.set(lanes[0], 0, 26);
+      this.registerObstacle(chunkData, gateL);
+
+      const hurdleC = this.obstacleFactory.createLowHurdle();
+      hurdleC.position.set(lanes[1], 0, 26);
+      this.registerObstacle(chunkData, hurdleC);
+      this.spawnCoinArc(chunkData, lanes[1], 26);
+
+      const gateR = this.obstacleFactory.createPlasmaGate();
+      gateR.position.set(lanes[2], 0, 26);
+      this.registerObstacle(chunkData, gateR);
+
+      // Generous Entrance Runway (Z = 6..18) and Exit Runway (Z = 35..52)
+      this.spawnCoinLine(chunkData, lanes[1], 6, 17, 2, 0.85, false);
+      this.spawnCoinLine(chunkData, lanes[1], 35, 52, 3, 0.85, false, true);
+    } else if (sub === 1) {
+      // Single Major Encounter at Z = 26: Triple Hurdle Line with Parabolic Arcs (---)
+      for (let l = 0; l < 3; l++) {
+        const h = this.obstacleFactory.createLowHurdle();
+        h.position.set(lanes[l], 0, 26);
+        this.registerObstacle(chunkData, h);
+        this.spawnCoinArc(chunkData, lanes[l], 26);
+      }
+
+      this.spawnCoinLine(chunkData, lanes[1], 6, 17, 2, 0.85, false);
+      this.spawnCoinLine(chunkData, lanes[1], 35, 52, 3, 0.85, false, true);
+    } else if (sub === 2) {
+      // Generously Spaced 2-Step Slalom (34m gap: Step 1 at Z = 14, Step 2 at Z = 48)
+      const h0 = this.obstacleFactory.createLowHurdle();
+      h0.position.set(lanes[0], 0, 14);
+      this.registerObstacle(chunkData, h0);
+      this.spawnCoinArc(chunkData, lanes[0], 14);
+
+      const h1 = this.obstacleFactory.createLowHurdle();
+      h1.position.set(lanes[1], 0, 14);
+      this.registerObstacle(chunkData, h1);
+      this.spawnCoinArc(chunkData, lanes[1], 14);
+
+      this.spawnCoinLine(chunkData, lanes[2], 6, 24, 3, 0.85, false);
+
+      // Long Breathing Runway & Powerup Cache (Z = 24..38)
+      if (Math.random() < 0.35) {
+        this.spawnRandomPowerup(chunkData, lanes[1], 31, 1.2, true);
+      }
+
+      // Step 2 at Z = 48 (Ample 34m reaction distance)
+      const h1b = this.obstacleFactory.createLowHurdle();
+      h1b.position.set(lanes[1], 0, 48);
+      this.registerObstacle(chunkData, h1b);
+      this.spawnCoinArc(chunkData, lanes[1], 48);
+
+      const h2 = this.obstacleFactory.createLowHurdle();
+      h2.position.set(lanes[2], 0, 48);
+      this.registerObstacle(chunkData, h2);
+      this.spawnCoinArc(chunkData, lanes[2], 48);
+
+      this.spawnCoinLine(chunkData, lanes[0], 34, 52, 3, 0.85, false);
+    } else {
+      // Single Major Encounter at Z = 26: Dual Plasma Gates with Center Runway ( - )
+      const gL = this.obstacleFactory.createPlasmaGate();
+      gL.position.set(lanes[0], 0, 26);
+      this.registerObstacle(chunkData, gL);
+
+      const gR = this.obstacleFactory.createPlasmaGate();
+      gR.position.set(lanes[2], 0, 26);
+      this.registerObstacle(chunkData, gR);
+
+      this.spawnCoinLine(chunkData, lanes[1], 6, 52, 7, 0.85, false, true);
+    }
+  }
+
+  /**
+   * ZONE 3: DYNAMIC MIXED TRANSIT (70% Primary Game Flow - Balanced & Enjoyable)
+   * Varied blend of climbable ramp trains, jump hurdles, slide gates & moving express encounters
+   */
+  populateTransitChaosPattern(chunkData, lanes, isDownstream, trainRooftopCoinY) {
+    const sub = Math.floor(Math.random() * 5);
+
+    if (sub === 0) {
+      // 3-Way Choice: Slide Left (Gate), Jump Center (Hurdle Arc), or Climb Right (Ramp Train)
+      const gateL = this.obstacleFactory.createPlasmaGate();
+      gateL.position.set(lanes[0], 0, 24);
+      this.registerObstacle(chunkData, gateL);
+      this.spawnCoinLine(chunkData, lanes[0], 6, 18, 2, 0.85, false);
+      this.spawnCoinLine(chunkData, lanes[0], 30, 50, 3, 0.85, false);
+
+      const hurdleC = this.obstacleFactory.createLowHurdle();
+      hurdleC.position.set(lanes[1], 0, 24);
+      this.registerObstacle(chunkData, hurdleC);
+      this.spawnCoinArc(chunkData, lanes[1], 24);
+      this.spawnCoinLine(chunkData, lanes[1], 35, 52, 3, 0.85, false);
+
+      const rampTrain = this.obstacleFactory.createMaglevTrain(true, false, 20.0);
+      rampTrain.position.set(lanes[2], 0, 24);
+      this.registerObstacle(chunkData, rampTrain);
+      this.spawnRampTrainCoins(chunkData, lanes[2], 24, 20.0, true, trainRooftopCoinY);
+    } else if (sub === 1) {
+      // Moving Express Encounter + Ramp Train Sanctuary
+      if (isDownstream) {
+        const movingExpress = this.obstacleFactory.createTwoCompartmentTrain(false, true, 13.5);
+        movingExpress.position.set(lanes[0], 0, 54);
+        this.registerObstacle(chunkData, movingExpress);
+      } else {
+        const staticTrain = this.obstacleFactory.createMaglevTrain(false, false, 20.0);
+        staticTrain.position.set(lanes[0], 0, 24);
+        this.registerObstacle(chunkData, staticTrain);
+      }
+
+      const hurdleC = this.obstacleFactory.createLowHurdle();
+      hurdleC.position.set(lanes[1], 0, 24);
+      this.registerObstacle(chunkData, hurdleC);
+      this.spawnCoinArc(chunkData, lanes[1], 24);
+      this.spawnCoinLine(chunkData, lanes[1], 35, 52, 3, 0.85, false);
+
+      const rampTrain = this.obstacleFactory.createTwoCompartmentTrain(true, false, 13.5);
+      rampTrain.position.set(lanes[2], 0, 24);
+      this.registerObstacle(chunkData, rampTrain);
+      this.spawnRampTrainCoins(chunkData, lanes[2], 24, 28.6, true, trainRooftopCoinY);
+    } else if (sub === 2) {
+      // Center Maglev Ramp Train with Flanking Jump Hurdle & Coin Runway
+      const hurdleL = this.obstacleFactory.createLowHurdle();
+      hurdleL.position.set(lanes[0], 0, 24);
+      this.registerObstacle(chunkData, hurdleL);
+      this.spawnCoinArc(chunkData, lanes[0], 24);
+
+      const rampTrain = this.obstacleFactory.createMaglevTrain(true, false, 20.0);
+      rampTrain.position.set(lanes[1], 0, 24);
+      this.registerObstacle(chunkData, rampTrain);
+      this.spawnRampTrainCoins(chunkData, lanes[1], 24, 20.0, true, trainRooftopCoinY);
+      this.spawnRandomPowerup(chunkData, lanes[1], 24, trainRooftopCoinY, true);
+
+      this.spawnCoinLine(chunkData, lanes[2], 6, 52, 7, 0.85, false, false);
+    } else if (sub === 3) {
+      // Dual Side Maglev Ramp Trains with Center Speed Corridor
+      const train0 = this.obstacleFactory.createMaglevTrain(true, false, 20.0);
+      train0.position.set(lanes[0], 0, 24);
+      this.registerObstacle(chunkData, train0);
+      this.spawnRampTrainCoins(chunkData, lanes[0], 24, 20.0, true, trainRooftopCoinY);
+
+      const train2 = this.obstacleFactory.createMaglevTrain(true, false, 20.0);
+      train2.position.set(lanes[2], 0, 24);
+      this.registerObstacle(chunkData, train2);
+      this.spawnRampTrainCoins(chunkData, lanes[2], 24, 20.0, true, trainRooftopCoinY);
+
+      this.spawnCoinLine(chunkData, lanes[1], 6, 50, 7, 0.85, false, true);
+    } else {
+      // Hurdle Road Barrier on Lane 0 + Slide Gate on Lane 2 + Center Ramp Train
+      const hurdleL = this.obstacleFactory.createLowHurdle();
+      hurdleL.position.set(lanes[0], 0, 24);
+      this.registerObstacle(chunkData, hurdleL);
+      this.spawnCoinArc(chunkData, lanes[0], 24);
+
+      const rampTrain = this.obstacleFactory.createTwoCompartmentTrain(true, false, 13.5);
+      rampTrain.position.set(lanes[1], 0, 24);
+      this.registerObstacle(chunkData, rampTrain);
+      this.spawnRampTrainCoins(chunkData, lanes[1], 24, 28.6, true, trainRooftopCoinY);
+
+      const gateR = this.obstacleFactory.createPlasmaGate();
+      gateR.position.set(lanes[2], 0, 24);
+      this.registerObstacle(chunkData, gateR);
+      this.spawnCoinLine(chunkData, lanes[2], 6, 18, 2, 0.85, false);
+      this.spawnCoinLine(chunkData, lanes[2], 30, 50, 3, 0.85, false);
+    }
+  }
+
+  /**
+   * ZONE 4: REWARD DASH (15% Flow - Dense Coin Ribbons & Power-Up Cache)
+   */
+  populateRewardDashPattern(chunkData, lanes, trainRooftopCoinY) {
+    const sub = Math.floor(Math.random() * 3);
+
+    if (sub === 0) {
+      // Pure Triple Coin Ribbon Across All 3 Lanes + Center Powerup
+      this.spawnCoinLine(chunkData, lanes[1], 6, 48, 8, 0.85, false, true);
+      this.spawnCoinLine(chunkData, lanes[0], 8, 46, 7, 0.85, false, false);
+      this.spawnCoinLine(chunkData, lanes[2], 8, 46, 7, 0.85, false, false);
+
+      if (Math.random() < 0.4) {
+        this.spawnRandomPowerup(chunkData, lanes[1], 28, 1.2, true);
+      }
+    } else if (sub === 1) {
+      // Center Ramp Train Oasis + Dual Side Ground Coin Ribbons
+      const rampTrain = this.obstacleFactory.createMaglevTrain(true, false, 20.0);
+      rampTrain.position.set(lanes[1], 0, 24);
+      this.registerObstacle(chunkData, rampTrain);
+      this.spawnRampTrainCoins(chunkData, lanes[1], 24, 20.0, true, trainRooftopCoinY);
+
+      this.spawnRandomPowerup(chunkData, lanes[1], 24, trainRooftopCoinY, true);
+      this.spawnCoinLine(chunkData, lanes[0], 8, 48, 7, 0.85, false);
+      this.spawnCoinLine(chunkData, lanes[2], 8, 48, 7, 0.85, false);
+    } else {
+      // Twin Ramp Trains on Lanes 0 & 2 + Center Powerup Runway
+      const train0 = this.obstacleFactory.createMaglevTrain(true, false, 20.0);
+      train0.position.set(lanes[0], 0, 24);
+      this.registerObstacle(chunkData, train0);
+      this.spawnRampTrainCoins(chunkData, lanes[0], 24, 20.0, true, trainRooftopCoinY);
+
+      const train2 = this.obstacleFactory.createMaglevTrain(true, false, 20.0);
+      train2.position.set(lanes[2], 0, 24);
+      this.registerObstacle(chunkData, train2);
+      this.spawnRampTrainCoins(chunkData, lanes[2], 24, 20.0, true, trainRooftopCoinY);
+
+      this.spawnCoinLine(chunkData, lanes[1], 6, 48, 7, 0.85, false, true);
+    }
   }
 
   registerObstacle(chunkData, obstacle) {
@@ -570,9 +879,90 @@ export class TrackSegmentPool3D {
     chunkData.obstacles.push(obstacle);
   }
 
+  /**
+   * Spawns a smooth, long parabolic coin jump arc tailored to the character's jump physics:
+   * Covers an extended 17m flight path (start take-off -> apex 3.55m over barrier -> touchdown)
+   * ONLY spawned for low road barriers / jump hurdles.
+   */
+  spawnCoinArc(chunkData, laneX, centerZ, apexY = 3.55, spanZ = 17.0, count = 6) {
+    const halfSpan = spanZ / 2;
+    const startZ = centerZ - halfSpan;
+    const groundY = 0.85;
+    const isJetpackActive = !!(window.gameEngine3D?.player?.hasJetpack);
+
+    for (let i = 0; i < count; i++) {
+      const t = count === 1 ? 0.5 : (i / (count - 1));
+      const zPos = startZ + t * spanZ;
+      // Parabolic jump arc: y(t) = groundY + 4.0 * (apexY - groundY) * t * (1.0 - t)
+      const yPos = groundY + 4.0 * (apexY - groundY) * t * (1.0 - t);
+
+      const coin = this.collectibleFactory.createCoin();
+      coin.position.set(laneX, yPos, zPos);
+      coin.userData.isSky = false;
+      coin.visible = !isJetpackActive;
+
+      coin.userData.cachedCollisionData = {
+        mesh: coin,
+        chunkRoot: chunkData.root,
+        worldPos: new THREE.Vector3(laneX, yPos, chunkData.startZ + zPos),
+        type: "coin",
+        powerupType: null,
+        radius: 0.55,
+        points: CONFIG.UNITS_PER_COIN,
+        duration: 0,
+        itemRef: coin
+      };
+
+      chunkData.root.add(coin);
+      chunkData.groundCollectibles.push(coin);
+    }
+  }
+
+  /**
+   * Spawns non-overlapping, strictly straight/flat coins along the train rooftop deck only:
+   * - ZERO coins on ramps/slides (clean ramp entrance)
+   * - Flat rooftop coins spanning the upper deck strictly horizontally at roofY (5.00m)
+   */
+  spawnRampTrainCoins(chunkData, laneX, trainZ, trainLength = 20.0, hasRamp = true, roofY = 5.00) {
+    const isJetpackActive = !!(window.gameEngine3D?.player?.hasJetpack);
+    const halfLen = trainLength / 2;
+
+    // Rooftop Flat Straight Coins (Strictly horizontal flat line across the upper deck)
+    const zRoofStart = trainZ - halfLen + 1.2;
+    const zRoofEnd = trainZ + halfLen - 1.5;
+    const roofSpan = zRoofEnd - zRoofStart;
+    if (roofSpan > 4.0) {
+      const roofCoinCount = Math.max(3, Math.min(7, Math.round(roofSpan / 3.8)));
+      const step = roofSpan / (roofCoinCount - 1);
+      for (let i = 0; i < roofCoinCount; i++) {
+        const zPos = zRoofStart + i * step;
+
+        const coin = this.collectibleFactory.createCoin();
+        coin.position.set(laneX, roofY, zPos);
+        coin.userData.isSky = false;
+        coin.visible = !isJetpackActive;
+
+        coin.userData.cachedCollisionData = {
+          mesh: coin,
+          chunkRoot: chunkData.root,
+          worldPos: new THREE.Vector3(laneX, roofY, chunkData.startZ + zPos),
+          type: "coin",
+          powerupType: null,
+          radius: 0.55,
+          points: CONFIG.UNITS_PER_COIN,
+          duration: 0,
+          itemRef: coin
+        };
+
+        chunkData.root.add(coin);
+        chunkData.groundCollectibles.push(coin);
+      }
+    }
+  }
+
   spawnCoinLine(chunkData, laneX, startZ, endZ, count, yHeight, isSkyCoin = false, allowPowerup = true) {
     const step = (endZ - startZ) / (count - 1);
-    const powerupIndex = (allowPowerup && !isSkyCoin && Math.random() < 0.28) ? Math.floor(count / 2) : -1;
+    const powerupIndex = (allowPowerup && !isSkyCoin && Math.random() < 0.06) ? Math.floor(count / 2) : -1;
     const isJetpackActive = !!(window.gameEngine3D?.player?.hasJetpack);
 
     for (let i = 0; i < count; i++) {
@@ -611,7 +1001,7 @@ export class TrackSegmentPool3D {
 
   spawnRandomPowerup(chunkData, laneX, z, customY = 1.2, force = false) {
     if (!force) {
-      const spawnRate = CONFIG.POWERUP_SPAWN_CHANCE !== undefined ? CONFIG.POWERUP_SPAWN_CHANCE : 0.16;
+      const spawnRate = CONFIG.POWERUP_SPAWN_CHANCE !== undefined ? CONFIG.POWERUP_SPAWN_CHANCE : 0.0384;
       if (Math.random() > spawnRate) return;
     }
 
@@ -730,12 +1120,14 @@ export class TrackSegmentPool3D {
       this.spawnChunk(false);
     }
 
+    const currentSpeed = window.gameEngine3D?.currentSpeed || 23.5;
     for (let c = 0; c < this.activeChunks.length; c++) {
       const chunk = this.activeChunks[c];
       for (let o = 0; o < chunk.obstacles.length; o++) {
         const obs = chunk.obstacles[o];
         if (obs.userData.isMoving) {
-          obs.position.z -= obs.userData.moveSpeed * dt;
+          const effectiveSpeed = obs.userData.moveSpeed + (currentSpeed * 0.05);
+          obs.position.z -= effectiveSpeed * dt;
         }
       }
     }

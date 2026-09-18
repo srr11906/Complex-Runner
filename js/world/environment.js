@@ -5,8 +5,8 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "../config.js?v=20260914_complex_v6";
-import { textureGen } from "./textureGenerator.js?v=20260914_complex_v6";
+import { CONFIG } from "../config.js?v=20260919_triangle_neon_v38";
+import { textureGen } from "./textureGenerator.js?v=20260919_triangle_neon_v38";
 
 export class Environment3D {
   constructor(scene) {
@@ -30,13 +30,13 @@ export class Environment3D {
     const hemiLight = new THREE.HemisphereLight(
       CONFIG.COLORS.HEMI_SKY,
       CONFIG.COLORS.HEMI_GROUND,
-      2.8
+      3.1
     );
     hemiLight.position.set(0, 50, 0);
     this.scene.add(hemiLight);
 
     // 3. Directional Sun Light Tracking (Optimized 512x512 tight-frustum shadow map)
-    this.sunLight = new THREE.DirectionalLight(CONFIG.COLORS.SUN_LIGHT, 3.4);
+    this.sunLight = new THREE.DirectionalLight(CONFIG.COLORS.SUN_LIGHT, 3.75);
     this.sunLight.position.set(25, 55, -25);
     this.sunLight.castShadow = true;
     this.sunLight.shadow.mapSize.width = 512;
@@ -243,7 +243,7 @@ export class Environment3D {
       }
       if (this.sunLight) {
         this.sunLight.color.setHex(0xE0F2FE);
-        this.sunLight.intensity = 3.6;
+        this.sunLight.intensity = 4.0;
       }
     } else {
       this.scene.background = new THREE.Color(CONFIG.COLORS.SKY_TOP);
@@ -252,7 +252,7 @@ export class Environment3D {
       }
       if (this.sunLight) {
         this.sunLight.color.setHex(CONFIG.COLORS.SUN_LIGHT);
-        this.sunLight.intensity = 3.4;
+        this.sunLight.intensity = 3.75;
       }
     }
   }

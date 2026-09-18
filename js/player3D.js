@@ -4,9 +4,9 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "./config.js?v=20260914_complex_v6";
-import { BhairavaModel } from "./models/bhairavaModel.js?v=20260914_complex_v6";
-import { BujjiModel } from "./models/bujjiModel.js?v=20260914_complex_v6";
+import { CONFIG } from "./config.js?v=20260919_triangle_neon_v38";
+import { BhairavaModel } from "./models/bhairavaModel.js?v=20260919_triangle_neon_v38";
+import { BujjiModel } from "./models/bujjiModel.js?v=20260919_triangle_neon_v38";
 
 export class Player3D {
   constructor(scene) {
@@ -197,15 +197,16 @@ export class Player3D {
   }
 
   shootLaser(distance = 38.0) {
-    if (this.hasJetpack) {
+    if (this.hasJetpack || this.laserCooldown > 0) {
       return { shot: false };
     }
 
-    // Instant continuous rapid fire with smooth visual punch
-    this.shootTimer = 0.24;
+    // Snappy rapid-fire cooldown (up to ~5.5 shots per second)
+    this.laserCooldown = 0.18;
+    this.shootTimer = 0.18;
     if (this.laserBeamGroup) {
       this.laserBeamGroup.visible = true;
-      const validDist = Math.max(0.5, Math.min(38.0, distance));
+      const validDist = Math.max(0.5, Math.min(55.0, distance));
       const scaleZ = validDist / 38.0;
       const outer = this.laserBeamGroup.getObjectByName("outerLaser");
       const core = this.laserBeamGroup.getObjectByName("coreLaser");
@@ -223,7 +224,7 @@ export class Player3D {
       shot: true,
       laneX: this.targetX,
       playerZ: this.position.z,
-      range: 38.0
+      range: 55.0
     };
   }
 
@@ -364,6 +365,10 @@ export class Player3D {
     if (this.hasHarpoon) {
       this.harpoonTimer -= dt;
       if (this.harpoonTimer <= 0) this.hasHarpoon = false;
+    }
+
+    if (this.laserCooldown > 0) {
+      this.laserCooldown -= dt;
     }
 
     if (this.shootTimer > 0) {

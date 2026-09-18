@@ -36,14 +36,14 @@ export class CollisionManager3D {
 
       if (type === "train") {
         const trainHalfW = 1.35;
-        const trainLength = 22.0;
+        const trainLength = (mesh && mesh.userData && mesh.userData.trainLength) ? mesh.userData.trainLength : 22.0;
         const trainHalfD = trainLength / 2;
         const trainTopY = 4.15;
 
         const trainMinX = oPos.x - trainHalfW;
         const trainMaxX = oPos.x + trainHalfW;
-        const trainMinZ = isMoving ? (oPos.z - trainHalfD - 1.8) : (oPos.z - trainHalfD);
-        const trainMaxZ = isMoving ? (oPos.z + trainHalfD) : (oPos.z + trainHalfD + 1.8);
+        const trainMinZ = oPos.z - trainHalfD;
+        const trainMaxZ = oPos.z + trainHalfD;
 
         const overlapX = pBounds.maxX > trainMinX && pBounds.minX < trainMaxX;
 

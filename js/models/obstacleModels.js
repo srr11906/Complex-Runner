@@ -4,8 +4,8 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "../config.js";
-import { textureGen } from "../world/textureGenerator.js";
+import { CONFIG } from "../config.js?v=20260919_triangle_neon_v38";
+import { textureGen } from "../world/textureGenerator.js?v=20260919_triangle_neon_v38";
 
 export class ObstacleFactory3D {
   constructor() {
@@ -64,6 +64,30 @@ export class ObstacleFactory3D {
         color: 0x0F172A,
         roughness: 0.35,
         metalness: 0.95
+      }),
+      headlightBeam: new THREE.MeshBasicMaterial({
+        color: 0xFEF08A,
+        transparent: true,
+        opacity: 0.30,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      }),
+      headlightCoreBeam: new THREE.MeshBasicMaterial({
+        color: 0xFFFFFF,
+        transparent: true,
+        opacity: 0.50,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      }),
+      warningBeacon: new THREE.MeshBasicMaterial({
+        color: 0xF59E0B
+      }),
+      bellowsMat: new THREE.MeshStandardMaterial({
+        color: 0x181E24,
+        roughness: 0.85,
+        metalness: 0.20
       })
     };
 
@@ -73,6 +97,8 @@ export class ObstacleFactory3D {
       trainGrill: new THREE.BoxGeometry(1.6, 1.8, 0.4),
       grillSlat: new THREE.BoxGeometry(1.5, 0.08, 0.45),
       headlight: new THREE.SphereGeometry(0.24, 10, 10),
+      headlightBeamCone: new THREE.ConeGeometry(0.85, 18.0, 14, 1, true),
+      warningBeaconDome: new THREE.SphereGeometry(0.20, 8, 8),
       thrusterPod: new THREE.CylinderGeometry(0.38, 0.44, 0.28, 12),
       thrusterRing: new THREE.TorusGeometry(0.35, 0.04, 6, 12),
       thrusterFlame: new THREE.ConeGeometry(0.28, 0.55, 12),
@@ -84,7 +110,10 @@ export class ObstacleFactory3D {
       hurdleBarricade: new THREE.BoxGeometry(2.4, 1.90, 0.55),
       hurdleStripe: new THREE.BoxGeometry(2.42, 0.28, 0.57),
       rampGuideEdge: new THREE.BoxGeometry(0.06, 0.12, 9.0),
-      rampCenterTread: new THREE.BoxGeometry(0.7, 0.04, 8.8)
+      rampCenterTread: new THREE.BoxGeometry(0.7, 0.04, 8.8),
+      bellowsRingGeo: new THREE.BoxGeometry(2.45, 3.2, 0.22),
+      couplerPlateGeo: new THREE.BoxGeometry(1.6, 0.12, 1.8),
+      couplerRodGeo: new THREE.CylinderGeometry(0.08, 0.08, 1.6, 8)
     };
 
     this.trainBodyGeos = {};
@@ -187,18 +216,19 @@ export class ObstacleFactory3D {
     group.userData.type = "train";
     group.userData.hasRamp = hasRamp;
     group.userData.isMoving = isMoving;
-    group.userData.moveSpeed = isMoving ? 6.0 : 0; // Smooth advance speed for generous visibility
+    group.userData.moveSpeed = isMoving ? 3.0 : 0; // Fair, smooth advance speed
     group.userData.hp = 10;
     group.userData.maxHp = 10;
-
-    if (isMoving) {
-      group.rotation.y = Math.PI; // Reverse train direction so front nose & headlights face oncoming player!
-    }
+    group.userData.trainLength = length;
 
     const width = 2.6;
     const bodyHeight = 3.4;
     const floatElevation = 0.75;
     const totalTopY = floatElevation + bodyHeight;
+
+    if (isMoving) {
+      group.rotation.y = Math.PI; // Reverse train direction so front nose & headlights face oncoming player!
+    }
 
     const body = new THREE.Mesh(this.getTrainBodyGeo(length), this.materials.trainArmor);
     body.position.y = floatElevation + bodyHeight / 2;
@@ -289,6 +319,160 @@ export class ObstacleFactory3D {
         this.geometries.rampCenterTread,
         this.materials.roofGrating
       );
+      centerTread.position.set(0, totalTopY / 2 + 0.02, rampZOffset);
+      centerTread.rotation.x = rampAngle;
+      group.add(centerTread);
+
+      group.userData.hasRamp = true;
+    }
+
+    return group;
+  }
+
+  /**
+   * 2-Compartment Articulated Maglev Cargo Train (Engine + Articulated Bellows + Rear Coach)
+   */
+  createTwoCompartmentTrain(hasRamp = false, isMoving = false, carLength = 13.5) {
+    const group = new THREE.Group();
+    const couplerLength = 1.6;
+    const totalTrainLength = carLength * 2 + couplerLength; // 28.6m
+
+    group.userData.type = "train";
+    group.userData.hasRamp = hasRamp;
+    group.userData.isMoving = isMoving;
+    group.userData.moveSpeed = isMoving ? 3.0 : 0;
+    group.userData.hp = 16;
+    group.userData.maxHp = 16;
+    group.userData.trainLength = totalTrainLength;
+    group.userData.isTwoCompartment = true;
+
+    const width = 2.6;
+    const bodyHeight = 3.4;
+    const floatElevation = 0.75;
+    const totalTopY = floatElevation + bodyHeight;
+
+    const frontCarZ = couplerLength / 2 + carLength / 2; // +7.55
+    const rearCarZ = -(couplerLength / 2 + carLength / 2); // -7.55
+
+    if (isMoving) {
+      group.rotation.y = Math.PI; // Face oncoming player
+    }
+
+    // 1. Front Engine Car
+    const frontBody = new THREE.Mesh(this.getTrainBodyGeo(carLength), this.materials.trainArmor);
+    frontBody.position.set(0, floatElevation + bodyHeight / 2, frontCarZ);
+    frontBody.castShadow = true;
+    frontBody.receiveShadow = true;
+    group.add(frontBody);
+
+    const nose = new THREE.Mesh(this.geometries.trainNose, this.materials.trainArmor);
+    nose.rotation.x = Math.PI / 2;
+    nose.position.set(0, floatElevation + bodyHeight / 2, frontCarZ + carLength / 2 + 0.2);
+    group.add(nose);
+
+    const grill = new THREE.Mesh(this.geometries.trainGrill, this.materials.grillMat);
+    grill.position.set(0, floatElevation + 1.2, frontCarZ + carLength / 2 + 1.8);
+    group.add(grill);
+
+    for (let gy = -0.7; gy <= 0.7; gy += 0.35) {
+      const slat = new THREE.Mesh(this.geometries.grillSlat, this.materials.trainTrim);
+      slat.position.set(0, floatElevation + 1.2 + gy, frontCarZ + carLength / 2 + 1.8);
+      group.add(slat);
+    }
+
+    for (let x of [-0.85, 0.85]) {
+      const headlight = new THREE.Mesh(this.geometries.headlight, this.materials.headlightGlow);
+      headlight.position.set(x, floatElevation + bodyHeight * 0.7, frontCarZ + carLength / 2 + 1.85);
+      group.add(headlight);
+    }
+
+    // 2. Articulated Bellows Gangway (Center Coupler at z = 0)
+    for (let bz = -0.6; bz <= 0.6; bz += 0.3) {
+      const bellow = new THREE.Mesh(this.geometries.bellowsRingGeo, this.materials.bellowsMat);
+      bellow.position.set(0, floatElevation + bodyHeight / 2, bz);
+      group.add(bellow);
+    }
+
+    // Seamless Coupler Roof Bridge Plate
+    const couplerBridge = new THREE.Mesh(this.geometries.couplerPlateGeo, this.materials.roofGrating);
+    couplerBridge.position.set(0, totalTopY + 0.04, 0);
+    group.add(couplerBridge);
+
+    // Dual Heavy Hydraulic Coupling Struts
+    for (let s of [-0.9, 0.9]) {
+      const rod = new THREE.Mesh(this.geometries.couplerRodGeo, this.materials.carbonFrame);
+      rod.rotation.x = Math.PI / 2;
+      rod.position.set(s, floatElevation + 0.6, 0);
+      group.add(rod);
+    }
+
+    // 3. Rear Cargo Coach
+    const rearBody = new THREE.Mesh(this.getTrainBodyGeo(carLength), this.materials.trainArmor);
+    rearBody.position.set(0, floatElevation + bodyHeight / 2, rearCarZ);
+    rearBody.castShadow = true;
+    rearBody.receiveShadow = true;
+    group.add(rearBody);
+
+    // Repulsors under both cars
+    for (let carCenter of [frontCarZ, rearCarZ]) {
+      for (let zRel of [-carLength / 2 + 2.2, carLength / 2 - 2.2]) {
+        for (let x of [-0.95, 0.95]) {
+          const pod = new THREE.Mesh(this.geometries.thrusterPod, this.materials.carbonFrame);
+          pod.position.set(x, floatElevation + 0.05, carCenter + zRel);
+          group.add(pod);
+
+          const ring = new THREE.Mesh(this.geometries.thrusterRing, this.materials.repulsorPlasma);
+          ring.rotation.x = Math.PI / 2;
+          ring.position.set(x, floatElevation - 0.08, carCenter + zRel);
+          group.add(ring);
+
+          const flame = new THREE.Mesh(this.geometries.thrusterFlame, this.materials.repulsorPlasma);
+          flame.rotation.x = Math.PI;
+          flame.position.set(x, floatElevation - 0.35, carCenter + zRel);
+          group.add(flame);
+
+          const halo = new THREE.Mesh(this.geometries.thrusterHalo, this.materials.repulsorHalo);
+          halo.rotation.x = -Math.PI / 2;
+          halo.position.set(x, 0.04, carCenter + zRel);
+          group.add(halo);
+        }
+      }
+    }
+
+    // Continuous Full-Length Rooftop Gratings
+    const frontRoof = new THREE.Mesh(this.getTrainRoofGeo(carLength), this.materials.roofGrating);
+    frontRoof.position.set(0, totalTopY + 0.04, frontCarZ);
+    group.add(frontRoof);
+
+    const rearRoof = new THREE.Mesh(this.getTrainRoofGeo(carLength), this.materials.roofGrating);
+    rearRoof.position.set(0, totalTopY + 0.04, rearCarZ);
+    group.add(rearRoof);
+
+    // 4. Optional Climbable Rear Ramp attached to the back of the rear coach
+    if (hasRamp) {
+      const rampLength = 9.0;
+      const rampZOffset = -totalTrainLength / 2 - rampLength / 2;
+      const rampAngle = -Math.atan2(totalTopY, rampLength);
+
+      const solidRampMesh = new THREE.Mesh(this.rampGeo, this.materials.rampSurface);
+      solidRampMesh.position.set(0, 0, rampZOffset);
+      solidRampMesh.castShadow = true;
+      solidRampMesh.receiveShadow = true;
+      group.add(solidRampMesh);
+
+      for (let s of [-1, 1]) {
+        const railBase = new THREE.Mesh(this.rampStripeGeo, this.materials.carbonFrame);
+        railBase.position.set(s * (width / 2 - 0.08), totalTopY / 2, rampZOffset);
+        railBase.rotation.x = rampAngle;
+        group.add(railBase);
+
+        const guideEdge = new THREE.Mesh(this.geometries.rampGuideEdge, this.materials.plasmaBeam);
+        guideEdge.position.set(s * (width / 2 - 0.04), totalTopY / 2 + 0.06, rampZOffset);
+        guideEdge.rotation.x = rampAngle;
+        group.add(guideEdge);
+      }
+
+      const centerTread = new THREE.Mesh(this.geometries.rampCenterTread, this.materials.roofGrating);
       centerTread.position.set(0, totalTopY / 2 + 0.02, rampZOffset);
       centerTread.rotation.x = rampAngle;
       group.add(centerTread);

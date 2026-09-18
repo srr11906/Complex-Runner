@@ -4,8 +4,8 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "../config.js?v=20260914_complex_v6";
-import { textureGen } from "../world/textureGenerator.js?v=20260914_complex_v6";
+import { CONFIG } from "../config.js?v=20260919_triangle_neon_v38";
+import { textureGen } from "../world/textureGenerator.js?v=20260919_triangle_neon_v38";
 
 export class BhairavaModel {
   constructor() {

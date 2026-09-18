@@ -10,7 +10,7 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "../config.js";
+import { CONFIG } from "../config.js?v=20260919_triangle_neon_v38";
 
 const _tempVec = new THREE.Vector3();
 const _dir = new THREE.Vector3();
@@ -342,29 +342,77 @@ export class MonsterRobotModel {
 
   buildDroppedCoinsPool() {
     this.droppedCoins = [];
-    const coinGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.08, 16);
-    const coinMat = new THREE.MeshStandardMaterial({
-      color: 0xF59E0B,
-      metalness: 0.9,
-      roughness: 0.2,
-      emissive: 0xD97706,
-      emissiveIntensity: 0.4
+
+    // Polished Dystopian Silver Alloy Material
+    const silverMat = new THREE.MeshStandardMaterial({
+      color: 0xD8E0E8,
+      metalness: 0.95,
+      roughness: 0.16,
+      emissive: 0x1E293B,
+      emissiveIntensity: 0.20
     });
 
+    // Dark Titanium Recessed Core with Cybernetic Energy Glow
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: 0x475569,
+      metalness: 0.88,
+      roughness: 0.25,
+      emissive: 0x00E5FF,
+      emissiveIntensity: 0.38
+    });
+
+    const innerGlowMat = new THREE.MeshBasicMaterial({
+      color: 0x00E5FF
+    });
+
+    // Shared 3D Coin Geometries
+    const rimGeo = new THREE.TorusGeometry(0.36, 0.045, 8, 24);
+    const plateGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.06, 24);
+    const ribGeo = new THREE.BoxGeometry(0.04, 0.075, 0.74);
+    const hexHubGeo = new THREE.CylinderGeometry(0.13, 0.13, 0.085, 6);
+    const dotGeo = new THREE.SphereGeometry(0.04, 8, 8);
+
     for (let i = 0; i < 30; i++) {
-      const coin = new THREE.Mesh(coinGeo, coinMat);
-      coin.rotation.x = Math.PI / 2;
-      coin.visible = false;
-      coin.userData = {
+      const coinGroup = new THREE.Group();
+
+      // 1. Recessed Coin Body Plate
+      const plate = new THREE.Mesh(plateGeo, silverMat);
+      coinGroup.add(plate);
+
+      // 2. Raised Beveled Outer Rim (Front & Back)
+      const rim = new THREE.Mesh(rimGeo, silverMat);
+      rim.rotation.x = Math.PI / 2;
+      coinGroup.add(rim);
+
+      // 3. Milled Radial Coin Notches (Tactile 3D Ridges)
+      for (let angle of [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4]) {
+        const rib = new THREE.Mesh(ribGeo, silverMat);
+        rib.rotation.y = angle;
+        coinGroup.add(rib);
+      }
+
+      // 4. Embossed Hexagonal Cybernetic Center Bolt
+      const hexHub = new THREE.Mesh(hexHubGeo, coreMat);
+      coinGroup.add(hexHub);
+
+      // 5. Central Energy Node
+      const dot = new THREE.Mesh(dotGeo, innerGlowMat);
+      coinGroup.add(dot);
+
+      coinGroup.rotation.x = Math.PI / 2;
+      coinGroup.visible = false;
+      coinGroup.userData = {
         active: false,
         velX: 0,
         velY: 0,
         velZ: 0,
         life: 0,
+        seed: Math.random() * Math.PI * 2,
         collected: false
       };
-      if (this.scene) this.scene.add(coin);
-      this.droppedCoins.push(coin);
+
+      if (this.scene) this.scene.add(coinGroup);
+      this.droppedCoins.push(coinGroup);
     }
   }
 
@@ -885,7 +933,12 @@ export class MonsterRobotModel {
         }
       }
 
+      // Dynamic 3D Multi-Axis Tumbling, Gyroscopic Wobble & Specular Glint Rotation
+      const seed = coin.userData.seed || 0;
+      const coinTime = (coin.userData.life * 3.0) + seed;
       coin.rotation.y += 4.5 * dt;
+      coin.rotation.x = Math.PI / 2 + Math.sin(coinTime * 4.5) * 0.28;
+      coin.rotation.z = Math.cos(coinTime * 3.8) * 0.22;
 
       // Collection collision check
       const distToPlayer = Math.hypot(coin.position.x - pX, coin.position.y - pY, coin.position.z - pZ);

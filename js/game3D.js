@@ -4,15 +4,16 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "./config.js?v=20260914_jetpack_v24";
-import { AudioManager3D } from "./audio.js?v=20260914_jetpack_v24";
-import { InputManager3D } from "./input.js?v=20260914_jetpack_v24";
-import { Player3D } from "./player3D.js?v=20260914_jetpack_v24";
-import { Environment3D } from "./world/environment.js?v=20260914_jetpack_v24";
-import { TrackSegmentPool3D } from "./world/segmentPool.js?v=20260914_jetpack_v24";
-import { CameraManager3D } from "./cameraManager.js?v=20260914_jetpack_v24";
-import { CollisionManager3D } from "./collision3D.js?v=20260914_jetpack_v24";
-import { MonsterRobotModel } from "./models/monsterRobotModel.js?v=20260914_jetpack_v24";
+import { CONFIG } from "./config.js?v=20260919_triangle_neon_v38";
+import { AudioManager3D } from "./audio.js?v=20260919_triangle_neon_v38";
+import { InputManager3D } from "./input.js?v=20260919_triangle_neon_v38";
+import { Player3D } from "./player3D.js?v=20260919_triangle_neon_v38";
+import { Environment3D } from "./world/environment.js?v=20260919_triangle_neon_v38";
+import { TrackSegmentPool3D } from "./world/segmentPool.js?v=20260919_train_speed_fix_v40";
+import { CameraManager3D } from "./cameraManager.js?v=20260919_triangle_neon_v38";
+import { CollisionManager3D } from "./collision3D.js?v=20260919_train_speed_fix_v40";
+import { MonsterRobotModel } from "./models/monsterRobotModel.js?v=20260919_triangle_neon_v38";
+import { BountyManager } from "./bountyManager.js?v=20260919_triangle_neon_v38";
 
 export const GameState3D = {
   MENU: "menu",
@@ -42,7 +43,12 @@ export class GameEngine3D {
 
     // Subsystems
     this.audio = new AudioManager3D();
-    // Bounty system disabled for now - will be implemented one by one
+    // Bounty Hunter System (Commented out per user request)
+    // this.bountyManager = new BountyManager({
+    //   onBountyCaptured: (d) => this.onBountyCaptured(d),
+    //   onContractComplete: (c, r) => this.onContractComplete(c, r),
+    //   onStreakChange: (cnt, mult) => this.onStreakChange(cnt, mult)
+    // });
     this.bountyManager = null;
     this.input = null;
     this.player = null;
@@ -182,7 +188,7 @@ export class GameEngine3D {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.0;
+    this.renderer.toneMappingExposure = 1.10;
 
     container.appendChild(this.renderer.domElement);
 
@@ -438,6 +444,10 @@ export class GameEngine3D {
     this.state = GameState3D.PLAYING;
     this.showScreen(GameState3D.PLAYING);
     this.updateHud();
+    if (this.bountyManager) {
+      this.bountyManager.resetRun();
+      this.updateBountyBoard();
+    }
     this.safeAudio("playDialogue", "bujji");
   }
 
@@ -512,6 +522,9 @@ export class GameEngine3D {
     this.safeAudio("playMenuMusic");
     this.updateMenuStats();
     this.showScreen(GameState3D.MENU);
+    if (this.bountyManager) {
+      this.updateBountyBoard();
+    }
     this._lastUnits = null;
     this._lastScore = null;
     this._lastGoalPct = null;
@@ -696,6 +709,7 @@ export class GameEngine3D {
           obs.destroyed = true;
           this.destroyedObstaclesCount = (this.destroyedObstaclesCount || 0) + 1;
           if (this.menuManager) this.menuManager.recordMissionProgress("laser_destroy", 1);
+          if (this.bountyManager) this.bountyManager.recordLaserShot();
           if (obs.mesh) {
             obs.mesh.visible = false;
             if (obs.mesh.userData) obs.mesh.userData.destroyed = true;
@@ -978,6 +992,7 @@ export class GameEngine3D {
 
     if (hitResult) {
       if (hitResult.type === "collision") {
+        if (this.bountyManager) this.bountyManager.breakStreak();
         if (this.player.hasShield) {
           // Shield absorbs collision
           this.player.breakShield();
@@ -1017,7 +1032,12 @@ export class GameEngine3D {
         if (target && !target.destroyed) {
           target.destroyed = true;
           if (target.mesh) target.mesh.visible = false;
-          const reward = (hitResult.rewardUnits || 5000) * mult;
+          let reward = hitResult.rewardUnits || 5000;
+          if (this.bountyManager) {
+            reward = this.bountyManager.recordTakedown(hitResult.targetType || "scavenger", reward, hitResult.targetName || "TARGET");
+          } else {
+            reward *= mult;
+          }
           this.units += reward;
           this.score += reward;
           this.showFloatingBountyBanner(`🎯 ${hitResult.targetName || "TARGET"} CAPTURED! +${reward.toLocaleString()} U`, "bounty");
@@ -1029,7 +1049,12 @@ export class GameEngine3D {
         if (crate && !crate.destroyed) {
           crate.destroyed = true;
           if (crate.mesh) crate.mesh.visible = false;
-          const reward = (hitResult.rewardUnits || 10000) * mult;
+          let reward = hitResult.rewardUnits || 10000;
+          if (this.bountyManager) {
+            reward = this.bountyManager.recordTakedown("crate", reward, "Bounty Stash");
+          } else {
+            reward *= mult;
+          }
           this.units += reward;
           this.score += reward;
           this.showFloatingBountyBanner(`📦 BOUNTY STASH BREACHED! +${reward.toLocaleString()} U`, "bounty");
@@ -1044,6 +1069,9 @@ export class GameEngine3D {
           const reward = (hitResult.rewardUnits || 15000) * mult;
           this.units += reward;
           this.score += reward;
+          if (this.bountyManager) {
+            this.bountyManager.progressContract("reach_streak", this.bountyManager.streakCount + 1, true);
+          }
           this.showFloatingBountyBanner(`📡 EXTRACTION SECURED! +${reward.toLocaleString()} U`, "bounty");
           this.safeAudio("playPowerup");
           this.cameraManager.shake(0.4);
