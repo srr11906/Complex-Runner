@@ -4,7 +4,7 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "../config.js?v=20260919_triangle_neon_v38";
+import { CONFIG } from "../config.js?v=20261011_production_v60";
 
 export class BujjiModel {
   constructor() {
@@ -103,6 +103,8 @@ export class BujjiModel {
         new THREE.TorusGeometry(0.048, 0.015, 10, 20),
         yellowNanoMat
       );
+      nozzle.castShadow = false;
+      nozzle.receiveShadow = false;
       nozzle.position.set(side * 0.28, -0.02, -0.22);
       this.root.add(nozzle);
 
@@ -110,6 +112,8 @@ export class BujjiModel {
         new THREE.ConeGeometry(0.045, 0.18, 12),
         thrusterGlowMat
       );
+      flame.castShadow = false;
+      flame.receiveShadow = false;
       flame.rotation.x = -Math.PI / 2;
       flame.position.set(side * 0.28, -0.02, -0.32);
       this.root.add(flame);

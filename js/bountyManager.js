@@ -32,7 +32,7 @@ export class BountyManager {
       try {
         return JSON.parse(saved);
       } catch (e) {
-        console.error("Failed to parse contracts", e);
+        // Fallback to fresh contracts on invalid JSON
       }
     }
     return this.generateNewContracts();

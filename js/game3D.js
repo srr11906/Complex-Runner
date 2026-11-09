@@ -4,16 +4,17 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "./config.js?v=20260919_triangle_neon_v38";
-import { AudioManager3D } from "./audio.js?v=20260919_triangle_neon_v38";
-import { InputManager3D } from "./input.js?v=20260919_triangle_neon_v38";
-import { Player3D } from "./player3D.js?v=20260919_triangle_neon_v38";
-import { Environment3D } from "./world/environment.js?v=20260919_triangle_neon_v38";
-import { TrackSegmentPool3D } from "./world/segmentPool.js?v=20260919_train_speed_fix_v40";
-import { CameraManager3D } from "./cameraManager.js?v=20260919_triangle_neon_v38";
-import { CollisionManager3D } from "./collision3D.js?v=20260919_train_speed_fix_v40";
-import { MonsterRobotModel } from "./models/monsterRobotModel.js?v=20260919_triangle_neon_v38";
-import { BountyManager } from "./bountyManager.js?v=20260919_triangle_neon_v38";
+import { CONFIG } from "./config.js?v=20261108_hardened_v84";
+import { AudioManager3D } from "./audio.js?v=20261108_hardened_v84";
+import { InputManager3D } from "./input.js?v=20261108_hardened_v84";
+import { Player3D } from "./player3D.js?v=20261108_hardened_v84";
+import { Environment3D } from "./world/environment.js?v=20261108_hardened_v84";
+import { TrackSegmentPool3D } from "./world/segmentPool.js?v=20261108_hardened_v84";
+import { CameraManager3D } from "./cameraManager.js?v=20261108_hardened_v84";
+import { CollisionManager3D } from "./collision3D.js?v=20261108_hardened_v84";
+import { MonsterRobotModel } from "./models/monsterRobotModel.js?v=20261108_hardened_v84";
+import { BountyManager } from "./bountyManager.js?v=20261108_hardened_v84";
+import { assetLoader } from "./models/assetLoader3D.js?v=20261108_hardened_v84";
 
 export const GameState3D = {
   MENU: "menu",
@@ -31,6 +32,7 @@ export class GameEngine3D {
     this.units = 0;
     this.highScore = parseInt(localStorage.getItem("prabhas3DHighScore") || "0", 10);
     this.vaultUnits = parseInt(localStorage.getItem("prabhas3DVaultUnits") || "0", 10);
+    this.hasAchievedHeist = false;
 
     this.currentSpeed = CONFIG.INITIAL_SPEED;
     this.gameOverLockTime = 0;
@@ -72,21 +74,29 @@ export class GameEngine3D {
     this.monsterEnabled = localStorage.getItem("prabhas3DMonsterToggle") !== "false";
     this.lastApexMilestone = 0;
 
-    // Loop
+    // Loop & Zero-Allocation Structures
     this.lastTime = 0;
     this.animId = null;
+    this._boundGameLoop = (t) => this.gameLoop(t);
+    this._laserData = { shot: true, laneX: 0, playerZ: 0, range: 55.0 };
 
     // DOM Elements
     this.dom = {};
   }
 
-  safeAudio(fnName, ...args) {
+  safeAudio(fnName, a, b, c) {
     if (this.audio && typeof this.audio[fnName] === "function") {
       try {
-        this.audio[fnName](...args);
-      } catch (e) {
-        console.warn(`Audio call '${fnName}' error:`, e);
-      }
+        if (c !== undefined) {
+          this.audio[fnName](a, b, c);
+        } else if (b !== undefined) {
+          this.audio[fnName](a, b);
+        } else if (a !== undefined) {
+          this.audio[fnName](a);
+        } else {
+          this.audio[fnName]();
+        }
+      } catch (e) {}
     }
   }
 
@@ -132,6 +142,7 @@ export class GameEngine3D {
     window.addEventListener("keydown", unlockMenuAudio);
 
     window.addEventListener("resize", () => this.handleResize());
+    this.init3DCardParallax();
 
     // Battery & Performance: Handle background tab visibility
     document.addEventListener("visibilitychange", () => {
@@ -188,29 +199,175 @@ export class GameEngine3D {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.10;
+    this.renderer.toneMappingExposure = 1.25;
 
     container.appendChild(this.renderer.domElement);
 
-    // Warm Subtle Rim Backlight for Hero Silhouettes (Balanced)
-    this.rimLight = new THREE.DirectionalLight(0xF59E0B, 0.45);
+    // Warm Crisp Rim Backlight for Hero Silhouettes (High Visibility)
+    this.rimLight = new THREE.DirectionalLight(0xFDE047, 1.1);
     this.rimLight.position.set(-15, 12, 10);
     this.rimLightTarget = new THREE.Object3D();
     this.scene.add(this.rimLightTarget);
     this.rimLight.target = this.rimLightTarget;
     this.scene.add(this.rimLight);
 
+    // Camera-Following Soft Hero Fill Light (Illuminates back, vest, arms)
+    this.heroFillLight = new THREE.DirectionalLight(0xFFFBEB, 0.75);
+    this.heroFillLight.position.set(0, 8, -10);
+    this.heroFillTarget = new THREE.Object3D();
+    this.scene.add(this.heroFillTarget);
+    this.heroFillLight.target = this.heroFillTarget;
+    this.scene.add(this.heroFillLight);
+
     // Tractor Beam for Victory Sequence
-    const beamGeo = new THREE.CylinderGeometry(4.0, 4.0, 150, 24, 1, true);
-    const beamMat = new THREE.MeshBasicMaterial({
+    this.initTractorBeam();
+  }
+
+  initTractorBeam() {
+    const group = new THREE.Group();
+    group.visible = false;
+    this.scene.add(group);
+
+    // 1. Hyper-Luminous Inner Plasma Core (Additive Blending - Bright Radiant White-Cyan)
+    const coreGeo = new THREE.CylinderGeometry(2.0, 2.0, 240, 24, 1, true);
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: 0xBAE6FD,
+      transparent: true,
+      opacity: 0.0,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    coreMesh.position.y = 120;
+    group.add(coreMesh);
+
+    // 2. Translucent Electric Cyan Outer Hologram Column
+    const outerGeo = new THREE.CylinderGeometry(4.8, 5.4, 240, 28, 1, true);
+    const outerMat = new THREE.MeshBasicMaterial({
       color: 0x00E5FF,
       transparent: true,
       opacity: 0.0,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
+      depthWrite: false
     });
-    this.tractorBeam = new THREE.Mesh(beamGeo, beamMat);
-    this.tractorBeam.position.y = 75;
-    this.scene.add(this.tractorBeam);
+    const outerMesh = new THREE.Mesh(outerGeo, outerMat);
+    outerMesh.position.y = 120;
+    group.add(outerMesh);
+
+    // 3. Counter-Rotating Energy Spiral / Helix Ribbon
+    const helixGeo = new THREE.CylinderGeometry(3.6, 3.8, 240, 12, 1, true);
+    const helixMat = new THREE.MeshBasicMaterial({
+      color: 0x38BDF8,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const helixMesh = new THREE.Mesh(helixGeo, helixMat);
+    helixMesh.position.y = 120;
+    group.add(helixMesh);
+
+    // 4. Ascending Plasma Rings (Light halos rushing upward into the sky)
+    const rings = [];
+    const ringGeo = new THREE.TorusGeometry(3.6, 0.16, 8, 24);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x67E8F9,
+      transparent: true,
+      opacity: 0.0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    for (let i = 0; i < 7; i++) {
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = i * 32;
+      group.add(ring);
+      rings.push(ring);
+    }
+
+    // 5. Ground Graviton Anchor Pad & Shockwave Ring
+    const groundPadGeo = new THREE.RingGeometry(0.5, 5.2, 32);
+    const groundPadMat = new THREE.MeshBasicMaterial({
+      color: 0x00E5FF,
+      transparent: true,
+      opacity: 0.0,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const groundPad = new THREE.Mesh(groundPadGeo, groundPadMat);
+    groundPad.rotation.x = -Math.PI / 2;
+    groundPad.position.y = 0.06;
+    group.add(groundPad);
+
+    this.tractorBeam = {
+      group,
+      core: coreMesh,
+      coreMat,
+      outer: outerMesh,
+      outerMat,
+      helix: helixMesh,
+      helixMat,
+      rings,
+      ringMat,
+      groundPad,
+      groundPadMat,
+      active: false
+    };
+  }
+
+  showTractorBeam(x, z) {
+    if (!this.tractorBeam) return;
+    this.tractorBeam.active = true;
+    this.tractorBeam.group.position.set(x, 0, z);
+    this.tractorBeam.group.visible = true;
+    this.tractorBeam.coreMat.opacity = 0.85;
+    this.tractorBeam.outerMat.opacity = 0.40;
+    this.tractorBeam.helixMat.opacity = 0.65;
+    this.tractorBeam.ringMat.opacity = 0.80;
+    this.tractorBeam.groundPadMat.opacity = 0.75;
+  }
+
+  hideTractorBeam() {
+    if (!this.tractorBeam) return;
+    this.tractorBeam.active = false;
+    this.tractorBeam.group.visible = false;
+    this.tractorBeam.coreMat.opacity = 0;
+    this.tractorBeam.outerMat.opacity = 0;
+    this.tractorBeam.helixMat.opacity = 0;
+    this.tractorBeam.ringMat.opacity = 0;
+    this.tractorBeam.groundPadMat.opacity = 0;
+  }
+
+  updateTractorBeam(dt, time) {
+    if (!this.tractorBeam || !this.tractorBeam.active) return;
+    const tb = this.tractorBeam;
+
+    // Counter-rotations for sci-fi dynamic swirl
+    tb.core.rotation.y += dt * 1.2;
+    tb.outer.rotation.y -= dt * 0.7;
+    tb.helix.rotation.y += dt * 2.8;
+    tb.groundPad.rotation.z += dt * 1.5;
+
+    // Pulsating radiant energy core
+    const pulse = 0.75 + 0.20 * Math.sin(time * 10.0);
+    tb.coreMat.opacity = 0.85 * pulse;
+
+    // Ascend plasma rings rapidly upward toward the sky
+    const ringSpeed = 52.0;
+    const maxHeight = 210.0;
+    for (let i = 0; i < tb.rings.length; i++) {
+      const ring = tb.rings[i];
+      ring.position.y += dt * ringSpeed;
+      if (ring.position.y > maxHeight) {
+        ring.position.y = 0;
+      }
+      const progress = ring.position.y / maxHeight;
+      const scale = 1.0 + progress * 0.40;
+      ring.scale.set(scale, scale, 1.0);
+    }
   }
 
   cacheDom() {
@@ -250,16 +407,26 @@ export class GameEngine3D {
       // Mission Mode Selectors
       btnModeHeist: document.getElementById("mode-btn-heist"),
       btnModeEndless: document.getElementById("mode-btn-endless"),
-      btnModeComplex: document.getElementById("mode-btn-complex"),
+
+      // Map Selection Modal (Endless Run)
+      mapSelectScreen: document.getElementById("map-select-screen"),
+      btnSelectMapWasteland: document.getElementById("btn-select-map-wasteland"),
+      btnSelectMapComplex: document.getElementById("btn-select-map-complex"),
+      btnCloseMapSelect: document.getElementById("btn-close-map-select"),
 
       startScreen: document.getElementById("start-screen"),
       pauseScreen: document.getElementById("pause-screen"),
       gameOverScreen: document.getElementById("game-over-screen"),
       victoryScreen: document.getElementById("victory-screen"),
+      btnVictoryContinue: document.getElementById("btn-victory-continue"),
 
       finalScore: document.getElementById("final-score-val"),
       finalHighScore: document.getElementById("final-high-val"),
       finalUnits: document.getElementById("final-units-val"),
+
+      victoryScore: document.getElementById("victory-score-val"),
+      victoryTime: document.getElementById("victory-time-val"),
+      victoryUnits: document.getElementById("victory-units-val"),
 
       btnStartRun: document.getElementById("btn-start-run"),
       btnResume: document.getElementById("btn-resume"),
@@ -295,14 +462,55 @@ export class GameEngine3D {
       this.dom.btnModeHeist.addEventListener("click", () => this.setGameMode("heist"));
     }
     if (this.dom.btnModeEndless) {
-      this.dom.btnModeEndless.addEventListener("click", () => this.setGameMode("endless"));
-    }
-    if (this.dom.btnModeComplex) {
-      this.dom.btnModeComplex.addEventListener("click", () => this.setGameMode("complex"));
+      this.dom.btnModeEndless.addEventListener("click", () => {
+        this.setGameMode("endless");
+        this.openMapSelectModal();
+      });
     }
     if (this.dom.btnStartRun) {
-      this.dom.btnStartRun.addEventListener("click", () => this.startNewGame());
+      this.dom.btnStartRun.addEventListener("click", () => {
+        if (this.gameMode === "endless") {
+          this.openMapSelectModal();
+        } else {
+          this.startNewGame("wasteland");
+        }
+      });
     }
+    if (this.dom.btnSelectMapWasteland) {
+      this.dom.btnSelectMapWasteland.addEventListener("click", () => {
+        this.closeMapSelectModal();
+        this.startNewGame("wasteland");
+      });
+    }
+    if (this.dom.btnSelectMapComplex) {
+      this.dom.btnSelectMapComplex.addEventListener("click", () => {
+        this.closeMapSelectModal();
+        this.startNewGame("complex");
+      });
+    }
+    if (this.dom.btnCloseMapSelect) {
+      this.dom.btnCloseMapSelect.addEventListener("click", () => {
+        this.closeMapSelectModal();
+      });
+    }
+
+    // Keyboard Shortcuts for Sector Dispatch Terminal [1: Wasteland, 2: Complex, ESC: Cancel]
+    window.addEventListener("keydown", (e) => {
+      if (this.dom.mapSelectScreen && this.dom.mapSelectScreen.classList.contains("active")) {
+        if (e.key === "1") {
+          e.preventDefault();
+          this.closeMapSelectModal();
+          this.startNewGame("wasteland");
+        } else if (e.key === "2") {
+          e.preventDefault();
+          this.closeMapSelectModal();
+          this.startNewGame("complex");
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          this.closeMapSelectModal();
+        }
+      }
+    });
     if (this.dom.btnResume) {
       this.dom.btnResume.addEventListener("click", () => this.resumeGame());
     }
@@ -318,8 +526,11 @@ export class GameEngine3D {
     if (this.dom.btnGameOverMenu) {
       this.dom.btnGameOverMenu.addEventListener("click", () => this.showMenu());
     }
+    if (this.dom.btnVictoryContinue) {
+      this.dom.btnVictoryContinue.addEventListener("click", () => this.continueToComplex());
+    }
     if (this.dom.btnVictoryPlayAgain) {
-      this.dom.btnVictoryPlayAgain.addEventListener("click", () => this.startNewGame());
+      this.dom.btnVictoryPlayAgain.addEventListener("click", () => this.startNewGame("wasteland"));
     }
     if (this.dom.btnVictoryMenu) {
       this.dom.btnVictoryMenu.addEventListener("click", () => this.showMenu());
@@ -382,16 +593,25 @@ export class GameEngine3D {
     if (this.dom.btnModeEndless) {
       this.dom.btnModeEndless.classList.toggle("active", mode === "endless");
     }
-    if (this.dom.btnModeComplex) {
-      this.dom.btnModeComplex.classList.toggle("active", mode === "complex");
-    }
 
-    const isComplex = mode === "complex";
-    if (this.player) this.player.setOutfit(isComplex ? "complex" : "wasteland");
-    if (this.trackPool) this.trackPool.setTheme(isComplex ? "complex" : "wasteland");
-    if (this.environment) this.environment.setTheme(isComplex ? "complex" : "wasteland");
+    const currentMap = this.selectedMap || "wasteland";
+    if (this.player) this.player.setOutfit(currentMap);
+    if (this.trackPool) this.trackPool.setTheme(currentMap);
+    if (this.environment) this.environment.setTheme(currentMap);
 
     this.updateHud();
+  }
+
+  openMapSelectModal() {
+    if (this.dom.mapSelectScreen) {
+      this.dom.mapSelectScreen.classList.add("active");
+    }
+  }
+
+  closeMapSelectModal() {
+    if (this.dom.mapSelectScreen) {
+      this.dom.mapSelectScreen.classList.remove("active");
+    }
   }
 
   handleResize() {
@@ -406,26 +626,36 @@ export class GameEngine3D {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   }
 
-  startNewGame() {
+  startNewGame(mapTheme = null) {
     this.safeAudio("init");
     this.safeAudio("playMusic");
     this.safeAudio("playDialogue", "bujji");
     this.score = 0;
     this.units = 0;
+    this.hasAchievedHeist = false;
     this.currentSpeed = CONFIG.INITIAL_SPEED;
+    this.runDuration = 0;
 
     this._lastUnits = null;
     this._lastScore = null;
     this._lastGoalPct = null;
     this._lastGoalPillDisplay = null;
 
-    const isComplex = this.gameMode === "complex";
+    if (mapTheme) {
+      this.selectedMap = mapTheme;
+    } else if (this.gameMode === "heist") {
+      this.selectedMap = "wasteland";
+    } else {
+      this.selectedMap = this.selectedMap || "wasteland";
+    }
+
+    const isComplex = this.selectedMap === "complex";
     this.player.reset();
     this.player.setOutfit(isComplex ? "complex" : "wasteland");
 
-    this.trackPool.init();
-    this.trackPool.setTheme(isComplex ? "complex" : "wasteland");
+    if (this.trackPool) this.trackPool.setTheme(isComplex ? "complex" : "wasteland");
     if (this.environment) this.environment.setTheme(isComplex ? "complex" : "wasteland");
+    this.trackPool.init();
 
     this.lastMiniMilestone = 0;
     this.lastApexMilestone = 0;
@@ -437,9 +667,9 @@ export class GameEngine3D {
       });
     }
 
-    if (this.tractorBeam) {
-      this.tractorBeam.material.opacity = 0;
-    }
+    this.hideTractorBeam();
+    this.isComplexDropActive = false;
+    if (this.complexShockwaveMesh) this.complexShockwaveMesh.visible = false;
 
     this.state = GameState3D.PLAYING;
     this.showScreen(GameState3D.PLAYING);
@@ -449,6 +679,223 @@ export class GameEngine3D {
       this.updateBountyBoard();
     }
     this.safeAudio("playDialogue", "bujji");
+  }
+
+  /**
+   * Complex Heist Milestone Reached: Continue to Complex with same score and active powerups!
+   */
+  continueToComplex() {
+    this.hasAchievedHeist = true;
+    this.selectedMap = "complex";
+
+    // Smoothly transition environment, track pool, and Bhairava outfit to Complex
+    this.player.setOutfit("complex");
+    if (this.trackPool) this.trackPool.setTheme("complex");
+    if (this.environment) this.environment.setTheme("complex");
+
+    // Hide victory screen & tractor beam
+    if (this.dom.victoryScreen) {
+      this.dom.victoryScreen.classList.remove("active");
+    }
+    this.hideTractorBeam();
+
+    // Reset arm rotations back from victory levitation pose
+    if (this.player.bhairava?.parts) {
+      const p = this.player.bhairava.parts;
+      if (p.leftArm) p.leftArm.rotation.z = 0;
+      if (p.rightArm) p.rightArm.rotation.z = 0;
+    }
+
+    // Retain current score, units, and active powerups with remaining timers!
+    this.state = GameState3D.PLAYING;
+    this.showScreen(GameState3D.PLAYING);
+    this.lastTime = performance.now();
+    this.lastRenderTime = performance.now();
+
+    this.safeAudio("playMusic");
+    this.safeAudio("playDialogue", "complex");
+
+    this._lastGoalPillDisplay = null;
+    this.updateHud();
+
+    // Trigger cinematic fall-down animation onto the Complex
+    this.startComplexDropSequence();
+  }
+
+  /**
+   * Cinematic High-Altitude Drop onto Complex with Superhero 3-Point Touchdown
+   */
+  startComplexDropSequence() {
+    this.isComplexDropActive = true;
+    this.complexDropPhase = "falling";
+    this.complexDropTimer = 0;
+
+    // Drop from 38 meters above the track surface
+    this.player.position.y = 38.0;
+    this.player.root.position.copy(this.player.position);
+    this.player.velocityY = -26.0;
+    this.player.isGrounded = false;
+    this.player.isJumping = false;
+    this.player.isSliding = false;
+    this.player.invulnerableTimer = 4.0; // Complete immunity during fall, impact & stand-up
+
+    // Temporarily reduce forward speed during the skyfall descent
+    this.savedDropSpeed = Math.max(CONFIG.INITIAL_SPEED, this.currentSpeed || CONFIG.INITIAL_SPEED);
+    this.currentSpeed = 6.0;
+
+    // Procedural expanding cyan/gold plasma shockwave ring
+    if (!this.complexShockwaveMesh) {
+      const geo = new THREE.RingGeometry(0.3, 0.7, 32);
+      geo.rotateX(-Math.PI / 2);
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0x00E5FF,
+        transparent: true,
+        opacity: 0,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      });
+      this.complexShockwaveMesh = new THREE.Mesh(geo, mat);
+      this.scene.add(this.complexShockwaveMesh);
+    }
+    this.complexShockwaveMesh.visible = false;
+  }
+
+  updateComplexDrop(dt) {
+    this.complexDropTimer += dt;
+    const parts = this.player.bhairava?.parts;
+
+    if (this.complexDropPhase === "falling") {
+      // Accelerate downwards under heavy gravity
+      this.player.velocityY -= 48.0 * dt;
+      this.player.position.y += this.player.velocityY * dt;
+
+      // Slowly inch forward so there is dynamic motion
+      this.player.position.z += this.currentSpeed * dt;
+      this.player.root.position.copy(this.player.position);
+
+      // Diving skyfall pose
+      if (parts) {
+        if (parts.hips) {
+          parts.hips.rotation.set(0.48, 0, 0);
+        }
+        if (parts.torso) parts.torso.rotation.set(0.25, 0, 0);
+        if (parts.head) parts.head.rotation.set(-0.35, 0, 0);
+
+        // Arms swept backwards aerodynamically
+        if (parts.leftArm) parts.leftArm.rotation.set(-1.35, -0.15, 0.35);
+        if (parts.rightArm) parts.rightArm.rotation.set(-1.35, 0.15, -0.35);
+        if (parts.leftForearm) parts.leftForearm.rotation.set(-0.35, 0, 0);
+        if (parts.rightForearm) parts.rightForearm.rotation.set(-0.35, 0, 0);
+
+        // Legs trailing in streamline
+        if (parts.leftLeg) parts.leftLeg.rotation.set(0.35, 0, -0.08);
+        if (parts.rightLeg) parts.rightLeg.rotation.set(0.42, 0, 0.08);
+        if (parts.leftCalf) parts.leftCalf.rotation.set(0.65, 0, 0);
+        if (parts.rightCalf) parts.rightCalf.rotation.set(0.75, 0, 0);
+      }
+
+      // Check ground collision
+      if (this.player.position.y <= 0) {
+        this.player.position.y = 0;
+        this.player.root.position.copy(this.player.position);
+        this.player.velocityY = 0;
+        this.player.isGrounded = true;
+        this.complexDropPhase = "impact";
+        this.complexDropTimer = 0;
+
+        // Trigger superhero landing shockwave
+        if (this.complexShockwaveMesh) {
+          this.complexShockwaveMesh.position.set(this.player.position.x, 0.04, this.player.position.z);
+          this.complexShockwaveMesh.scale.set(0.8, 0.8, 0.8);
+          this.complexShockwaveMesh.material.opacity = 0.95;
+          this.complexShockwaveMesh.visible = true;
+        }
+
+        // Camera impact shake and audio
+        this.cameraManager.shake(0.75);
+        this.safeAudio("playHit");
+        this.safeAudio("playDialogue", "bujji");
+      }
+    } else if (this.complexDropPhase === "impact") {
+      // 3-Point Superhero Landing Crouch Pose
+      if (parts) {
+        const baseY = this.player.bhairava.baseHipsY || 0.86;
+        if (parts.hips) {
+          parts.hips.position.y = baseY - 0.38;
+          parts.hips.rotation.set(0.22, 0, 0);
+        }
+        if (parts.torso) parts.torso.rotation.set(0.72, 0, 0);
+        if (parts.head) parts.head.rotation.set(-0.55, 0, 0);
+
+        // Right arm punched into pavement
+        if (parts.rightArm) parts.rightArm.rotation.set(1.25, 0.12, -0.15);
+        if (parts.rightForearm) parts.rightForearm.rotation.set(0.10, 0, 0);
+
+        // Left arm angled outward and back for balance
+        if (parts.leftArm) parts.leftArm.rotation.set(-0.65, -0.25, 0.55);
+        if (parts.leftForearm) parts.leftForearm.rotation.set(-0.45, 0, 0);
+
+        // Right leg knee bent low
+        if (parts.rightLeg) parts.rightLeg.rotation.set(-1.42, 0, 0.12);
+        if (parts.rightCalf) parts.rightCalf.rotation.set(1.55, 0, 0);
+
+        // Left leg wide athletic brace
+        if (parts.leftLeg) parts.leftLeg.rotation.set(0.48, 0, -0.42);
+        if (parts.leftCalf) parts.leftCalf.rotation.set(0.35, 0, 0);
+      }
+
+      // Expand shockwave ring
+      if (this.complexShockwaveMesh && this.complexShockwaveMesh.visible) {
+        const growth = 0.8 + this.complexDropTimer * 14.0;
+        this.complexShockwaveMesh.scale.set(growth, growth, growth);
+        this.complexShockwaveMesh.material.opacity = Math.max(0, 0.95 - this.complexDropTimer * 2.6);
+      }
+
+      // Hold impact pose for 0.38s
+      if (this.complexDropTimer >= 0.38) {
+        this.complexDropPhase = "recovery";
+        this.complexDropTimer = 0;
+      }
+    } else if (this.complexDropPhase === "recovery") {
+      const recDur = 0.28;
+      const progress = Math.min(1.0, this.complexDropTimer / recDur);
+
+      // Smoothly ramp speed back up
+      this.currentSpeed = THREE.MathUtils.lerp(6.0, this.savedDropSpeed || CONFIG.INITIAL_SPEED, progress);
+      this.player.position.z += this.currentSpeed * dt;
+      this.player.root.position.copy(this.player.position);
+
+      // Smoothly raise hips and limbs
+      if (parts) {
+        const baseY = this.player.bhairava.baseHipsY || 0.86;
+        if (parts.hips) {
+          parts.hips.position.y = THREE.MathUtils.lerp(baseY - 0.38, baseY, progress);
+          parts.hips.rotation.x = THREE.MathUtils.lerp(0.22, 0, progress);
+        }
+        if (parts.torso) parts.torso.rotation.x = THREE.MathUtils.lerp(0.72, 0.18, progress);
+        if (parts.head) parts.head.rotation.x = THREE.MathUtils.lerp(-0.55, 0, progress);
+
+        if (parts.rightArm) parts.rightArm.rotation.x = THREE.MathUtils.lerp(1.25, 0, progress);
+        if (parts.leftArm) parts.leftArm.rotation.x = THREE.MathUtils.lerp(-0.65, 0, progress);
+        if (parts.rightLeg) parts.rightLeg.rotation.x = THREE.MathUtils.lerp(-1.42, 0, progress);
+        if (parts.rightCalf) parts.rightCalf.rotation.x = THREE.MathUtils.lerp(1.55, 0, progress);
+        if (parts.leftLeg) parts.leftLeg.rotation.x = THREE.MathUtils.lerp(0.48, 0, progress);
+      }
+
+      // Fade out shockwave ring completely
+      if (this.complexShockwaveMesh && this.complexShockwaveMesh.visible) {
+        this.complexShockwaveMesh.material.opacity = Math.max(0, 0.3 - progress * 0.3);
+        if (progress >= 1.0) this.complexShockwaveMesh.visible = false;
+      }
+
+      if (progress >= 1.0) {
+        // Drop sequence finished! Normal sprint loop resumes
+        this.isComplexDropActive = false;
+        if (this.complexShockwaveMesh) this.complexShockwaveMesh.visible = false;
+        this.player.state = "running";
+      }
+    }
   }
 
   togglePause() {
@@ -479,32 +926,52 @@ export class GameEngine3D {
     const stages = [
       "CALIBRATING NEURAL LINK...",
       "SYNCHRONIZING BHAIRAVA KINEMATICS...",
-      "SCANNING HIGHWAY SECTORS...",
+      "LOADING 3D GLB ASSETS (TRAINS & BARRICADES)...",
       "WARMING PLASMA GAUNTLETS...",
       "COMPLEX RUNNER INITIALIZED"
     ];
 
-    const interval = setInterval(() => {
-      progress += Math.floor(Math.random() * 18) + 12;
-      if (progress > 100) progress = 100;
+    const updateDisplay = (pct, text) => {
+      if (fill) fill.style.width = `${pct}%`;
+      if (pctText) pctText.textContent = `${pct}%`;
+      if (statusText && text) statusText.textContent = text;
+    };
 
-      if (fill) fill.style.width = `${progress}%`;
-      if (pctText) pctText.textContent = `${progress}%`;
-      const stageIdx = Math.min(stages.length - 1, Math.floor((progress / 100) * stages.length));
-      if (statusText) statusText.textContent = stages[stageIdx];
-
-      if (progress >= 100) {
-        clearInterval(interval);
-        setTimeout(() => {
-          if (loadingScreen) {
-            loadingScreen.classList.remove("active");
-            setTimeout(() => {
-              loadingScreen.style.display = "none";
-            }, 500);
-          }
-        }, 150);
-      }
-    }, 120);
+    // Preload all 24 3D GLB assets in parallel with real progress callback
+    assetLoader.preloadAll((completed, total, currentKey) => {
+      const realPct = Math.floor((completed / total) * 85);
+      const cleanKey = currentKey.replace(/_/g, " ").toUpperCase();
+      updateDisplay(realPct, `LOADING ASSET (${completed}/${total}): ${cleanKey}...`);
+    }).then(() => {
+      // Smoothly advance from 85% to 100%
+      let finishPct = 85;
+      const finishInterval = setInterval(() => {
+        finishPct += 5;
+        if (finishPct >= 100) {
+          finishPct = 100;
+          clearInterval(finishInterval);
+          updateDisplay(100, "COMPLEX RUNNER INITIALIZED");
+          setTimeout(() => {
+            if (loadingScreen) {
+              loadingScreen.classList.remove("active");
+              setTimeout(() => {
+                loadingScreen.style.display = "none";
+              }, 500);
+            }
+          }, 200);
+        } else {
+          updateDisplay(finishPct, "FINALIZING SHADER PIPELINE...");
+        }
+      }, 50);
+    }).catch(() => {
+      updateDisplay(100, "INITIALIZING FALLBACK SYSTEMS...");
+      setTimeout(() => {
+        if (loadingScreen) {
+          loadingScreen.classList.remove("active");
+          loadingScreen.style.display = "none";
+        }
+      }, 500);
+    });
   }
 
   updateMenuStats() {
@@ -540,13 +1007,18 @@ export class GameEngine3D {
         if (bot.root) bot.root.visible = false;
       });
     }
-    if (this.tractorBeam) this.tractorBeam.material.opacity = 0;
+    this.hideTractorBeam();
+    this.isComplexDropActive = false;
+    if (this.complexShockwaveMesh) this.complexShockwaveMesh.visible = false;
     this.updateHud();
   }
 
   gameOver() {
     this.state = GameState3D.GAME_OVER;
     this.gameOverLockTime = Date.now() + 1000;
+    this.hideTractorBeam();
+    this.isComplexDropActive = false;
+    if (this.complexShockwaveMesh) this.complexShockwaveMesh.visible = false;
     this.safeAudio("pauseMusic");
     this.safeAudio("playHit");
     this.cameraManager.shake(0.8);
@@ -580,12 +1052,9 @@ export class GameEngine3D {
     this.safeAudio("playPowerup");
     this.safeAudio("playDialogue", "complex");
 
-    // Position Tractor Beam on Player
-    if (this.tractorBeam) {
-      this.tractorBeam.position.x = this.player.position.x;
-      this.tractorBeam.position.z = this.player.position.z;
-      this.tractorBeam.material.opacity = 0.85;
-    }
+    // Position & trigger cinematic multi-layer ascension tractor beam on Player
+    this.showTractorBeam(this.player.position.x, this.player.position.z);
+    this.cameraManager.shake(0.35);
 
     // High Score Record
     if (this.score > this.highScore) {
@@ -596,6 +1065,14 @@ export class GameEngine3D {
     this.vaultUnits += this.units;
     localStorage.setItem("prabhas3DVaultUnits", this.vaultUnits.toString());
     this.updateMenuStats();
+
+    if (this.dom.victoryScore) this.dom.victoryScore.textContent = Math.floor(this.score).toString().padStart(6, "0");
+    if (this.dom.victoryTime) {
+      const mins = Math.floor((this.runDuration || 0) / 60).toString().padStart(2, "0");
+      const secs = Math.floor((this.runDuration || 0) % 60).toString().padStart(2, "0");
+      this.dom.victoryTime.textContent = `${mins}:${secs}`;
+    }
+    if (this.dom.victoryUnits) this.dom.victoryUnits.textContent = this.units.toLocaleString() + " UNITS";
 
     setTimeout(() => {
       if (this.state === GameState3D.VICTORY) {
@@ -615,19 +1092,13 @@ export class GameEngine3D {
   }
 
   handleLeft() {
-    if (this.state !== GameState3D.PLAYING) return;
-    const res = this.player.moveLeft();
-    if (res === "barrier_hit") {
-      this.handleBarrierHit();
-    }
+    if (this.state !== GameState3D.PLAYING || this.isComplexDropActive) return;
+    this.player.moveLeft();
   }
 
   handleRight() {
-    if (this.state !== GameState3D.PLAYING) return;
-    const res = this.player.moveRight();
-    if (res === "barrier_hit") {
-      this.handleBarrierHit();
-    }
+    if (this.state !== GameState3D.PLAYING || this.isComplexDropActive) return;
+    this.player.moveRight();
   }
 
   handleBarrierHit() {
@@ -650,17 +1121,15 @@ export class GameEngine3D {
   }
 
   handleShoot() {
-    if (this.state !== GameState3D.PLAYING || this.player.hasJetpack) return;
+    if (this.state !== GameState3D.PLAYING || this.player.hasJetpack || this.isComplexDropActive) return;
 
-    const laserData = {
-      shot: true,
-      laneX: this.player.targetX,
-      playerZ: this.player.position.z,
-      range: 55.0
-    };
+    this._laserData.shot = true;
+    this._laserData.laneX = this.player.position.x;
+    this._laserData.playerZ = this.player.position.z;
+    this._laserData.range = 55.0;
 
     const activeObstacles = this.trackPool.getAllActiveObstacles(this.player.position.z);
-    const hitEntities = CollisionManager3D.checkLaserCollisions(laserData, activeObstacles, this.monsterRobots);
+    const hitEntities = CollisionManager3D.checkLaserCollisions(this._laserData, activeObstacles, this.monsterRobots);
 
     let hitDistance = 55.0;
     if (hitEntities.length > 0) {
@@ -743,6 +1212,86 @@ export class GameEngine3D {
     }, 2400);
   }
 
+  /**
+   * 3D Tactical Score & Unit Counter Punch Feedback (Zero Layout Thrashing, Throttled)
+   */
+  triggerHudPunch() {
+    const now = performance.now();
+    if (now - (this._lastHudPunchTime || 0) < 110) return;
+    this._lastHudPunchTime = now;
+
+    const unitsEl = this.dom.hudUnits;
+    const scoreEl = this.dom.hudScore;
+    if (unitsEl) {
+      unitsEl.classList.remove("score-punch-3d");
+      requestAnimationFrame(() => {
+        if (unitsEl) unitsEl.classList.add("score-punch-3d");
+      });
+    }
+    if (scoreEl) {
+      scoreEl.classList.remove("score-punch-3d");
+      requestAnimationFrame(() => {
+        if (scoreEl) scoreEl.classList.add("score-punch-3d");
+      });
+    }
+  }
+
+  /**
+   * Interactive 3D Perspective Card Tilt on Pointer Movement (Zero Garbage Collection & Idle during gameplay)
+   */
+  init3DCardParallax() {
+    let targetRotX = 0;
+    let targetRotY = 0;
+    let currentRotX = 0;
+    let currentRotY = 0;
+    let isMoving = false;
+
+    window.addEventListener("pointermove", (e) => {
+      // Battery & Performance: Ignore pointer parallax during active 3D gameplay
+      if (this.state === GameState3D.PLAYING) return;
+      const normX = (e.clientX / window.innerWidth) - 0.5;
+      const normY = (e.clientY / window.innerHeight) - 0.5;
+      targetRotX = normY * -10.0; // Max ±5 deg tilt
+      targetRotY = normX * 10.0;
+      isMoving = true;
+    }, { passive: true });
+
+    window.addEventListener("pointerleave", () => {
+      targetRotX = 0;
+      targetRotY = 0;
+    }, { passive: true });
+
+    const animateTilt = () => {
+      // Idle completely during active 3D gameplay
+      if (this.state === GameState3D.PLAYING) {
+        requestAnimationFrame(animateTilt);
+        return;
+      }
+
+      if (isMoving || Math.abs(currentRotX - targetRotX) > 0.05 || Math.abs(currentRotY - targetRotY) > 0.05) {
+        currentRotX += (targetRotX - currentRotX) * 0.12;
+        currentRotY += (targetRotY - currentRotY) * 0.12;
+
+        const cards = document.querySelectorAll(
+          ".menu-viewport.active .menu-center-box, " +
+          ".menu-viewport.active .btn-play-massive, " +
+          ".game-modal-screen.active .squircle-card, " +
+          ".game-modal-screen.active .armory-card"
+        );
+
+        for (let i = 0; i < cards.length; i++) {
+          cards[i].style.transform = `perspective(1000px) rotateX(${currentRotX.toFixed(2)}deg) rotateY(${currentRotY.toFixed(2)}deg)`;
+        }
+
+        if (Math.abs(currentRotX) < 0.02 && Math.abs(currentRotY) < 0.02 && targetRotX === 0) {
+          isMoving = false;
+        }
+      }
+      requestAnimationFrame(animateTilt);
+    };
+    requestAnimationFrame(animateTilt);
+  }
+
   onBountyCaptured(data) {
     this.updateBountyBoard();
   }
@@ -793,16 +1342,19 @@ export class GameEngine3D {
   }
 
   handleJump() {
-    if (this.state !== GameState3D.PLAYING) return;
+    if (this.state !== GameState3D.PLAYING || this.isComplexDropActive) return;
     if (this.player.jump()) {
       this.safeAudio("playJump");
     }
   }
 
   handleSlide() {
-    if (this.state !== GameState3D.PLAYING) return;
+    if (this.state !== GameState3D.PLAYING || this.isComplexDropActive) return;
     const act = this.player.slide();
-    if (act) {
+    if (act === "dive") {
+      this.safeAudio("playDive");
+      this.cameraManager.shake(0.12);
+    } else if (act) {
       this.safeAudio("playSlide");
     }
   }
@@ -810,6 +1362,15 @@ export class GameEngine3D {
   showScreen(targetState) {
     if (targetState === GameState3D.MENU) {
       this.updateMenuStats();
+    }
+    if (targetState === GameState3D.VICTORY) {
+      if (this.dom.victoryScore) this.dom.victoryScore.textContent = Math.floor(this.score).toString().padStart(6, "0");
+      if (this.dom.victoryTime) {
+        const mins = Math.floor((this.runDuration || 0) / 60).toString().padStart(2, "0");
+        const secs = Math.floor((this.runDuration || 0) % 60).toString().padStart(2, "0");
+        this.dom.victoryTime.textContent = `${mins}:${secs}`;
+      }
+      if (this.dom.victoryUnits) this.dom.victoryUnits.textContent = this.units.toLocaleString() + " UNITS";
     }
     if (this.dom.startScreen) this.dom.startScreen.classList.toggle("active", targetState === GameState3D.MENU);
     if (this.dom.pauseScreen) this.dom.pauseScreen.classList.toggle("active", targetState === GameState3D.PAUSED);
@@ -833,18 +1394,30 @@ export class GameEngine3D {
         this._lastGoalPillDisplay = "flex";
       }
 
-      if (this._lastUnits !== this.units) {
-        if (this.dom.hudUnits) this.dom.hudUnits.textContent = `${this.units.toLocaleString()} / 1M`;
-        this._lastUnits = this.units;
-      }
+      if (this.hasAchievedHeist || this.selectedMap === "complex") {
+        if (this._lastUnits !== this.units) {
+          if (this.dom.hudUnits) this.dom.hudUnits.textContent = `${this.units.toLocaleString()} UNITS`;
+          this._lastUnits = this.units;
+        }
+        if (this._lastGoalPct !== 100) {
+          if (this.dom.hudGoalPct) this.dom.hudGoalPct.textContent = "100%";
+          if (this.dom.hudGoalFill) this.dom.hudGoalFill.style.width = "100%";
+          this._lastGoalPct = 100;
+        }
+      } else {
+        if (this._lastUnits !== this.units) {
+          if (this.dom.hudUnits) this.dom.hudUnits.textContent = `${this.units.toLocaleString()} / 1M`;
+          this._lastUnits = this.units;
+        }
 
-      const rawPct = (this.units / CONFIG.TARGET_UNITS) * 100;
-      const goalPct = Math.min(100, rawPct);
-      const goalPctStr = Math.floor(goalPct);
-      if (this._lastGoalPct !== goalPctStr) {
-        if (this.dom.hudGoalPct) this.dom.hudGoalPct.textContent = `${goalPctStr}%`;
-        if (this.dom.hudGoalFill) this.dom.hudGoalFill.style.width = `${goalPct}%`;
-        this._lastGoalPct = goalPctStr;
+        const rawPct = (this.units / CONFIG.TARGET_UNITS) * 100;
+        const goalPct = Math.min(100, rawPct);
+        const goalPctStr = Math.floor(goalPct);
+        if (this._lastGoalPct !== goalPctStr) {
+          if (this.dom.hudGoalPct) this.dom.hudGoalPct.textContent = `${goalPctStr}%`;
+          if (this.dom.hudGoalFill) this.dom.hudGoalFill.style.width = `${goalPct}%`;
+          this._lastGoalPct = goalPctStr;
+        }
       }
     } else {
       // Endless Survival Mode
@@ -870,7 +1443,16 @@ export class GameEngine3D {
       if (showJetpack && this.dom.fillJetpack) {
         const maxDur = this.player.jetpackMaxDuration || CONFIG.JETPACK_DURATION || 8.0;
         const pct = Math.max(0, Math.min(100, (this.player.jetpackTimer / maxDur) * 100));
-        this.dom.fillJetpack.style.width = `${pct.toFixed(1)}%`;
+        const pctStr = `${pct.toFixed(1)}%`;
+        if (this._lastJetpackPct !== pctStr) {
+          this.dom.fillJetpack.style.width = pctStr;
+          this._lastJetpackPct = pctStr;
+        }
+        const isUrgent = this.player.jetpackTimer <= 2.0;
+        if (this._lastJetpackUrgent !== isUrgent) {
+          if (this.dom.badgeJetpack) this.dom.badgeJetpack.classList.toggle("is-urgent", isUrgent);
+          this._lastJetpackUrgent = isUrgent;
+        }
       }
 
       // 2. Magnet
@@ -882,7 +1464,16 @@ export class GameEngine3D {
       if (showMagnet && this.dom.fillMagnet) {
         const maxDur = this.player.magnetMaxDuration || CONFIG.MAGNET_DURATION || 8.0;
         const pct = Math.max(0, Math.min(100, (this.player.magnetTimer / maxDur) * 100));
-        this.dom.fillMagnet.style.width = `${pct.toFixed(1)}%`;
+        const pctStr = `${pct.toFixed(1)}%`;
+        if (this._lastMagnetPct !== pctStr) {
+          this.dom.fillMagnet.style.width = pctStr;
+          this._lastMagnetPct = pctStr;
+        }
+        const isUrgent = this.player.magnetTimer <= 2.0;
+        if (this._lastMagnetUrgent !== isUrgent) {
+          if (this.dom.badgeMagnet) this.dom.badgeMagnet.classList.toggle("is-urgent", isUrgent);
+          this._lastMagnetUrgent = isUrgent;
+        }
       }
 
       // 3. 2X Multiplier
@@ -894,7 +1485,16 @@ export class GameEngine3D {
       if (showMultiplier && this.dom.fillMultiplier) {
         const maxDur = this.player.multiplierMaxDuration || CONFIG.DOUBLE_POINTS_DURATION || 8.0;
         const pct = Math.max(0, Math.min(100, (this.player.multiplierTimer / maxDur) * 100));
-        this.dom.fillMultiplier.style.width = `${pct.toFixed(1)}%`;
+        const pctStr = `${pct.toFixed(1)}%`;
+        if (this._lastMultPct !== pctStr) {
+          this.dom.fillMultiplier.style.width = pctStr;
+          this._lastMultPct = pctStr;
+        }
+        const isUrgent = this.player.multiplierTimer <= 2.0;
+        if (this._lastMultUrgent !== isUrgent) {
+          if (this.dom.badgeMultiplier) this.dom.badgeMultiplier.classList.toggle("is-urgent", isUrgent);
+          this._lastMultUrgent = isUrgent;
+        }
       }
 
       // 4. Shield
@@ -906,7 +1506,16 @@ export class GameEngine3D {
       if (showShield && this.dom.fillShield) {
         const maxDur = this.player.shieldMaxDuration || CONFIG.SHIELD_DURATION || 8.0;
         const pct = Math.max(0, Math.min(100, (this.player.shieldTimer / maxDur) * 100));
-        this.dom.fillShield.style.width = `${pct.toFixed(1)}%`;
+        const pctStr = `${pct.toFixed(1)}%`;
+        if (this._lastShieldPct !== pctStr) {
+          this.dom.fillShield.style.width = pctStr;
+          this._lastShieldPct = pctStr;
+        }
+        const isUrgent = this.player.shieldTimer <= 2.0;
+        if (this._lastShieldUrgent !== isUrgent) {
+          if (this.dom.badgeShield) this.dom.badgeShield.classList.toggle("is-urgent", isUrgent);
+          this._lastShieldUrgent = isUrgent;
+        }
       }
 
       // 5. Bujji EMP Harpoon
@@ -918,13 +1527,22 @@ export class GameEngine3D {
       if (showHarpoon && this.dom.fillHarpoon) {
         const maxDur = 8.0;
         const pct = Math.max(0, Math.min(100, (this.player.harpoonTimer / maxDur) * 100));
-        this.dom.fillHarpoon.style.width = `${pct.toFixed(1)}%`;
+        const pctStr = `${pct.toFixed(1)}%`;
+        if (this._lastHarpoonPct !== pctStr) {
+          this.dom.fillHarpoon.style.width = pctStr;
+          this._lastHarpoonPct = pctStr;
+        }
+        const isUrgent = this.player.harpoonTimer <= 2.0;
+        if (this._lastHarpoonUrgent !== isUrgent) {
+          if (this.dom.badgeHarpoon) this.dom.badgeHarpoon.classList.toggle("is-urgent", isUrgent);
+          this._lastHarpoonUrgent = isUrgent;
+        }
       }
     }
   }
 
   gameLoop(timestamp) {
-    this.animId = requestAnimationFrame((t) => this.gameLoop(t));
+    this.animId = requestAnimationFrame(this._boundGameLoop);
 
     // Power optimization: Skip execution completely when tab is hidden/minimized
     if (this._isTabHidden) return;
@@ -933,8 +1551,8 @@ export class GameEngine3D {
     if (this.state !== GameState3D.PLAYING && this.state !== GameState3D.VICTORY) {
       if (timestamp - this.lastRenderTime < 60) return;
     } else {
-      // 60 FPS cap during gameplay to save 50% battery on 120Hz displays
-      if (timestamp - this.lastRenderTime < 16) return;
+      // Fluid 60 FPS pacing: Prevents frame-drop jitter on 60Hz (which arrives ~15.8-16.6ms) while capping 120Hz at solid 60 FPS for 50% battery savings
+      if (timestamp - this.lastRenderTime < 14.5) return;
     }
     this.lastRenderTime = timestamp;
 
@@ -955,9 +1573,24 @@ export class GameEngine3D {
       this.update(dt, timestamp * 0.001);
     } else if (this.state === GameState3D.VICTORY) {
       // Cinematic ascension up the tractor beam into the Complex
-      this.player.position.y += dt * 18;
+      this.player.position.y += dt * 14;
       this.player.root.position.copy(this.player.position);
-      this.cameraManager.update(dt, this.player.position, 0);
+
+      // Heroic levitation pose: arms flared out in triumph
+      if (this.player.bhairava?.parts) {
+        const p = this.player.bhairava.parts;
+        if (p.leftArm) p.leftArm.rotation.z = -0.45;
+        if (p.rightArm) p.rightArm.rotation.z = 0.45;
+      }
+
+      // Update tractor beam dynamic ascension animation
+      this.updateTractorBeam(dt, timestamp * 0.001);
+
+      // Camera smoothly tracks player upward, tilting skyward toward the Complex clouds
+      this.cameraManager.update(dt, this.player.position, 0, false, false, 0);
+      if (this.camera) {
+        this.camera.lookAt(this.player.position.x, this.player.position.y + 2.5, this.player.position.z + 10);
+      }
     }
 
     if (this.renderer && this.scene && this.camera) {
@@ -966,10 +1599,62 @@ export class GameEngine3D {
   }
 
   update(dt, time) {
-    // 1. Progression & Speed Scaling
+    // 0. Cinematic Complex Drop Sequence (High-Altitude Freefall to 3-Point Touchdown)
+    if (this.isComplexDropActive) {
+      this.updateComplexDrop(dt);
+
+      // Advance track segments and environment so the city moves beneath him
+      this.trackPool.update(this.player.position.z, false, dt);
+      this.environment.update(time, this.player.position.z);
+
+      // Third-person camera tracks player smoothly down to the ground
+      this.cameraManager.update(
+        dt,
+        this.player.position,
+        this.currentSpeed,
+        false,
+        false,
+        0
+      );
+
+      // Dynamic cinematic lighting tracking player position
+      if (this.rimLight && this.rimLightTarget) {
+        this.rimLight.position.set(-15, 14, this.player.position.z + 10);
+        this.rimLightTarget.position.set(0, 1.5, this.player.position.z);
+      }
+      if (this.heroFillLight && this.heroFillTarget) {
+        this.heroFillLight.position.set(0, 8, this.player.position.z - 8);
+        this.heroFillTarget.position.set(0, 1.5, this.player.position.z);
+      }
+
+      this.updateHud();
+      return;
+    }
+
+    // 1. Progression & Multi-Tier Difficulty Speed Scaling (Subway Surfers gamemodes.json)
     const mult = this.player.hasMultiplier ? 2 : 1;
     this.score += dt * this.currentSpeed * 1.5 * mult;
-    this.currentSpeed = Math.min(CONFIG.MAX_SPEED, this.currentSpeed + CONFIG.SPEED_ACCELERATION * dt * 20);
+
+    this.runDuration = (this.runDuration || 0) + dt;
+    const t = this.runDuration;
+    let targetSpeed = CONFIG.INITIAL_SPEED;
+
+    if (t < 30.0) {
+      // Stage 1 (0-30s): Initial steady run (23.5 -> 27.0 m/s)
+      targetSpeed = CONFIG.INITIAL_SPEED + (t / 30.0) * 3.5;
+    } else if (t < 75.0) {
+      // Stage 2 (30-75s): Intermediate acceleration (27.0 -> 32.5 m/s)
+      targetSpeed = 27.0 + ((t - 30.0) / 45.0) * 5.5;
+    } else if (t < 150.0) {
+      // Stage 3 (75-150s): Reflex challenge (32.5 -> 38.0 m/s)
+      targetSpeed = 32.5 + ((t - 75.0) / 75.0) * 5.5;
+    } else {
+      // Stage 4 (150s+): Asymptotic approach towards peak MAX_SPEED (42.0 m/s)
+      const extraT = t - 150.0;
+      targetSpeed = 38.0 + (CONFIG.MAX_SPEED - 38.0) * (1.0 - Math.exp(-extraT / 90.0));
+    }
+
+    this.currentSpeed = THREE.MathUtils.lerp(this.currentSpeed, targetSpeed, Math.min(1.0, 4.0 * dt));
     this.safeAudio("updateSpeed", this.currentSpeed, CONFIG.INITIAL_SPEED, CONFIG.MAX_SPEED);
 
     // 2. Update Player Kinematics
@@ -979,11 +1664,22 @@ export class GameEngine3D {
     this.trackPool.update(this.player.position.z, this.player.hasJetpack, dt);
     this.environment.update(time, this.player.position.z);
 
-    // 4. Update Third-Person Follow Camera & Cinematic Lighting
-    this.cameraManager.update(dt, this.player.position, this.currentSpeed);
+    // 4. Update Third-Person Follow Camera with Slide Dip & Dynamic Roll
+    this.cameraManager.update(
+      dt,
+      this.player.position,
+      this.currentSpeed,
+      this.player.state === "sliding",
+      this.player.isLaneSwitching,
+      this.player.turnDirection
+    );
     if (this.rimLight && this.rimLightTarget) {
       this.rimLight.position.set(-15, 14, this.player.position.z + 10);
       this.rimLightTarget.position.set(0, 1.5, this.player.position.z);
+    }
+    if (this.heroFillLight && this.heroFillTarget) {
+      this.heroFillLight.position.set(0, 8, this.player.position.z - 8);
+      this.heroFillTarget.position.set(0, 1.5, this.player.position.z);
     }
 
     // 5. Collision Detection (Standard Obstacles: Trains, Hurdles, Laser Gates)
@@ -993,14 +1689,16 @@ export class GameEngine3D {
     if (hitResult) {
       if (hitResult.type === "collision") {
         if (this.bountyManager) this.bountyManager.breakStreak();
+        const isMovingTrain = !!(hitResult.obstacle?.mesh?.userData?.isMoving);
+
         if (this.player.hasShield) {
           // Shield absorbs collision
           this.player.breakShield();
           this.safeAudio("playShieldBreak");
-          this.cameraManager.shake(0.45);
+          this.cameraManager.shake(0.55);
 
-          // If hitting a train with a shield, pop cleanly onto the roof rather than clipping through inside
-          if (hitResult.obstacle && hitResult.obstacle.type === "train") {
+          // If hitting a static train with a shield, pop onto roof; moving train knocks back
+          if (hitResult.obstacle && hitResult.obstacle.type === "train" && !isMovingTrain) {
             this.player.position.y = 4.15;
             this.player.groundElevation = 4.15;
             this.player.isGrounded = true;
@@ -1009,21 +1707,36 @@ export class GameEngine3D {
         } else if (this.player.invulnerableTimer <= 0) {
           if (this.player.healAidTimer > 0) {
             // Second hit during the 5-second Bujji Aid recovery window -> Run Ends!
+            this.safeAudio("playHit");
+            this.cameraManager.shake(0.75);
             this.gameOver();
             return;
           } else {
-            // First hit: Trigger 5-Second Bujji Aid / Second Chance Healing!
+            // FIRST HIT: Trigger 5-Second Bujji Aid Second Chance!
             this.player.triggerBujjiAid(5.0);
             this.safeAudio("playHit");
             this.safeAudio("playDialogue", "bujji");
-            this.cameraManager.shake(0.55);
+            this.cameraManager.shake(0.60);
 
-            // If hitting a train, pop cleanly onto the roof so the player doesn't clip inside
-            if (hitResult.obstacle && hitResult.obstacle.type === "train") {
-              this.player.position.y = 4.15;
-              this.player.groundElevation = 4.15;
-              this.player.isGrounded = true;
-              this.player.velocityY = 1.8;
+            // Immediately clear/evade the hit obstacle so player NEVER takes a double-hit from the same object
+            const hitObs = hitResult.obstacle;
+            if (hitObs) {
+              if (hitObs.type === "train") {
+                // Bujji repulsor launches player onto train rooftop deck with full clearance
+                this.player.position.y = 4.15;
+                this.player.groundElevation = 4.15;
+                this.player.isGrounded = true;
+                this.player.velocityY = 2.2;
+                this.player.invulnerableTimer = 2.5;
+              } else {
+                // Hurdle, gate, or tall blocker: Demolish the obstacle with kinetic feedback
+                hitObs.destroyed = true;
+                if (hitObs.mesh) {
+                  hitObs.mesh.visible = false;
+                  if (hitObs.mesh.userData) hitObs.mesh.userData.destroyed = true;
+                }
+                this.player.invulnerableTimer = 2.0;
+              }
             }
           }
         }
@@ -1076,6 +1789,14 @@ export class GameEngine3D {
           this.safeAudio("playPowerup");
           this.cameraManager.shake(0.4);
         }
+      } else if (hitResult.type === "slide_cleared") {
+        const bonus = 250 * mult;
+        this.score += bonus;
+        this.triggerHudPunch();
+      } else if (hitResult.type === "jump_cleared") {
+        const bonus = 250 * mult;
+        this.score += bonus;
+        this.triggerHudPunch();
       }
     }
 
@@ -1086,9 +1807,11 @@ export class GameEngine3D {
     for (const item of collected) {
       if (item.type === "coin") {
         const prevUnits = this.units;
-        this.units += item.points * mult;
-        this.score += item.points * mult;
+        const addUnits = item.points * mult;
+        this.units += addUnits;
+        this.score += addUnits;
         this.safeAudio("playCoin", mult);
+        this.triggerHudPunch();
 
         // Milestone audio cues (Every 200k Units)
         if (Math.floor(this.units / 200000) > Math.floor(prevUnits / 200000)) {
@@ -1096,7 +1819,8 @@ export class GameEngine3D {
         }
 
         // Win Condition: 1 Million Units in Complex Heist mode -> Unlocks entry to Complex!
-        if (this.gameMode === "heist" && this.units >= CONFIG.TARGET_UNITS) {
+        if (this.gameMode === "heist" && !this.hasAchievedHeist && this.units >= CONFIG.TARGET_UNITS) {
+          this.hasAchievedHeist = true;
           this.victory();
           return;
         }
@@ -1122,6 +1846,7 @@ export class GameEngine3D {
           this.player.giveMultiplier(dur);
           this.safeAudio("playDialogue", "multiplier");
         }
+        this.triggerHudPunch();
       }
     }
 

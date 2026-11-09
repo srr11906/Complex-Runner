@@ -18,7 +18,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Master Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=20260919_clean_trains_v42">
+  <link rel="stylesheet" href="css/style.css?v=20261108_hardened_v84">
 
   <!-- ES Module Import Map for Three.js -->
   <script type="importmap">
@@ -39,14 +39,14 @@
     <div id="loading-screen" class="loading-overlay active">
       <div class="loading-container">
         <div class="loading-logo-box">
-          <img src="assets/ui/logo.svg?v=20260914_crisp_v1" alt="Complex Runner Logo" class="loading-logo-img">
+          <img src="assets/ui/logo.svg?v=20260922_dystopian_salvage_v45" alt="Complex Runner Logo" class="loading-logo-img">
         </div>
         <div class="loading-progress-box">
           <div class="loading-track">
             <div id="loading-bar-fill" class="loading-bar-fill" style="width: 0%;"></div>
           </div>
           <div class="loading-details">
-            <span id="loading-status-text" class="loading-status-text">INITIALIZING QUANTUM ENGINES...</span>
+            <span id="loading-status-text" class="loading-status-text">LOADING...</span>
             <span id="loading-pct-text" class="loading-pct-text">0%</span>
           </div>
         </div>
@@ -55,31 +55,19 @@
 
     <!-- In-Game Heads-Up Display (HUD) - Sleek Floating Tactical Layer -->
     <header id="game-hud" class="hud-layer">
-      <!-- Top Left: Quick In-Game Controls -->
-      <div class="hud-top-left">
-        <button id="btn-pause-toggle" class="squircle-icon-btn interactive-ui" aria-label="Pause" title="Pause">
-          <img src="assets/ui/pause.svg" alt="Pause">
-        </button>
-        <button id="btn-sound-toggle" class="squircle-icon-btn interactive-ui" aria-label="Sound" title="Sound">
-          <img id="sound-icon-img" src="assets/ui/sound-on.svg" alt="Sound">
-        </button>
-      </div>
-
-      <!-- Top Right: Live Score & Units Pill -->
-      <div class="hud-top-right">
-        <!-- Live Score Card -->
-        <div class="hud-stat-card">
-          <div class="hud-row score-row">
-            <span class="hud-label">SCORE</span>
-            <span id="hud-score-val" class="hud-val-score">000000</span>
-          </div>
-          <div class="hud-row units-row">
-            <span class="hud-label">UNITS</span>
-            <span id="hud-units-val" class="hud-val-units">0</span>
-          </div>
+      <!-- Top Tactical Command Bar: Left Controls, Center Heist Objective, Right Live Telemetry -->
+      <div class="hud-top-command-bar">
+        <!-- Top Left: Quick In-Game Controls Pill -->
+        <div class="hud-top-left">
+          <button id="btn-pause-toggle" class="squircle-icon-btn interactive-ui" aria-label="Pause" title="Pause [P / ESC]">
+            <img src="assets/ui/pause.svg" alt="Pause">
+          </button>
+          <button id="btn-sound-toggle" class="squircle-icon-btn interactive-ui" aria-label="Sound" title="Toggle Sound">
+            <img id="sound-icon-img" src="assets/ui/sound-on.svg" alt="Sound">
+          </button>
         </div>
 
-        <!-- Complex Goal Progress Card (Active in Heist Mode) -->
+        <!-- Top Center: Heist Goal Capsule (Active in Heist Mode, takes zero runner view space) -->
         <div id="hud-goal-pill" class="hud-goal-card" title="1,000,000 Units Goal">
           <div class="goal-header">
             <span class="goal-title">COMPLEX HEIST</span>
@@ -87,6 +75,21 @@
           </div>
           <div class="goal-track">
             <div id="hud-goal-fill" class="goal-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Top Right: Live Score & Units Pill (Single sleek horizontal row) -->
+        <div class="hud-top-right">
+          <div class="hud-stat-card">
+            <div class="hud-stat-cell score-cell">
+              <span class="hud-label">SCORE</span>
+              <span id="hud-score-val" class="hud-val-score">000000</span>
+            </div>
+            <div class="hud-stat-divider"></div>
+            <div class="hud-stat-cell units-cell">
+              <img src="assets/ui/unit-coin.svg" class="unit-inline-icon" alt="Units">
+              <span id="hud-units-val" class="hud-val-units">0</span>
+            </div>
           </div>
         </div>
       </div>
@@ -136,6 +139,17 @@
             </div>
           </div>
         </div>
+
+        <!-- EMP Harpoon Badge -->
+        <div id="badge-harpoon" class="powerup-badge badge-harpoon" style="display: none;">
+          <img src="assets/ui/harpoon-powerup.svg" class="powerup-icon-img" alt="EMP Harpoon">
+          <div class="powerup-details">
+            <div class="powerup-name">EMP HARPOON</div>
+            <div class="powerup-track">
+              <div id="harpoon-timer-fill" class="powerup-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -177,25 +191,25 @@
       <!-- Center Logo & Mode Switcher -->
       <div class="menu-center-box">
         <div class="menu-logo-wrap">
-          <img src="assets/ui/logo.svg?v=20260914_crisp_v1" alt="Complex Runner Logo" class="menu-main-logo">
+          <img src="assets/ui/logo.svg?v=20260922_dystopian_salvage_v45" alt="Complex Runner Logo" class="menu-main-logo">
         </div>
 
-        <!-- Segmented Mission Mode Switcher -->
-        <div class="mode-segmented-control">
-          <button id="mode-btn-heist" class="mode-tab-btn active" type="button">
+        <!-- 3D Segmented Mission Mode Switcher -->
+        <div class="mode-segmented-control mode-segmented-2col">
+          <button id="mode-btn-heist" class="mode-tab-btn active interactive-ui" type="button">
             <img src="assets/ui/mode-heist.svg" class="tab-icon-img" alt="Complex Heist">
             <span class="tab-title">COMPLEX HEIST</span>
             <span class="tab-sub">1M Units Goal</span>
           </button>
-          <button id="mode-btn-endless" class="mode-tab-btn" type="button">
+          <button id="mode-btn-endless" class="mode-tab-btn interactive-ui" type="button">
             <img src="assets/ui/mode-endless.svg" class="tab-icon-img" alt="Endless Run">
             <span class="tab-title">ENDLESS RUN</span>
-            <span class="tab-sub">Survive & Score</span>
+            <span class="tab-sub">Select Map &amp; Run</span>
           </button>
         </div>
       </div>
 
-      <!-- Bottom Subway Surfers Style Massive Play Button -->
+      <!-- Bottom Subway Surfers Style Massive 3D Play Button -->
       <div class="menu-bottom-box">
         <button id="btn-start-run" class="btn-play-massive interactive-ui" aria-label="Start Game">
           <div class="play-btn-glow"></div>
@@ -211,6 +225,57 @@
           <span class="ctrl-key">W / ↑</span> JUMP &bull; 
           <span class="ctrl-key">S / ↓</span> SLIDE &bull; 
           <span class="ctrl-key">SPACE / CLICK</span> LASER
+        </div>
+      </div>
+    </section>
+
+    <!-- 1B. Map Selection Modal (Endless Run Mode) -->
+    <section id="map-select-screen" class="game-modal-screen">
+      <div class="map-modal-card">
+        <!-- Header -->
+        <div class="map-modal-header">
+          <h2 class="game-title">CHOOSE MAP</h2>
+          <button id="btn-close-map-select" class="squircle-icon-btn interactive-ui close-btn" aria-label="Close Map Select" title="Close [ESC]">
+            <span>✕</span>
+          </button>
+        </div>
+
+        <!-- 2 Map Cards -->
+        <div class="map-modal-grid">
+          <!-- Map 1: The Wasteland -->
+          <div class="map-select-card card-wasteland interactive-ui" id="btn-select-map-wasteland">
+            <div class="map-card-banner visual-wasteland">
+              <img src="assets/ui/mode-heist.svg" class="map-card-icon" alt="The Wasteland">
+            </div>
+            <div class="map-card-body">
+              <h3 class="map-card-name text-amber">THE WASTELAND</h3>
+              <button class="btn-card-launch launch-wasteland">
+                <span>PLAY ▶</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Map 2: The Complex -->
+          <div class="map-select-card card-complex interactive-ui" id="btn-select-map-complex">
+            <div class="map-card-banner visual-complex">
+              <img src="assets/ui/mode-complex.svg" class="map-card-icon" alt="The Complex">
+            </div>
+            <div class="map-card-body">
+              <h3 class="map-card-name text-cyan">THE COMPLEX</h3>
+              <button class="btn-card-launch launch-complex">
+                <span>PLAY ▶</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clean Shortcuts Footer -->
+        <div class="map-modal-footer">
+          <span class="hint-key"><kbd>1</kbd> WASTELAND</span>
+          <span class="hint-dot">&bull;</span>
+          <span class="hint-key"><kbd>2</kbd> COMPLEX</span>
+          <span class="hint-dot">&bull;</span>
+          <span class="hint-key"><kbd>ESC</kbd> CLOSE</span>
         </div>
       </div>
     </section>
@@ -282,11 +347,31 @@
           <p class="game-tagline text-amber">COMPLEX ACCESS UNLOCKED</p>
         </div>
 
-        <div class="card-actions">
-          <button id="btn-victory-again" class="btn-squircle-primary">
-            <span>PLAY AGAIN</span>
+        <div class="stats-squircle-grid">
+          <div class="stat-card">
+            <span class="stat-card-title">FINAL SCORE</span>
+            <span id="victory-score-val" class="stat-card-val">1000000</span>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-card-title">TIME</span>
+            <span id="victory-time-val" class="stat-card-val text-sub">02:45</span>
+          </div>
+
+          <div class="stat-card full-span">
+            <span class="stat-card-title">TOTAL VAULT UNITS</span>
+            <span id="victory-units-val" class="stat-card-val text-amber">1,000,000 UNITS</span>
+          </div>
+        </div>
+
+        <div class="card-actions victory-actions-3d">
+          <button id="btn-victory-continue" class="btn-squircle-accent interactive-ui">
+            <span>CONTINUE TO COMPLEX ▶</span>
           </button>
-          <button id="btn-victory-menu" class="btn-squircle-secondary">
+          <button id="btn-victory-again" class="btn-squircle-primary interactive-ui">
+            <span>RESTART HEIST</span>
+          </button>
+          <button id="btn-victory-menu" class="btn-squircle-secondary interactive-ui">
             <span>MAIN MENU</span>
           </button>
         </div>
@@ -382,6 +467,6 @@
   </div>
 
   <!-- Main ES Module Script -->
-  <script type="module" src="js/script.js?v=20260919_clean_trains_v42"></script>
+  <script type="module" src="js/script.js?v=20261108_hardened_v84"></script>
 </body>
 </html>

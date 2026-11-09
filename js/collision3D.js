@@ -5,10 +5,16 @@
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 
-// OPTIMIZATION: Object Pooling to eliminate Garbage Collection micro-stutters and battery drain
+// OPTIMIZATION: Object & Array Pooling to eliminate Garbage Collection micro-stutters and battery drain
 const _pCenter = new THREE.Vector3();
 const _dir = new THREE.Vector3();
 const _itemOffset = new THREE.Vector3();
+const _collectedPool = [];
+const _candidatesPool = [];
+const _hitResultPool = [];
+const _harpoonDestroyedPool = [];
+const _robotArrayPool = [];
+const _emptyList = Object.freeze([]);
 
 export class CollisionManager3D {
   /**
@@ -53,7 +59,7 @@ export class CollisionManager3D {
             const rampZStart = trainMinZ - rampLength;
             const rampZEnd = trainMinZ;
 
-            if (pBounds.centerZ >= rampZStart && pBounds.centerZ <= rampZEnd) {
+            if (pBounds.maxZ >= rampZStart && pBounds.minZ <= rampZEnd) {
               const climbProgress = Math.max(0, Math.min(1.0, (pBounds.centerZ - rampZStart) / rampLength));
               const rampElevation = climbProgress * trainTopY;
               targetGroundY = Math.max(targetGroundY, rampElevation);
@@ -61,12 +67,15 @@ export class CollisionManager3D {
             }
           }
 
-          if (pBounds.centerZ >= trainMinZ && pBounds.centerZ <= trainMaxZ) {
-            if (pBounds.minY >= trainTopY - 0.6) {
+          // High-Precision AABB Box Overlap in longitudinal Z axis
+          const overlapZ = pBounds.maxZ >= trainMinZ && pBounds.minZ <= trainMaxZ;
+          if (overlapZ) {
+            if (pBounds.minY >= trainTopY - 0.45) {
+              // Player is running or landing on the train rooftop deck
               targetGroundY = Math.max(targetGroundY, trainTopY);
               continue;
             } else if (player.invulnerableTimer > 0) {
-              // During invulnerability: safely ride the train roof rather than clipping through inside
+              // During invulnerability window: safely ride train roof
               targetGroundY = Math.max(targetGroundY, trainTopY);
               if (player.position.y < trainTopY) {
                 player.position.y = trainTopY;
@@ -74,6 +83,7 @@ export class CollisionManager3D {
               }
               continue;
             } else {
+              // Solid body collision (Moving train or front face of static train)
               return {
                 type: "collision",
                 obstacle: obs
@@ -86,23 +96,36 @@ export class CollisionManager3D {
           continue; // Glitch safely through during invulnerability window
         }
 
-        const gateHalfW = 1.6;
+        const gateHalfW = 1.50;
         const gateMinX = oPos.x - gateHalfW;
         const gateMaxX = oPos.x + gateHalfW;
-        const gateMinZ = oPos.z - 0.6;
-        const gateMaxZ = oPos.z + 0.6;
+        const gateMinZ = oPos.z - 0.40;
+        const gateMaxZ = oPos.z + 0.40;
 
         const overlapX = pBounds.maxX > gateMinX && pBounds.minX < gateMaxX;
         const overlapZ = pBounds.maxZ > gateMinZ && pBounds.minZ < gateMaxZ;
 
         if (overlapX && overlapZ) {
-          if (player.state !== "sliding") {
-            return {
-              type: "collision",
-              obstacle: obs,
-              reason: "must_slide"
-            };
+          // If jumping high above the gate structure (> 3.4m, e.g. off train roof or high jump)
+          if (pBounds.minY >= 3.4) {
+            continue;
           }
+          // Slide clearance allows ducking under 1.25m opening
+          if (pBounds.isSliding || pBounds.maxY <= 1.25) {
+            if (!obs._clearedSlide) {
+              obs._clearedSlide = true;
+              return {
+                type: "slide_cleared",
+                obstacle: obs
+              };
+            }
+            continue;
+          }
+          return {
+            type: "collision",
+            obstacle: obs,
+            reason: "must_slide"
+          };
         }
       } else if (type === "bounty_target" || type === "rival_hunter") {
         const targetHalfW = 1.8;
@@ -153,12 +176,12 @@ export class CollisionManager3D {
           continue; // Glitch safely through during invulnerability window
         }
 
-        const hurdleHalfW = 1.25;
+        const hurdleHalfW = 1.34;
         const hurdleMinX = oPos.x - hurdleHalfW;
         const hurdleMaxX = oPos.x + hurdleHalfW;
-        const hurdleMinZ = oPos.z - 0.5;
-        const hurdleMaxZ = oPos.z + 0.5;
-        const hurdleHeight = 0.95;
+        const hurdleMinZ = oPos.z - 0.45;
+        const hurdleMaxZ = oPos.z + 0.45;
+        const hurdleHeight = (obs.mesh && obs.mesh.userData && obs.mesh.userData.height) || 1.85;
 
         const overlapX = pBounds.maxX > hurdleMinX && pBounds.minX < hurdleMaxX;
         const overlapZ = pBounds.maxZ > hurdleMinZ && pBounds.minZ < hurdleMaxZ;
@@ -170,7 +193,37 @@ export class CollisionManager3D {
               obstacle: obs,
               reason: "must_jump"
             };
+          } else {
+            if (!obs._clearedJump) {
+              obs._clearedJump = true;
+              return {
+                type: "jump_cleared",
+                obstacle: obs
+              };
+            }
           }
+        }
+      } else if (type === "blocker") {
+        if (player.invulnerableTimer > 0) {
+          continue;
+        }
+
+        // Precise single-lane clearance (width: 2.5m, pitch: 2.8m - zero side-lane clipping)
+        const blockerHalfW = 1.25;
+        const blockerMinX = oPos.x - blockerHalfW;
+        const blockerMaxX = oPos.x + blockerHalfW;
+        const blockerMinZ = oPos.z - 0.45;
+        const blockerMaxZ = oPos.z + 0.45;
+
+        const overlapX = pBounds.maxX > blockerMinX && pBounds.minX < blockerMaxX;
+        const overlapZ = pBounds.maxZ > blockerMinZ && pBounds.minZ < blockerMaxZ;
+
+        if (overlapX && overlapZ) {
+          return {
+            type: "collision",
+            obstacle: obs,
+            reason: "must_dodge_lane"
+          };
         }
       }
     }
@@ -189,21 +242,23 @@ export class CollisionManager3D {
    * Stops at the closest hit obstacle and deals damage to it
    */
   static checkLaserCollisions(laserData, obstacles, monsterRobot = null) {
-    if (!laserData || !laserData.shot) return [];
-    const candidates = [];
+    if (!laserData || !laserData.shot) return _emptyList;
+    _candidatesPool.length = 0;
     const laneX = laserData.laneX;
     const startZ = laserData.playerZ;
     const maxRange = laserData.range || 38.0;
 
     // Check Monster Robots (supports single instance or multiple active robots)
-    const robotList = Array.isArray(monsterRobot) ? monsterRobot : (monsterRobot ? [monsterRobot] : []);
-    for (const bot of robotList) {
+    _robotArrayPool.length = 0;
+    const robotList = Array.isArray(monsterRobot) ? monsterRobot : (monsterRobot ? (_robotArrayPool.push(monsterRobot), _robotArrayPool) : _robotArrayPool);
+    for (let r = 0; r < robotList.length; r++) {
+      const bot = robotList[r];
       if (bot && bot.active && !bot.isGlitching) {
         const isRobotLane = Math.abs(bot.position.x - laneX) < 1.6;
         if (isRobotLane) {
           const distFromPlayer = bot.position.z - startZ;
           if (distFromPlayer >= 0.0 && distFromPlayer <= maxRange) {
-            candidates.push({
+            _candidatesPool.push({
               type: "laser_monster_robot_hit",
               robot: bot,
               distance: Math.max(0.5, distFromPlayer),
@@ -222,11 +277,11 @@ export class CollisionManager3D {
       const isSameLane = Math.abs(oPos.x - laneX) < 1.6;
       if (!isSameLane) continue;
 
-      const obsHalfDepth = obs.type === "train" ? 11.0 : (obs.type === "laser_gate" ? 0.6 : 0.4);
+      const obsHalfDepth = obs.type === "train" ? 11.0 : (obs.type === "laser_gate" ? 0.6 : (obs.type === "blocker" ? 0.7 : 0.4));
       const obsFrontZ = oPos.z - obsHalfDepth;
       const distFromPlayer = obsFrontZ - startZ;
 
-      if (distFromPlayer >= -0.5 && distFromPlayer <= maxRange) {
+      if (distFromPlayer >= 0.0 && distFromPlayer <= maxRange) {
         let hitType = "laser_destructible_hit";
         if (obs.type === "bounty_target" || obs.type === "rival_hunter") {
           hitType = "laser_bounty_capture";
@@ -234,7 +289,7 @@ export class CollisionManager3D {
           hitType = "laser_crate_breached";
         }
 
-        candidates.push({
+        _candidatesPool.push({
           type: hitType,
           obstacle: obs,
           distance: Math.max(0.5, distFromPlayer),
@@ -244,21 +299,23 @@ export class CollisionManager3D {
       }
     }
 
-    if (candidates.length === 0) return [];
+    if (_candidatesPool.length === 0) return _emptyList;
 
     // Sort by distance so closest obstacle is hit first
-    candidates.sort((a, b) => a.distance - b.distance);
+    _candidatesPool.sort((a, b) => a.distance - b.distance);
 
-    // Return the closest hit entity that absorbs the laser beam
-    return [candidates[0]];
+    // Return the closest hit entity that absorbs the laser beam (reusing pool)
+    _hitResultPool[0] = _candidatesPool[0];
+    _hitResultPool.length = 1;
+    return _hitResultPool;
   }
 
   /**
    * Check Bujji EMP Harpoon automatic obstacle locks
    */
   static checkHarpoonLocks(player, obstacles) {
-    if (!player.hasHarpoon) return [];
-    const destroyed = [];
+    if (!player.hasHarpoon) return _emptyList;
+    _harpoonDestroyedPool.length = 0;
     const pZ = player.position.z;
 
     for (let i = 0; i < obstacles.length; i++) {
@@ -268,24 +325,24 @@ export class CollisionManager3D {
 
       if (oPos.z > pZ && oPos.z < pZ + 35.0) {
         if (obs.type === "bounty_target" || obs.type === "rival_hunter") {
-          destroyed.push({ type: "harpoon_bounty_capture", obstacle: obs, rewardUnits: obs.rewardUnits || 5000, targetName: obs.targetName || "Target" });
+          _harpoonDestroyedPool.push({ type: "harpoon_bounty_capture", obstacle: obs, rewardUnits: obs.rewardUnits || 5000, targetName: obs.targetName || "Target" });
         } else if (obs.type === "bounty_crate") {
-          destroyed.push({ type: "harpoon_crate_breached", obstacle: obs, rewardUnits: obs.rewardUnits || 10000 });
+          _harpoonDestroyedPool.push({ type: "harpoon_crate_breached", obstacle: obs, rewardUnits: obs.rewardUnits || 10000 });
         } else if (obs.type === "hurdle" || obs.type === "laser_gate") {
-          destroyed.push({ type: "harpoon_obstacle_destroyed", obstacle: obs });
+          _harpoonDestroyedPool.push({ type: "harpoon_obstacle_destroyed", obstacle: obs });
         }
       }
     }
-    return destroyed;
+    return _harpoonDestroyedPool;
   }
 
   /**
-   * Check 3D collision / pickup with active collectibles
+   * Check 3D collision / pickup with active collectibles (Zero-allocation per frame)
    */
   static checkCollectiblePickups(player, collectibles, dt) {
     _pCenter.set(player.position.x, player.position.y + 0.9, player.position.z);
     const magnetRadius = player.hasMagnet ? 28.0 : 0;
-    const collectedItems = [];
+    _collectedPool.length = 0;
 
     for (let i = 0; i < collectibles.length; i++) {
       const item = collectibles[i];
@@ -308,10 +365,10 @@ export class CollisionManager3D {
       if (dist < pickupRadius) {
         item.itemRef.userData.collected = true;
         item.itemRef.visible = false;
-        collectedItems.push(item);
+        _collectedPool.push(item);
       }
     }
 
-    return collectedItems;
+    return _collectedPool;
   }
 }

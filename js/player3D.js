@@ -4,9 +4,9 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "./config.js?v=20260919_triangle_neon_v38";
-import { BhairavaModel } from "./models/bhairavaModel.js?v=20260919_triangle_neon_v38";
-import { BujjiModel } from "./models/bujjiModel.js?v=20260919_triangle_neon_v38";
+import { CONFIG } from "./config.js?v=20261108_sky_ascent_v81";
+import { BhairavaModel } from "./models/bhairavaModel.js?v=20261108_sky_ascent_v81";
+import { BujjiModel } from "./models/bujjiModel.js?v=20261108_sky_ascent_v81";
 
 export class Player3D {
   constructor(scene) {
@@ -115,8 +115,20 @@ export class Player3D {
 
     this.state = "running"; // "running" | "jumping" | "sliding" | "hit"
     this.slideTimer = 0;
-    this.laneChangeTimer = 0;
     this.turnDirection = 0; // -1: Left, +1: Right
+
+    // Input Buffer Queue (Subway Surfers 95ms input queue)
+    this.inputBuffer = [];
+
+    // Critically Damped Hermite Quintic Lane Transition Kinematics
+    this.isLaneSwitching = false;
+    this.laneStartX = CONFIG.LANES[1];
+    this.laneElapsed = 0;
+    this.laneDuration = CONFIG.LANE_CHANGE_TIME;
+
+    // Fast-Fall Dive Down & Landing Impact Squash/Stretch
+    this.isFastFalling = false;
+    this.landingSquashTimer = 0;
 
     // Power-Up & Aid States
     this.hasShield = false;
@@ -149,6 +161,57 @@ export class Player3D {
       isSliding: false
     };
 
+    // -------------------------------------------------------------------------
+    // SUBWAY SURFERS / REA RUNNER POLISH: HIGH-PERFORMANCE SLIDE FRICTION SPARKS
+    // Zero-GC pooled particle system (42 particles) emitting behind sneaker soles
+    // -------------------------------------------------------------------------
+    const sparkCount = 42;
+    this._sparkMaxCount = sparkCount;
+    this._sparkGeo = new THREE.BufferGeometry();
+    this._sparkPositions = new Float32Array(sparkCount * 3);
+    this._sparkColors = new Float32Array(sparkCount * 3);
+    this._sparkVelocities = new Float32Array(sparkCount * 3);
+    this._sparkLifetimes = new Float32Array(sparkCount);
+    this._sparkMaxLife = new Float32Array(sparkCount);
+
+    for (let i = 0; i < sparkCount; i++) {
+      this._sparkPositions[i * 3 + 1] = -999;
+      this._sparkLifetimes[i] = 0;
+    }
+
+    this._sparkGeo.setAttribute("position", new THREE.BufferAttribute(this._sparkPositions, 3));
+    this._sparkGeo.setAttribute("color", new THREE.BufferAttribute(this._sparkColors, 3));
+
+    const sparkMat = new THREE.PointsMaterial({
+      size: 0.18,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    this.slideSparks = new THREE.Points(this._sparkGeo, sparkMat);
+    this.scene.add(this.slideSparks);
+
+    // -------------------------------------------------------------------------
+    // LANDING IMPACT SHOCKWAVE (Expanding Ground Ring on touchdown/fast-fall)
+    // -------------------------------------------------------------------------
+    const shockRingGeo = new THREE.RingGeometry(0.35, 0.55, 24);
+    this.shockRingMat = new THREE.MeshBasicMaterial({
+      color: 0xF59E0B,
+      transparent: true,
+      opacity: 0,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    this.landingShockwave = new THREE.Mesh(shockRingGeo, this.shockRingMat);
+    this.landingShockwave.rotation.x = -Math.PI / 2;
+    this.landingShockwave.position.y = 0.04;
+    this.landingShockwave.visible = false;
+    this.scene.add(this.landingShockwave);
+    this.shockwaveTimer = 0;
+
     this.scene.add(this.root);
   }
 
@@ -162,8 +225,15 @@ export class Player3D {
 
     this.state = "running";
     this.slideTimer = 0;
-    this.laneChangeTimer = 0;
     this.turnDirection = 0;
+
+    this.inputBuffer = [];
+    this.isLaneSwitching = false;
+    this.laneStartX = CONFIG.LANES[1];
+    this.laneElapsed = 0;
+    this.isFastFalling = false;
+    this.landingSquashTimer = 0;
+    this.root.scale.set(1.0, 1.0, 1.0);
 
     this.hasShield = false;
     this.shieldTimer = 0;
@@ -191,6 +261,17 @@ export class Player3D {
     }
     if (this.bujji && this.bujji.root) {
       this.bujji.root.visible = true;
+    }
+    if (this._sparkLifetimes) {
+      for (let i = 0; i < this._sparkMaxCount; i++) {
+        this._sparkPositions[i * 3 + 1] = -999;
+        this._sparkLifetimes[i] = 0;
+      }
+      if (this._sparkGeo) this._sparkGeo.attributes.position.needsUpdate = true;
+    }
+    if (this.landingShockwave) {
+      this.landingShockwave.visible = false;
+      this.shockwaveTimer = 0;
     }
     this.root.rotation.set(0, 0, 0);
     this.updateTransform();
@@ -222,7 +303,7 @@ export class Player3D {
 
     return {
       shot: true,
-      laneX: this.targetX,
+      laneX: this.position.x,
       playerZ: this.position.z,
       range: 55.0
     };
@@ -233,61 +314,136 @@ export class Player3D {
     this.harpoonTimer = duration;
   }
 
-  moveLeft() {
-    if (this.currentLane < 2) {
-      this.currentLane++;
-      this.targetX = CONFIG.LANES[this.currentLane];
-      this.turnDirection = 1;
-      this.laneChangeTimer = CONFIG.LANE_CHANGE_TIME;
-      return "moved";
+  /**
+   * Subway Surfers Input Buffer System:
+   * Queues rapid consecutive swipes (80-100ms window) so inputs are never dropped.
+   */
+  queueInput(action) {
+    const now = performance.now();
+    if (this.inputBuffer.length >= 2) this.inputBuffer.shift();
+    this.inputBuffer.push({ action, time: now });
+    return this.processInputBuffer();
+  }
+
+  processInputBuffer() {
+    if (this.inputBuffer.length === 0) return null;
+    const now = performance.now();
+    const maxAge = (CONFIG.INPUT_BUFFER_TIME || 0.095) * 1000;
+    while (this.inputBuffer.length > 0 && now - this.inputBuffer[0].time > maxAge) {
+      this.inputBuffer.shift();
     }
-    return "barrier_hit";
+    if (this.inputBuffer.length === 0) return null;
+
+    const next = this.inputBuffer[0];
+    let executed = false;
+    let result = null;
+
+    if (next.action === "left") {
+      const progress = this.isLaneSwitching ? this.laneElapsed / this.laneDuration : 1.0;
+      if (progress >= 0.45) {
+        result = this.executeMoveLeft();
+        executed = true;
+      }
+    } else if (next.action === "right") {
+      const progress = this.isLaneSwitching ? this.laneElapsed / this.laneDuration : 1.0;
+      if (progress >= 0.45) {
+        result = this.executeMoveRight();
+        executed = true;
+      }
+    } else if (next.action === "jump") {
+      if (this.isGrounded || this.state === "sliding") {
+        result = this.executeJump();
+        executed = true;
+      }
+    } else if (next.action === "slide") {
+      result = this.executeSlide();
+      executed = true;
+    }
+
+    if (executed) {
+      this.inputBuffer.shift();
+      return result;
+    }
+    return null;
+  }
+
+  moveLeft() {
+    return this.queueInput("left");
   }
 
   moveRight() {
-    if (this.currentLane > 0) {
-      this.currentLane--;
-      this.targetX = CONFIG.LANES[this.currentLane];
-      this.turnDirection = -1;
-      this.laneChangeTimer = CONFIG.LANE_CHANGE_TIME;
-      return "moved";
-    }
-    return "barrier_hit";
+    return this.queueInput("right");
   }
 
   jump() {
-    if (this.hasJetpack) return false;
-
-    if (this.isGrounded || this.state === "sliding") {
-      // Cancel slide directly into jump if sliding
-      this.state = "jumping";
-      this.slideTimer = 0;
-      this.velocityY = CONFIG.JUMP_VELOCITY;
-      this.isGrounded = false;
-      return true;
-    }
-    return false;
+    return this.queueInput("jump");
   }
 
   slide() {
+    return this.queueInput("slide");
+  }
+
+  executeMoveLeft() {
+    if (this.currentLane < 2) {
+      this.currentLane++;
+      this.laneStartX = this.position.x;
+      this.targetX = CONFIG.LANES[this.currentLane];
+      this.turnDirection = 1;
+      this.isLaneSwitching = true;
+      this.laneElapsed = 0;
+      this.laneDuration = CONFIG.LANE_CHANGE_TIME;
+      return "moved";
+    }
+    return null;
+  }
+
+  executeMoveRight() {
+    if (this.currentLane > 0) {
+      this.currentLane--;
+      this.laneStartX = this.position.x;
+      this.targetX = CONFIG.LANES[this.currentLane];
+      this.turnDirection = -1;
+      this.isLaneSwitching = true;
+      this.laneElapsed = 0;
+      this.laneDuration = CONFIG.LANE_CHANGE_TIME;
+      return "moved";
+    }
+    return null;
+  }
+
+  executeJump() {
+    if (this.hasJetpack) return false;
+
+    // Instant Slide Cancel: swiping UP during a slide immediately triggers full vertical jump!
+    this.state = "jumping";
+    this.slideTimer = 0;
+    this.velocityY = CONFIG.JUMP_VELOCITY;
+    this.isGrounded = false;
+    this.isFastFalling = false;
+    return true;
+  }
+
+  executeSlide() {
     if (this.hasJetpack) return false;
 
     if (!this.isGrounded) {
-      // In air -> Fast Fall / Dive snap!
+      // Fast-Fall Dive Down: Instant downward acceleration (-42m/s) in mid-air!
       this.velocityY = CONFIG.FAST_FALL_VELOCITY;
+      this.isFastFalling = true;
       this.slideTimer = CONFIG.SLIDE_DURATION;
       return "dive";
     } else {
       // Ground slide
       this.state = "sliding";
       this.slideTimer = CONFIG.SLIDE_DURATION;
+      this.isFastFalling = false;
       return "slide";
     }
   }
 
   triggerBujjiAid(duration = 5.0) {
     this.healAidTimer = duration;
-    this.invulnerableTimer = 1.2; // 1.2s brief post-hit immunity so player clears the current obstacle
+    this.invulnerableTimer = 2.0; // 2.0s safe post-hit immunity so player clears the current obstacle
     if (this.healGlitchGroup) this.healGlitchGroup.visible = true;
     if (this.bujji) this.bujji.setAid(true);
   }
@@ -389,22 +545,39 @@ export class Player3D {
       }
     }
 
-    // 2. Forward Movement along +Z axis
+    // 2. Poll & Process Buffered Inputs (Subway Surfers responsive controls)
+    this.processInputBuffer();
+
+    // 3. Forward Movement along +Z axis
     this.position.z += currentSpeed * dt;
 
-    // 3. Smooth Lane Transition Interpolation (Critically Damped Spring)
-    const laneSpeed = 1.0 / CONFIG.LANE_CHANGE_TIME;
-    this.position.x = THREE.MathUtils.lerp(this.position.x, this.targetX, Math.min(1.0, 18 * dt));
+    // 4. Critically Damped Quintic Smoothstep Lane Transition Kinematics
+    if (this.isLaneSwitching) {
+      this.laneElapsed += dt;
+      const tau = Math.min(1.0, this.laneElapsed / this.laneDuration);
+      // Quintic Smoothstep: 6t^5 - 15t^4 + 10t^3 (C2 continuity, zero instantaneous jerk)
+      const smoothTau = tau * tau * tau * (tau * (tau * 6.0 - 15.0) + 10.0);
+      this.position.x = this.laneStartX + (this.targetX - this.laneStartX) * smoothTau;
 
-    if (Math.abs(this.position.x - this.targetX) < 0.04) {
-      this.turnDirection = 0;
+      // Dynamic Banking Roll and Directional Yaw
+      const rollFactor = Math.sin(Math.PI * tau);
+      this.root.rotation.z = -this.turnDirection * 0.16 * rollFactor;
+      this.root.rotation.y = this.turnDirection * 0.08 * rollFactor;
+
+      if (tau >= 1.0) {
+        this.position.x = this.targetX;
+        this.isLaneSwitching = false;
+        this.turnDirection = 0;
+        this.root.rotation.z = 0;
+        this.root.rotation.y = 0;
+      }
+    } else {
+      this.position.x = this.targetX;
+      this.root.rotation.z = THREE.MathUtils.lerp(this.root.rotation.z, 0, 16 * dt);
+      this.root.rotation.y = THREE.MathUtils.lerp(this.root.rotation.y, 0, 16 * dt);
     }
 
-    // Dynamic Banking Roll on turn ($Z$-axis tilt)
-    const targetRoll = -this.turnDirection * 0.18;
-    this.root.rotation.z = THREE.MathUtils.lerp(this.root.rotation.z, targetRoll, 15 * dt);
-
-    // 4. Vertical Jump & Gravity Kinematics
+    // 5. Vertical Jump, Apex Hangtime & Fast-Fall Kinematics
     const targetGroundY = this.hasJetpack ? CONFIG.JETPACK_ALTITUDE : this.groundElevation;
 
     if (this.hasJetpack) {
@@ -414,14 +587,37 @@ export class Player3D {
       this.velocityY = 0;
     } else {
       if (!this.isGrounded) {
-        this.velocityY += CONFIG.GRAVITY * dt;
+        // Subway Surfers Apex Hangtime: Soften gravity near jump peak (|vy| < 2.5 m/s)
+        const isNearApex = !this.isFastFalling && Math.abs(this.velocityY) < 2.5;
+        const currentGravity = isNearApex ? (CONFIG.APEX_GRAVITY || -34.0) : CONFIG.GRAVITY;
+
+        this.velocityY += currentGravity * dt;
         this.position.y += this.velocityY * dt;
 
         if (this.position.y <= targetGroundY) {
           this.position.y = targetGroundY;
           this.velocityY = 0;
           this.isGrounded = true;
-          this.state = this.slideTimer > 0 ? "sliding" : "running";
+          this.isFastFalling = false;
+
+          // Touchdown Squash and Stretch (0.09s impact feedback)
+          this.landingSquashTimer = 0.09;
+
+          // Trigger expanding impact shockwave ring on ground
+          this.shockwaveTimer = 0.24;
+          if (this.landingShockwave) {
+            this.landingShockwave.position.set(this.position.x, targetGroundY + 0.04, this.position.z);
+            this.landingShockwave.scale.set(0.6, 0.6, 1.0);
+            this.landingShockwave.visible = true;
+            this.shockRingMat.opacity = 0.85;
+          }
+
+          // Seamless ground roll if sliding or dive-down was performed
+          if (this.slideTimer > 0) {
+            this.state = "sliding";
+          } else {
+            this.state = "running";
+          }
         }
       } else {
         // Snapped to ground elevation
@@ -429,7 +625,18 @@ export class Player3D {
       }
     }
 
-    // 5. Slide Timer Expiration
+    // 6. Touchdown Landing Squash & Stretch Feedback
+    if (this.landingSquashTimer > 0) {
+      this.landingSquashTimer -= dt;
+      const progress = Math.max(0, this.landingSquashTimer / 0.09);
+      const squashY = 1.0 - 0.12 * Math.sin(progress * Math.PI);
+      const stretchXZ = 1.0 + 0.06 * Math.sin(progress * Math.PI);
+      this.root.scale.set(stretchXZ, squashY, stretchXZ);
+    } else {
+      this.root.scale.set(1.0, 1.0, 1.0);
+    }
+
+    // 7. Slide Timer Expiration
     if (this.state === "sliding") {
       this.slideTimer -= dt;
       if (this.slideTimer <= 0) {
@@ -523,10 +730,102 @@ export class Player3D {
       }
     }
 
-    // 8. Update 3D Character Rig & Bujji Companion Animations
+    // 8. Ground Friction Slide Sparks & Dust Emitter (Subway Surfers signature kinetic fx)
+    if (this._sparkLifetimes) {
+      const isSlidingOnGround = this.state === "sliding" && this.isGrounded && !this.hasJetpack;
+      let sparksUpdated = false;
+
+      if (isSlidingOnGround) {
+        // Emit 2-3 sparks per frame
+        const emitCount = Math.min(3, Math.floor(Math.random() * 3) + 1);
+        for (let e = 0; e < emitCount; e++) {
+          for (let i = 0; i < this._sparkMaxCount; i++) {
+            if (this._sparkLifetimes[i] <= 0) {
+              const footSide = Math.random() > 0.5 ? 0.15 : -0.15;
+              this._sparkPositions[i * 3] = this.position.x + footSide + (Math.random() - 0.5) * 0.08;
+              this._sparkPositions[i * 3 + 1] = targetGroundY + 0.04 + Math.random() * 0.04;
+              this._sparkPositions[i * 3 + 2] = this.position.z - 0.28 - Math.random() * 0.25;
+
+              this._sparkVelocities[i * 3] = (Math.random() - 0.5) * 2.2 + (this.turnDirection * 0.8);
+              this._sparkVelocities[i * 3 + 1] = Math.random() * 2.4 + 0.6;
+              this._sparkVelocities[i * 3 + 2] = -currentSpeed * 0.42 - Math.random() * 3.5;
+
+              const duration = 0.20 + Math.random() * 0.14;
+              this._sparkLifetimes[i] = duration;
+              this._sparkMaxLife[i] = duration;
+
+              // High-voltage friction color (Amber Gold to Hot White)
+              const hot = Math.random();
+              this._sparkColors[i * 3] = 1.0;
+              this._sparkColors[i * 3 + 1] = 0.65 + hot * 0.32;
+              this._sparkColors[i * 3 + 2] = 0.15 + hot * 0.65;
+              break;
+            }
+          }
+        }
+      }
+
+      // Physics integration for active sparks
+      for (let i = 0; i < this._sparkMaxCount; i++) {
+        if (this._sparkLifetimes[i] > 0) {
+          sparksUpdated = true;
+          this._sparkLifetimes[i] -= dt;
+
+          if (this._sparkLifetimes[i] <= 0) {
+            this._sparkPositions[i * 3 + 1] = -999;
+          } else {
+            this._sparkPositions[i * 3] += this._sparkVelocities[i * 3] * dt;
+            this._sparkPositions[i * 3 + 1] += this._sparkVelocities[i * 3 + 1] * dt;
+            this._sparkPositions[i * 3 + 2] += this._sparkVelocities[i * 3 + 2] * dt;
+
+            // Gravity
+            this._sparkVelocities[i * 3 + 1] -= 15.0 * dt;
+
+            // Ground collision bounce
+            if (this._sparkPositions[i * 3 + 1] <= targetGroundY + 0.02) {
+              this._sparkPositions[i * 3 + 1] = targetGroundY + 0.02;
+              this._sparkVelocities[i * 3 + 1] = -this._sparkVelocities[i * 3 + 1] * 0.35;
+            }
+
+            // Fade intensity
+            const lifeRatio = Math.max(0, this._sparkLifetimes[i] / this._sparkMaxLife[i]);
+            this._sparkColors[i * 3] = lifeRatio;
+            this._sparkColors[i * 3 + 1] = lifeRatio * 0.72;
+            this._sparkColors[i * 3 + 2] = lifeRatio * 0.3;
+          }
+        }
+      }
+
+      if (sparksUpdated) {
+        this._sparkGeo.attributes.position.needsUpdate = true;
+        this._sparkGeo.attributes.color.needsUpdate = true;
+      }
+    }
+
+    // 9. Update Landing Shockwave
+    if (this.shockwaveTimer > 0) {
+      this.shockwaveTimer -= dt;
+      const progress = 1.0 - Math.max(0, this.shockwaveTimer / 0.24);
+      const ringScale = 0.6 + progress * 2.8;
+      this.landingShockwave.scale.set(ringScale, ringScale, 1.0);
+      this.shockRingMat.opacity = Math.max(0, (1.0 - progress) * 0.82);
+      if (this.shockwaveTimer <= 0) {
+        this.landingShockwave.visible = false;
+      }
+    }
+
+    // 10. Update 3D Character Rig & Bujji Companion Animations
     const speedRatio = currentSpeed / CONFIG.INITIAL_SPEED;
-    this.bhairava.updateAnimation(this.state, time, speedRatio, this.hasJetpack, this.shootTimer);
+    const slideProgress = this.state === "sliding"
+      ? Math.max(0, Math.min(1.0, 1.0 - (this.slideTimer / CONFIG.SLIDE_DURATION)))
+      : 0;
+    this.bhairava.updateAnimation(this.state, time, speedRatio, this.hasJetpack, this.shootTimer, slideProgress, this.turnDirection, this.isLaneSwitching);
     this.bujji.update(time, this.turnDirection);
+
+    // Laser beam vertical alignment during slide vs running
+    if (this.laserBeamGroup) {
+      this.laserBeamGroup.position.y = this.state === "sliding" ? -0.72 : 0;
+    }
 
     this.updateTransform();
   }
@@ -539,7 +838,7 @@ export class Player3D {
    * 3D Collision Hitbox bounds calculation
    */
   getBounds() {
-    const isSliding = this.state === "sliding";
+    const isSliding = this.state === "sliding" || (this.isFastFalling && this.slideTimer > 0);
     const height = isSliding ? CONFIG.PLAYER_SLIDE_HEIGHT : CONFIG.PLAYER_NORMAL_HEIGHT;
     const halfH = height / 2;
     const halfW = CONFIG.PLAYER_WIDTH / 2;

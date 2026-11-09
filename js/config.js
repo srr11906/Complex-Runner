@@ -15,20 +15,22 @@ export const CONFIG = {
   ACTIVE_CHUNKS: 7, // 7 Chunks = 420m view horizon (High performance 60 FPS)
   GROUND_Y: 0.0,
 
-  // Speed & Progression (Faster Velocity & Progressive Ramp)
+  // Speed & Progression (Subway Surfers Multi-Tier Ramp)
   INITIAL_SPEED: 23.5, // m/s (~85 km/h)
-  MAX_SPEED: 52.0,     // m/s (~187 km/h)
+  MAX_SPEED: 42.0,     // m/s (~151 km/h peak speed cap)
   SPEED_ACCELERATION: 0.014,
 
   // Kinematic Jump & Slide Physics (Fast & Decisive Subway Surfers Model)
   GRAVITY: -50.0,           // m/s^2 (crisp arc, reduced floatiness)
+  APEX_GRAVITY: -34.0,      // m/s^2 (subtle float hangtime near peak of jump)
   JUMP_VELOCITY: 16.5,      // m/s
   FAST_FALL_VELOCITY: -42.0,// m/s (instant dive down)
   LANE_CHANGE_TIME: 0.13,   // seconds (snappy critically damped switch)
   SLIDE_DURATION: 0.54,     // seconds (tighter slide window)
+  INPUT_BUFFER_TIME: 0.095, // seconds (Subway Surfers 95ms input queue)
 
-  // Hitbox Dimensions
-  PLAYER_NORMAL_HEIGHT: 1.85,
+  // Hitbox Dimensions (Heroic 1.94m Prabhas Athletic Stature)
+  PLAYER_NORMAL_HEIGHT: 1.94,
   PLAYER_SLIDE_HEIGHT: 0.65,
   PLAYER_WIDTH: 0.9,
   PLAYER_DEPTH: 0.7,
@@ -79,27 +81,29 @@ export const CONFIG = {
   DOUBLE_POINTS_DURATION: 6.0,
   MAGNET_RADIUS: 22.0,
 
-  // Rich Dark Brown Desert & Cinematic Golden Amber Palette
+  // Vibrant Sunlit Desert Highway & High-Contrast Cinematic Dystopian Palette (Kalki 2898 AD)
   COLORS: {
-    SKY_TOP: 0x2E1D11,        // Dark Amber-Bronze Desert Sky
-    SKY_HORIZON: 0xB4681E,    // Warm Golden Desert Horizon
-    SUN_LIGHT: 0xFFFBEB,      // Radiant Sunlight
-    HEMI_SKY: 0x7A481E,       // Warm Amber Atmosphere Bounce
-    HEMI_GROUND: 0x3D230F,    // Dark Brown Sand Ground Bounce
-    FOG: 0x4D3017,            // Rich Dark Brown Desert Dust Haze
-    SAND_GROUND: 0x4A2E16,    // Rich Dark Amber-Brown Desert Wasteland
-    ROAD_SURFACE: 0x2E241B,   // Weathered Dark Asphalt
-    ROAD_TRIM: 0xD97706,      // Luminous Amber Trim
+    SKY_TOP: 0x122347,        // Deep Atmospheric Dystopian Twilight Azure
+    SKY_HORIZON: 0xF59E0B,    // Radiant Golden Sunset Sandstorm Horizon
+    SUN_LIGHT: 0xFFF5E4,      // Crisp Warm Golden Sunlight (3.5x intensity)
+    HEMI_SKY: 0xFEF3C7,       // Warm Daylight Sky Illumination
+    HEMI_GROUND: 0x5C3314,    // Realistic Darker Iron-Rich Desert Sand Ground Bounce
+    FOG: 0xC4925A,            // Atmospheric Sand Dust Haze (Softly obscuring horizon)
+    SAND_GROUND: 0x633516,    // Realistic Darker Sunbaked Wastelands Sand (Zero bleached look)
+    ROAD_SURFACE: 0x16181E,   // High-Contrast Dark Basalt-Composite Maglev Track
+    ROAD_TRIM: 0xD97706,      // Luminous High-Visibility Amber Curb Trim
     COMPLEX_WHITE: 0x1E293B,  // Monolithic Complex Alloy
     COMPLEX_GLOW: 0xFDE047,   // Radiant Golden Power Conduits
     COMPLEX_GOLD: 0xF59E0B,   // Royal Gold Complex Trim
     BUJJI_YELLOW: 0xFBBF24,   // Bujji Golden Pearl Chassis
-    BUJJI_CYAN: 0x06B6D4,     // Bujji Cyan Holographic Optic
+    BUJJI_CYAN: 0x00E5FF,     // Bujji Cyan Holographic Optic
     DARK_CARBON: 0x1E293B,    // Carbon Fiber Composite
-    RUST_BRONZE: 0x854D0E,    // Weathered Ancient Bronze
-    ANCIENT_STONE: 0xA89B8C,  // Weathered Ghat Stone
-    NEON_CYAN: 0x00E5FF,
+    RUST_BRONZE: 0x9A4815,    // Weathered Ancient Salvage Bronze
+    ANCIENT_STONE: 0x825433,  // Weathered Scorched Ghat Sandstone (Zero cement!)
+    NEON_CYAN: 0x00FFFF,
     NEON_GOLD: 0xFDE047,
-    NEON_RED: 0xEF4444
+    NEON_RED: 0xEF4444,
+    NEON_GREEN: 0x10B981,
+    NEON_PURPLE: 0xA855F7
   }
 };

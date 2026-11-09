@@ -112,6 +112,7 @@ export class InputManager3D {
   }
 
   handleKeyDown(e) {
+    if (e.repeat) return;
     const key = e.key;
     const code = e.code;
 

@@ -256,7 +256,7 @@ class TextureGenerator {
   }
 
   /**
-   * 3. Dystopian Shanty Megastructure Facade (Weathered Corrugated Metal, Neon Windows, AC Vents)
+   * 3. Dystopian Wasteland Salvage Megastructure Facade (Corrugated Iron, Welded Rust Plates, Structural I-Beams, Stencils, Grated Vents - ZERO Cement)
    */
   getShantyBuildingTexture() {
     if (this.cache.has("shantyBuilding")) return this.cache.get("shantyBuilding");
@@ -266,56 +266,159 @@ class TextureGenerator {
     canvas.height = 1024;
     const ctx = canvas.getContext("2d");
 
-    // Weathered concrete base
-    ctx.fillStyle = "#332B25";
+    // 1. Dark Rusted Steel & Industrial Alloy Base (#1F1813 / #281F18)
+    ctx.fillStyle = "#221A14";
     ctx.fillRect(0, 0, 512, 1024);
 
-    // Corrugated iron and rusted sheet modules
-    const colors = ["#4A3B32", "#5C3E2D", "#2C3539", "#6E4D3B", "#382D24"];
+    // 2. Patchwork Salvage Plates (Weathered Rust, Burnt Metal, Oxidized Copper & Scrapped Titanium)
+    const plateColors = [
+      "#4A2E1B", // Deep Rust Iron
+      "#5E3821", // Weathered Orange-Brown Oxide
+      "#382B22", // Burnt Heavy Alloy
+      "#2B3338", // Oxidized Scrapped Teal Steel
+      "#6B3D22", // Rich Iron Oxide
+      "#1E2328"  // Charred Titanium Scrap
+    ];
+
     for (let y = 0; y < 1024; y += 64) {
       for (let x = 0; x < 512; x += 128) {
-        ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+        const pColor = plateColors[Math.floor(Math.random() * plateColors.length)];
+        ctx.fillStyle = pColor;
         ctx.fillRect(x + 2, y + 2, 124, 60);
 
-        // Corrugated vertical ridges
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
-        ctx.lineWidth = 2;
-        for (let rx = x + 10; rx < x + 120; rx += 12) {
+        // Corrugated metal vertical sinusoidal ridges
+        for (let rx = x + 6; rx < x + 122; rx += 8) {
+          // Highlight edge
+          ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
+          ctx.fillRect(rx, y + 2, 3, 60);
+          // Shadow trough
+          ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+          ctx.fillRect(rx + 3, y + 2, 4, 60);
+        }
+
+        // Heavy Welded Seam Lines & Rivet Rows along Plate Edges
+        ctx.strokeStyle = "#110D0A";
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(x + 2, y + 2, 124, 60);
+
+        // Welded Rivet Dots
+        ctx.fillStyle = "rgba(255, 210, 160, 0.55)";
+        for (let rvx = x + 8; rvx < x + 120; rvx += 16) {
           ctx.beginPath();
-          ctx.moveTo(rx, y + 2);
-          ctx.lineTo(rx, y + 62);
-          ctx.stroke();
+          ctx.arc(rvx, y + 5, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(rvx, y + 59, 1.8, 0, Math.PI * 2);
+          ctx.fill();
         }
       }
     }
 
-    // Illuminated Window Grids (Warm amber and cyber cyan lights)
-    for (let wy = 40; wy < 1000; wy += 80) {
-      for (let wx = 30; wx < 500; wx += 70) {
-        if (Math.random() > 0.35) {
-          const isCyan = Math.random() > 0.7;
-          ctx.fillStyle = isCyan ? "#00E5FF" : "#F59E0B";
-          ctx.shadowColor = ctx.fillStyle;
-          ctx.shadowBlur = 8;
-          ctx.fillRect(wx, wy, 24, 18);
+    // 3. Heavy Structural Steel Girders & Diagonal Cross-Trusses (#151B22)
+    ctx.fillStyle = "#161B22";
+    ctx.strokeStyle = "#0D1117";
+    ctx.lineWidth = 3;
+
+    // Horizontal I-Beam Girders
+    for (let gy of [0, 256, 512, 768, 1020]) {
+      ctx.fillRect(0, gy, 512, 14);
+      ctx.strokeRect(0, gy, 512, 14);
+      // Girder rivets
+      ctx.fillStyle = "#D4D4D8";
+      for (let rx = 12; rx < 500; rx += 24) {
+        ctx.fillRect(rx, gy + 4, 3, 3);
+      }
+      ctx.fillStyle = "#161B22";
+    }
+
+    // Vertical Corner Channelling Columns
+    for (let gx of [0, 250, 498]) {
+      ctx.fillRect(gx, 0, 14, 1024);
+      ctx.strokeRect(gx, 0, 14, 1024);
+    }
+
+    // Diagonal Reinforcement Struts in Selected Bays
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = "#1A222B";
+    for (let by = 14; by < 1000; by += 256) {
+      ctx.beginPath();
+      ctx.moveTo(14, by);
+      ctx.lineTo(248, by + 242);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(264, by);
+      ctx.lineTo(498, by + 242);
+      ctx.stroke();
+    }
+
+    // 4. Dystopian Stenciled Markings & Warning Hazard Stripes
+    ctx.fillStyle = "rgba(245, 158, 11, 0.85)";
+    ctx.font = "900 15px monospace";
+    ctx.fillText("// WASTELAND SECTOR-04 // SALVAGE UNIT", 30, 285);
+    ctx.fillText("CAUTION: HIGH-VOLTAGE INDUCTION", 30, 540);
+    ctx.fillText("WATER CONDENSER TERMINAL // 2898", 30, 795);
+
+    // Hazard Stripes on Lower Girder
+    ctx.fillStyle = "#F59E0B";
+    ctx.fillRect(20, 990, 472, 16);
+    ctx.fillStyle = "#111317";
+    for (let hx = 20; hx < 480; hx += 20) {
+      ctx.beginPath();
+      ctx.moveTo(hx, 1006);
+      ctx.lineTo(hx + 10, 990);
+      ctx.lineTo(hx + 16, 990);
+      ctx.lineTo(hx + 6, 1006);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // 5. High-Tech Cyber Slits & Grated Observation Ports (Warm amber & electric cyan glowing optics)
+    for (let wy = 50; wy < 950; wy += 85) {
+      for (let wx = 35; wx < 480; wx += 80) {
+        if (Math.random() > 0.40) {
+          const isCyan = Math.random() > 0.72;
+          const glowColor = isCyan ? "#00E5FF" : "#F59E0B";
+
+          // Recessed Slit Housing
+          ctx.fillStyle = "#0A0D10";
+          ctx.fillRect(wx - 2, wy - 2, 38, 18);
+
+          // Glowing Narrow Horizontal Slit
+          ctx.fillStyle = glowColor;
+          ctx.shadowColor = glowColor;
+          ctx.shadowBlur = 10;
+          ctx.fillRect(wx + 2, wy + 3, 30, 8);
           ctx.shadowBlur = 0;
 
-          // Window frame cross
-          ctx.strokeStyle = "#1A1410";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(wx, wy, 24, 18);
+          // Metal Grate Bars over the slit
+          ctx.strokeStyle = "#161B22";
+          ctx.lineWidth = 1.8;
+          for (let bx = wx + 8; bx <= wx + 26; bx += 6) {
+            ctx.beginPath();
+            ctx.moveTo(bx, wy);
+            ctx.lineTo(bx, wy + 14);
+            ctx.stroke();
+          }
         }
       }
     }
 
-    // Weathering grunge streaks & rain drips
-    ctx.fillStyle = "rgba(15, 10, 8, 0.55)";
-    for (let s = 0; s < 35; s++) {
+    // 6. Realistic Weathering: Deep Rust Runoff, Industrial Grease & Sand Dust Wash
+    ctx.fillStyle = "rgba(40, 18, 8, 0.65)";
+    for (let s = 0; s < 45; s++) {
       const gx = Math.random() * 512;
-      const gw = 8 + Math.random() * 25;
-      const gh = 100 + Math.random() * 320;
-      ctx.fillRect(gx, Math.random() * 600, gw, gh);
+      const gw = 6 + Math.random() * 18;
+      const gh = 80 + Math.random() * 260;
+      ctx.fillRect(gx, Math.random() * 700, gw, gh);
     }
+
+    // Baked Sand Dust accumulation at bottom third
+    const sandWash = ctx.createLinearGradient(0, 700, 0, 1024);
+    sandWash.addColorStop(0, "rgba(117, 72, 32, 0)");
+    sandWash.addColorStop(1, "rgba(117, 72, 32, 0.65)");
+    ctx.fillStyle = sandWash;
+    ctx.fillRect(0, 700, 512, 324);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
@@ -411,6 +514,146 @@ class TextureGenerator {
 
     const texture = new THREE.CanvasTexture(canvas);
     this.cache.set(key, texture);
+    return texture;
+  }
+
+  /**
+   * 4b. Subway Surfers Detour / Lane Closed Roadblock Signboard Texture
+   * High-contrast directional neon chevrons with diagonal hazard borders
+   */
+  getDetourSignTexture(direction = "right") {
+    const key = `detour_${direction}`;
+    if (this.cache.has(key)) return this.cache.get(key);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext("2d");
+
+    // 1. Dark Carbon Armor Plate
+    ctx.fillStyle = "#0B0F19";
+    ctx.fillRect(0, 0, 512, 256);
+
+    // 2. Bold Diagonal Hazard Caution Border (Top & Bottom)
+    const drawHazardStripe = (y, h) => {
+      ctx.fillStyle = "#F59E0B";
+      ctx.fillRect(0, y, 512, h);
+      ctx.fillStyle = "#111827";
+      for (let x = -30; x < 540; x += 36) {
+        ctx.beginPath();
+        ctx.moveTo(x, y + h);
+        ctx.lineTo(x + 20, y);
+        ctx.lineTo(x + 36, y);
+        ctx.lineTo(x + 16, y + h);
+        ctx.closePath();
+        ctx.fill();
+      }
+    };
+    drawHazardStripe(0, 28);
+    drawHazardStripe(228, 28);
+
+    // 3. Inner Slate Plate with Thin Gold Border
+    ctx.strokeStyle = "#F59E0B";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(12, 34, 488, 188);
+
+    // 4. "LANE CLOSED" Text Header
+    ctx.font = "900 24px sans-serif";
+    ctx.fillStyle = "#F59E0B";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.shadowColor = "#F59E0B";
+    ctx.shadowBlur = 10;
+    ctx.fillText("DETOUR // LANE CLOSED", 256, 62);
+    ctx.shadowBlur = 0;
+
+    // 5. Massive Directional Chevron Arrows
+    ctx.lineWidth = 22;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "miter";
+    ctx.strokeStyle = "#FBBF24";
+    ctx.shadowColor = "#F59E0B";
+    ctx.shadowBlur = 18;
+
+    const isRight = direction !== "left";
+    const isBoth = direction === "both";
+
+    if (isBoth) {
+      // Bidirectional chevrons
+      const leftXs = [160, 100];
+      for (let cx of leftXs) {
+        ctx.beginPath();
+        ctx.moveTo(cx + 25, 110);
+        ctx.lineTo(cx - 20, 150);
+        ctx.lineTo(cx + 25, 190);
+        ctx.stroke();
+      }
+      const rightXs = [352, 412];
+      for (let cx of rightXs) {
+        ctx.beginPath();
+        ctx.moveTo(cx - 25, 110);
+        ctx.lineTo(cx + 20, 150);
+        ctx.lineTo(cx - 25, 190);
+        ctx.stroke();
+      }
+    } else {
+      // 3 Bold Sequential Chevrons
+      const arrowXs = isRight ? [160, 256, 352] : [352, 256, 160];
+      for (let cx of arrowXs) {
+        ctx.beginPath();
+        if (isRight) {
+          ctx.moveTo(cx - 30, 110);
+          ctx.lineTo(cx + 24, 150);
+          ctx.lineTo(cx - 30, 190);
+        } else {
+          ctx.moveTo(cx + 30, 110);
+          ctx.lineTo(cx - 24, 150);
+          ctx.lineTo(cx + 30, 190);
+        }
+        ctx.stroke();
+      }
+    }
+    ctx.shadowBlur = 0;
+
+    const texture = new THREE.CanvasTexture(canvas);
+    this.cache.set(key, texture);
+    return texture;
+  }
+
+  /**
+   * 4c. High-Visibility Hurdle Hazard Plank Texture
+   */
+  getHurdlePlankTexture() {
+    if (this.cache.has("hurdlePlank")) return this.cache.get("hurdlePlank");
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+
+    // Vibrant Yellow Base
+    ctx.fillStyle = "#FBBF24";
+    ctx.fillRect(0, 0, 512, 128);
+
+    // Diagonal Black Hazard Stripes
+    ctx.fillStyle = "#0F172A";
+    for (let x = -80; x < 600; x += 64) {
+      ctx.beginPath();
+      ctx.moveTo(x, 128);
+      ctx.lineTo(x + 40, 0);
+      ctx.lineTo(x + 72, 0);
+      ctx.lineTo(x + 32, 128);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Outer Dark Metal Edge Trim
+    ctx.strokeStyle = "#1E293B";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(0, 0, 512, 128);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    this.cache.set("hurdlePlank", texture);
     return texture;
   }
 
@@ -535,7 +778,7 @@ class TextureGenerator {
   }
 
   /**
-   * 7. Procedural Dark Brown Desert Sand & Volcanic Crag Ground Texture
+   * 7. Procedural Natural Sunbaked Desert Sand & Dune Ground Texture
    */
   getSandTerrainTexture() {
     if (this.cache.has("sandTerrain")) return this.cache.get("sandTerrain");
@@ -545,25 +788,25 @@ class TextureGenerator {
     canvas.height = 1024;
     const ctx = canvas.getContext("2d");
 
-    // Rich Dark Amber-Brown Desert Sand Base (#3D2411 / #4A2E16)
-    ctx.fillStyle = "#3D2411";
+    // Realistic Darker Sunbaked Wastelands Sand Base (#5C3617 / #482910)
+    ctx.fillStyle = "#5C3617";
     ctx.fillRect(0, 0, 1024, 1024);
 
-    // Fine Dark Earth Grain Noise
+    // Fine Mineral Grain & Iron-Oxide Particle Noise
     const imgData = ctx.getImageData(0, 0, 1024, 1024);
     const data = imgData.data;
     for (let i = 0; i < data.length; i += 4) {
-      const noise = (Math.random() - 0.5) * 24;
-      data[i] = Math.max(0, Math.min(255, data[i] + noise));
-      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise * 0.85));
-      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise * 0.65));
+      const noise = (Math.random() - 0.5) * 22;
+      data[i] = Math.max(0, Math.min(255, data[i] + noise * 1.10));
+      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise * 0.80));
+      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise * 0.45));
     }
     ctx.putImageData(imgData, 0, 0);
 
-    // Windblown Dark Sand Dunes & Ripples
-    ctx.lineWidth = 16;
+    // Windblown Sand Dunes & Natural Shadow Ripples
+    ctx.lineWidth = 14;
     for (let y = 0; y < 1024; y += 32) {
-      ctx.strokeStyle = (y % 64 === 0) ? "rgba(85, 48, 23, 0.45)" : "rgba(35, 18, 8, 0.4)";
+      ctx.strokeStyle = (y % 64 === 0) ? "rgba(118, 70, 30, 0.45)" : "rgba(60, 32, 14, 0.45)";
       ctx.beginPath();
       ctx.moveTo(0, y);
       for (let x = 0; x <= 1024; x += 128) {
@@ -573,15 +816,15 @@ class TextureGenerator {
       ctx.stroke();
     }
 
-    // Rocky Basalt Gravel & Sunken Ancient Earth Formations
+    // Weathered Ancient Earth, Scorched Bedrock & Pebble Scatter
     for (let i = 0; i < 40; i++) {
       const rx = Math.random() * 1024;
       const ry = Math.random() * 1024;
-      const rrad = 30 + Math.random() * 80;
+      const rrad = 25 + Math.random() * 65;
       const rGrad = ctx.createRadialGradient(rx, ry, 0, rx, ry, rrad);
-      rGrad.addColorStop(0, "rgba(25, 12, 5, 0.65)");
-      rGrad.addColorStop(0.7, "rgba(65, 36, 17, 0.25)");
-      rGrad.addColorStop(1, "rgba(75, 42, 20, 0)");
+      rGrad.addColorStop(0, "rgba(42, 22, 9, 0.60)");
+      rGrad.addColorStop(0.7, "rgba(95, 52, 22, 0.25)");
+      rGrad.addColorStop(1, "rgba(110, 60, 25, 0)");
       ctx.fillStyle = rGrad;
       ctx.beginPath();
       ctx.arc(rx, ry, rrad, 0, Math.PI * 2);
@@ -781,7 +1024,7 @@ class TextureGenerator {
   }
 
   /**
-   * 13. Dystopian Shanty Building Normal Map (3D corrugated iron ridges, window frames, seams)
+   * 13. Dystopian Shanty Salvage Normal Map (3D corrugated iron ridges, welded plate seams, structural I-beams, slit grates)
    */
   getShantyBuildingNormalMap() {
     if (this.cache.has("shanty_norm")) return this.cache.get("shanty_norm");
@@ -793,38 +1036,48 @@ class TextureGenerator {
     ctx.fillStyle = "#808080";
     ctx.fillRect(0, 0, 512, 1024);
 
-    // Corrugated iron vertical ridges
+    // Corrugated iron sinusoidal vertical ridges
     for (let y = 0; y < 1024; y += 64) {
       for (let x = 0; x < 512; x += 128) {
-        for (let rx = x + 10; rx < x + 120; rx += 12) {
-          ctx.strokeStyle = "#D0D0D0";
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.moveTo(rx, y + 2);
-          ctx.lineTo(rx, y + 62);
-          ctx.stroke();
-
-          ctx.strokeStyle = "#303030";
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(rx + 4, y + 2);
-          ctx.lineTo(rx + 4, y + 62);
-          ctx.stroke();
+        for (let rx = x + 6; rx < x + 122; rx += 8) {
+          ctx.fillStyle = "#B0B0B0";
+          ctx.fillRect(rx, y + 2, 3, 60);
+          ctx.fillStyle = "#404040";
+          ctx.fillRect(rx + 3, y + 2, 4, 60);
         }
+
+        // Heavy Welded Seams
+        ctx.strokeStyle = "#202020";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x + 2, y + 2, 124, 60);
       }
     }
 
-    // Window frame recessed bevels
-    for (let wy = 40; wy < 1000; wy += 80) {
-      for (let wx = 30; wx < 500; wx += 70) {
-        ctx.fillStyle = "#202020";
-        ctx.fillRect(wx - 2, wy - 2, 28, 22);
-        ctx.fillStyle = "#E0E0E0";
-        ctx.fillRect(wx, wy, 24, 18);
+    // Heavy Structural I-Beams (Raised 3D Girders)
+    for (let gy of [0, 256, 512, 768, 1020]) {
+      ctx.fillStyle = "#E0E0E0";
+      ctx.fillRect(0, gy, 512, 4);
+      ctx.fillStyle = "#303030";
+      ctx.fillRect(0, gy + 10, 512, 4);
+    }
+    for (let gx of [0, 250, 498]) {
+      ctx.fillStyle = "#E0E0E0";
+      ctx.fillRect(gx, 0, 4, 1024);
+      ctx.fillStyle = "#303030";
+      ctx.fillRect(gx + 10, 0, 4, 1024);
+    }
+
+    // Recessed Slits & Grated Portholes
+    for (let wy = 50; wy < 950; wy += 85) {
+      for (let wx = 35; wx < 480; wx += 80) {
+        ctx.fillStyle = "#181818";
+        ctx.fillRect(wx - 2, wy - 2, 38, 18);
+        ctx.fillStyle = "#B0B0B0";
+        ctx.fillRect(wx + 2, wy + 3, 30, 8);
       }
     }
 
-    const normCanvas = this.generateNormalMapFromCanvas(canvas, 2.0);
+    const normCanvas = this.generateNormalMapFromCanvas(canvas, 2.2);
     const texture = new THREE.CanvasTexture(normCanvas);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
@@ -892,12 +1145,12 @@ class TextureGenerator {
     canvas.height = 1024;
     const ctx = canvas.getContext("2d");
 
-    // Pristine White-Ivory Carrara Marble Base
-    ctx.fillStyle = "#F8FAFC";
+    // Eye-pleasing soft architectural tech-marble base (softened shade, zero harsh pure white glare)
+    ctx.fillStyle = "#DDE4EC";
     ctx.fillRect(0, 0, 1024, 1024);
 
     // Subtle natural marble veining
-    ctx.strokeStyle = "rgba(203, 213, 225, 0.4)";
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.38)";
     ctx.lineWidth = 1.5;
     for (let i = 0; i < 12; i++) {
       ctx.beginPath();
@@ -915,7 +1168,7 @@ class TextureGenerator {
     }
 
     // Polished Marble Slab Tile Grid (512x512)
-    ctx.fillStyle = "rgba(226, 232, 240, 0.8)";
+    ctx.fillStyle = "rgba(203, 213, 225, 0.7)";
     for (let y = 0; y <= 1024; y += 256) {
       ctx.fillRect(0, y - 1, 1024, 2);
     }
@@ -1056,6 +1309,91 @@ class TextureGenerator {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     this.cache.set("complex_hedge", texture);
+    return texture;
+  }
+
+  /**
+   * 19. The Complex - Rushing Cascading Waterfall Texture (Animated Vertical Streams & White Foam)
+   */
+  getComplexWaterfallTexture() {
+    if (this.cache.has("complex_waterfall")) return this.cache.get("complex_waterfall");
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 512;
+    const ctx = canvas.getContext("2d");
+
+    // Base translucent deep azure-cyan torrent gradient
+    const grad = ctx.createLinearGradient(0, 0, 256, 0);
+    grad.addColorStop(0, "#0369A1");
+    grad.addColorStop(0.3, "#0284C7");
+    grad.addColorStop(0.7, "#0EA5E9");
+    grad.addColorStop(1, "#0369A1");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 256, 512);
+
+    // Vertical falling water ribbons and foam streamers
+    for (let i = 0; i < 120; i++) {
+      const x = Math.random() * 256;
+      const y = Math.random() * 512;
+      const w = 1.5 + Math.random() * 3.5;
+      const h = 40 + Math.random() * 120;
+      const alpha = 0.35 + Math.random() * 0.55;
+      ctx.fillStyle = `rgba(240, 253, 250, ${alpha})`;
+      ctx.fillRect(x, y, w, h);
+    }
+
+    // Frothy water spray speckles
+    ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+    for (let i = 0; i < 600; i++) {
+      const x = Math.random() * 256;
+      const y = Math.random() * 512;
+      const r = 0.8 + Math.random() * 1.6;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    this.cache.set("complex_waterfall", texture);
+    return texture;
+  }
+
+  /**
+   * 20. The Complex - Organic Tree Bark Texture
+   */
+  getComplexBarkTexture() {
+    if (this.cache.has("complex_bark")) return this.cache.get("complex_bark");
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 512;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#2D1F15";
+    ctx.fillRect(0, 0, 256, 512);
+
+    // Vertical furrow bark striations
+    for (let x = 0; x < 256; x += 4) {
+      const shade = Math.floor(25 + Math.random() * 25);
+      ctx.fillStyle = `rgb(${shade + 18}, ${shade + 8}, ${shade})`;
+      ctx.fillRect(x, 0, 3, 512);
+    }
+
+    // Moss and lichen patches
+    for (let i = 0; i < 80; i++) {
+      const x = Math.random() * 256;
+      const y = Math.random() * 512;
+      ctx.fillStyle = "rgba(45, 106, 79, 0.4)";
+      ctx.fillRect(x, y, 6, 14);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    this.cache.set("complex_bark", texture);
     return texture;
   }
 }

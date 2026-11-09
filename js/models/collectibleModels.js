@@ -5,34 +5,37 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "../config.js?v=20260919_triangle_neon_v38";
+import { CONFIG } from "../config.js?v=20261011_production_v60";
+import { assetLoader } from "./assetLoader3D.js?v=20261011_production_v60";
 
 export class CollectibleFactory3D {
   constructor() {
     this.materials = {
-      // 1. Polished Royal Gold Alloy (High Metalness, Rich Warm Specular)
+      // 1. Polished Radiant Vivid Gold Alloy (High Specular & Deep Metallic Luster)
       goldArmor: new THREE.MeshStandardMaterial({
-        color: 0xFBBF24,
-        metalness: 0.95,
-        roughness: 0.16,
-        emissive: 0xD97706,
-        emissiveIntensity: 0.22
+        color: 0xFFD700,
+        metalness: 0.96,
+        roughness: 0.12,
+        emissive: 0xB45309,
+        emissiveIntensity: 0.35
       }),
 
-      // 2. Satin Gold Medallion Inset (Warm metallic luster)
+      // 2. Satin Pure Gold Medallion Inset (Warm golden body)
       goldSatin: new THREE.MeshStandardMaterial({
-        color: 0xEAB308,
+        color: 0xFFC107,
         metalness: 0.94,
-        roughness: 0.22,
-        emissive: 0xB45309,
-        emissiveIntensity: 0.18
+        roughness: 0.16,
+        emissive: 0xD97706,
+        emissiveIntensity: 0.30
       }),
 
       // 3. Bright Champagne Gold Bezel & Chiseled Highlights
       goldTrim: new THREE.MeshStandardMaterial({
-        color: 0xFEF08A,
+        color: 0xFFFBEB,
         metalness: 0.98,
-        roughness: 0.10
+        roughness: 0.06,
+        emissive: 0xFDE047,
+        emissiveIntensity: 0.25
       }),
 
       // 4. Ultra-Vibrant Unlit Neon Cyan (Maximum visibility at all distances & angles)
@@ -188,7 +191,14 @@ export class CollectibleFactory3D {
       // Multiplier Geometries
       multiplierCrest: new THREE.CylinderGeometry(0.42, 0.42, 0.08, 8),
       multiplierRing: new THREE.TorusGeometry(0.44, 0.034, 8, 24),
-      multiplierLabel: new THREE.PlaneGeometry(0.6, 0.6)
+      multiplierLabel: new THREE.PlaneGeometry(0.6, 0.6),
+
+      // Full 3D Sculptural Multiplier "2X" Extrusions
+      numBarH: new THREE.BoxGeometry(0.15, 0.045, 0.06),
+      numBarV: new THREE.BoxGeometry(0.045, 0.08, 0.06),
+      numBarDiag: new THREE.BoxGeometry(0.16, 0.045, 0.06),
+      xBarDiag: new THREE.BoxGeometry(0.20, 0.045, 0.06),
+      emblemCoreSphere: new THREE.SphereGeometry(0.035, 8, 8)
     };
 
     // Pre-create 2X multiplier texture
@@ -259,59 +269,59 @@ export class CollectibleFactory3D {
       group.add(notch);
     }
 
-    // 4. Stepped Inner Circle Gold Medallion Platform
-    const innerDisc = new THREE.Mesh(this.geometries.coinInnerDisc, this.materials.goldSatin);
-    innerDisc.rotation.x = Math.PI / 2;
-    group.add(innerDisc);
+      // 4. Stepped Inner Circle Gold Medallion Platform
+      const innerDisc = new THREE.Mesh(this.geometries.coinInnerDisc, this.materials.goldSatin);
+      innerDisc.rotation.x = Math.PI / 2;
+      group.add(innerDisc);
 
-    // 5. Raised Inner Concentric Gold Bezel Ring (Framing the inner circle)
-    const innerBezel = new THREE.Mesh(this.geometries.coinInnerBezel, this.materials.goldTrim);
-    group.add(innerBezel);
+      // 5. Raised Inner Concentric Gold Bezel Ring (Framing the inner circle)
+      const innerBezel = new THREE.Mesh(this.geometries.coinInnerBezel, this.materials.goldTrim);
+      group.add(innerBezel);
 
-    // 6. Glowing Neon Cyan Cyber Ring inside the Inner Circle
-    const neonCircle = new THREE.Mesh(this.geometries.coinNeonCircle, this.materials.neonCyan);
-    group.add(neonCircle);
+      // 6. Glowing Neon Cyan Cyber Ring inside the Inner Circle
+      const neonCircle = new THREE.Mesh(this.geometries.coinNeonCircle, this.materials.neonCyan);
+      group.add(neonCircle);
 
-    // 7. Solid Filled Glowing Neon Triangle Emblem (Centered in inner circle)
-    // 7a. Chiseled Gold Outer Triangular Bezel (Holding the solid neon crystal)
-    const triBezel = new THREE.Mesh(this.geometries.coinGoldTriBezel, this.materials.goldTrim);
-    triBezel.rotation.x = Math.PI / 2;
-    group.add(triBezel);
+      // 7. Solid Filled Glowing Neon Triangle Emblem (Centered in inner circle)
+      // 7a. Chiseled Gold Outer Triangular Bezel (Holding the solid neon crystal)
+      const triBezel = new THREE.Mesh(this.geometries.coinGoldTriBezel, this.materials.goldTrim);
+      triBezel.rotation.x = Math.PI / 2;
+      group.add(triBezel);
 
-    // 7b. Solid Filled Radiant Neon Cyan Triangle Prism
-    const triSolid = new THREE.Mesh(this.geometries.coinNeonTriSolid, this.materials.neonCyan);
-    triSolid.rotation.x = Math.PI / 2;
-    group.add(triSolid);
+      // 7b. Solid Filled Radiant Neon Cyan Triangle Prism
+      const triSolid = new THREE.Mesh(this.geometries.coinNeonTriSolid, this.materials.neonCyan);
+      triSolid.rotation.x = Math.PI / 2;
+      group.add(triSolid);
 
-    // 7c. Solid Filled Hot-White Core Neon Accent
-    const triHighlight = new THREE.Mesh(this.geometries.coinNeonTriHighlight, this.materials.neonCyanCore);
-    triHighlight.rotation.x = Math.PI / 2;
-    group.add(triHighlight);
+      // 7c. Solid Filled Hot-White Core Neon Accent
+      const triHighlight = new THREE.Mesh(this.geometries.coinNeonTriHighlight, this.materials.neonCyanCore);
+      triHighlight.rotation.x = Math.PI / 2;
+      group.add(triHighlight);
 
-    // 8. Micro Corner Glow Capacitors at 3 Triangle Vertices (Front & Back faces)
-    const vertexRadius = 0.142;
-    const nodeCoords = [
-      [0, vertexRadius],
-      [-vertexRadius * Math.sin(Math.PI / 3), -vertexRadius * Math.cos(Math.PI / 3)],
-      [vertexRadius * Math.sin(Math.PI / 3), -vertexRadius * Math.cos(Math.PI / 3)]
-    ];
-    for (const [nx, ny] of nodeCoords) {
-      for (const nz of [-0.042, 0.042]) {
-        const node = new THREE.Mesh(this.geometries.coinTriangleNode, this.materials.neonCyanCore);
-        node.position.set(nx, ny, nz);
-        group.add(node);
+      // 8. Micro Corner Glow Capacitors at 3 Triangle Vertices (Front & Back faces)
+      const vertexRadius = 0.142;
+      const nodeCoords = [
+        [0, vertexRadius],
+        [-vertexRadius * Math.sin(Math.PI / 3), -vertexRadius * Math.cos(Math.PI / 3)],
+        [vertexRadius * Math.sin(Math.PI / 3), -vertexRadius * Math.cos(Math.PI / 3)]
+      ];
+      for (const [nx, ny] of nodeCoords) {
+        for (const nz of [-0.042, 0.042]) {
+          const node = new THREE.Mesh(this.geometries.coinTriangleNode, this.materials.neonCyanCore);
+          node.position.set(nx, ny, nz);
+          group.add(node);
+        }
       }
-    }
 
-    // 9. 3 Micro-Conduit Circuit Traces routing from triangle tips to inner neon circle
-    const rayAngles = [0, (2 * Math.PI) / 3, -(2 * Math.PI) / 3];
-    for (const angle of rayAngles) {
-      const conduit = new THREE.Mesh(this.geometries.coinVertexConduit, this.materials.neonCyan);
-      // Midpoint between triangle tip (0.142) and neon circle (0.18) -> 0.16
-      conduit.position.set(-0.16 * Math.sin(angle), 0.16 * Math.cos(angle), 0);
-      conduit.rotation.z = angle;
-      group.add(conduit);
-    }
+      // 9. 3 Micro-Conduit Circuit Traces routing from triangle tips to inner neon circle
+      const rayAngles = [0, (2 * Math.PI) / 3, -(2 * Math.PI) / 3];
+      for (const angle of rayAngles) {
+        const conduit = new THREE.Mesh(this.geometries.coinVertexConduit, this.materials.neonCyan);
+        // Midpoint between triangle tip (0.142) and neon circle (0.18) -> 0.16
+        conduit.position.set(-0.16 * Math.sin(angle), 0.16 * Math.cos(angle), 0);
+        conduit.rotation.z = angle;
+        group.add(conduit);
+      }
 
     group.userData.radius = 0.55;
     return group;
@@ -328,33 +338,44 @@ export class CollectibleFactory3D {
 
     group.add(this.createEnergyBubble("cyan"));
 
-    // Heavy Ruby Metallic Horseshoe Arch
-    const arch = new THREE.Mesh(this.geometries.magnetArch, this.materials.magnetRed);
-    arch.rotation.z = Math.PI;
-    group.add(arch);
+    if (assetLoader.has("pickup_magnet_orb")) {
+      const magnetModel = assetLoader.createInstance("pickup_magnet_orb", {
+        targetHeight: 0.9,
+        targetWidth: 0.9
+      });
+      if (magnetModel) {
+        magnetModel.position.set(0, 0, 0);
+        group.add(magnetModel);
+      }
+    } else {
+      // Heavy Ruby Metallic Horseshoe Arch
+      const arch = new THREE.Mesh(this.geometries.magnetArch, this.materials.magnetRed);
+      arch.rotation.z = Math.PI;
+      group.add(arch);
 
-    // Silver Chrome Magnetic Pole Tips (North / South)
-    for (let x of [-0.34, 0.34]) {
-      const tip = new THREE.Mesh(this.geometries.magnetTip, this.materials.chromeSilver);
-      tip.position.set(x, -0.1, 0);
-      group.add(tip);
+      // Silver Chrome Magnetic Pole Tips (North / South)
+      for (let x of [-0.34, 0.34]) {
+        const tip = new THREE.Mesh(this.geometries.magnetTip, this.materials.chromeSilver);
+        tip.position.set(x, -0.1, 0);
+        group.add(tip);
 
-      // Gold Induction Flux Coils
-      const coil = new THREE.Mesh(this.geometries.magnetCoil, this.materials.inductionCopper);
-      coil.position.set(x, 0.05, 0);
-      coil.rotation.x = Math.PI / 2;
-      group.add(coil);
+        // Gold Induction Flux Coils
+        const coil = new THREE.Mesh(this.geometries.magnetCoil, this.materials.inductionCopper);
+        coil.position.set(x, 0.05, 0);
+        coil.rotation.x = Math.PI / 2;
+        group.add(coil);
 
-      // Luminous Charge Sparks
-      const spark = new THREE.Mesh(this.geometries.magnetSpark, this.materials.emblemCore);
-      spark.position.set(x, -0.22, 0);
-      group.add(spark);
+        // Luminous Charge Sparks
+        const spark = new THREE.Mesh(this.geometries.magnetSpark, this.materials.emblemCore);
+        spark.position.set(x, -0.22, 0);
+        group.add(spark);
+      }
+
+      // Glowing Cyan Magnetic Force Field Arc between tips
+      const arc = new THREE.Mesh(this.geometries.magnetArc, this.materials.emblemCore);
+      arc.position.set(0, -0.1, 0);
+      group.add(arc);
     }
-
-    // Glowing Cyan Magnetic Force Field Arc between tips
-    const arc = new THREE.Mesh(this.geometries.magnetArc, this.materials.emblemCore);
-    arc.position.set(0, -0.1, 0);
-    group.add(arc);
 
     group.userData.radius = 0.85;
     return group;
@@ -371,35 +392,46 @@ export class CollectibleFactory3D {
 
     group.add(this.createEnergyBubble("amber"));
 
-    // Dual Rocket Thrusters with Nosecones and Fiery Exhausts
-    for (let x of [-0.22, 0.22]) {
-      const rocket = new THREE.Mesh(this.geometries.jetpackRocket, this.materials.jetpackTitanium);
-      rocket.position.x = x;
-      group.add(rocket);
+    if (assetLoader.has("pickup_battery_cell")) {
+      const batteryModel = assetLoader.createInstance("pickup_battery_cell", {
+        targetHeight: 1.0,
+        targetWidth: 0.8
+      });
+      if (batteryModel) {
+        batteryModel.position.set(0, 0, 0);
+        group.add(batteryModel);
+      }
+    } else {
+      // Dual Rocket Thrusters with Nosecones and Fiery Exhausts
+      for (let x of [-0.22, 0.22]) {
+        const rocket = new THREE.Mesh(this.geometries.jetpackRocket, this.materials.jetpackTitanium);
+        rocket.position.x = x;
+        group.add(rocket);
 
-      const shroud = new THREE.Mesh(this.geometries.jetpackCone, this.materials.jetpackGold);
-      shroud.position.set(x, 0.35, 0);
-      group.add(shroud);
+        const shroud = new THREE.Mesh(this.geometries.jetpackCone, this.materials.jetpackGold);
+        shroud.position.set(x, 0.35, 0);
+        group.add(shroud);
 
-      const nozzle = new THREE.Mesh(this.geometries.jetpackNozzle, this.materials.chromeSilver);
-      nozzle.rotation.x = Math.PI;
-      nozzle.position.set(x, -0.35, 0);
-      group.add(nozzle);
+        const nozzle = new THREE.Mesh(this.geometries.jetpackNozzle, this.materials.chromeSilver);
+        nozzle.rotation.x = Math.PI;
+        nozzle.position.set(x, -0.35, 0);
+        group.add(nozzle);
 
-      const flame = new THREE.Mesh(this.geometries.jetpackFlare, this.materials.jetpackFlame);
-      flame.rotation.x = Math.PI;
-      flame.position.set(x, -0.52, 0);
-      group.add(flame);
+        const flame = new THREE.Mesh(this.geometries.jetpackFlare, this.materials.jetpackFlame);
+        flame.rotation.x = Math.PI;
+        flame.position.set(x, -0.52, 0);
+        group.add(flame);
+      }
+
+      // Chrome Harness & Fuel Manifold
+      const harness = new THREE.Mesh(this.geometries.jetpackHarness, this.materials.chromeSilver);
+      group.add(harness);
+
+      const manifold = new THREE.Mesh(this.geometries.jetpackManifold, this.materials.inductionCopper);
+      manifold.rotation.z = Math.PI / 2;
+      manifold.position.set(0, 0.12, 0.04);
+      group.add(manifold);
     }
-
-    // Chrome Harness & Fuel Manifold
-    const harness = new THREE.Mesh(this.geometries.jetpackHarness, this.materials.chromeSilver);
-    group.add(harness);
-
-    const manifold = new THREE.Mesh(this.geometries.jetpackManifold, this.materials.inductionCopper);
-    manifold.rotation.z = Math.PI / 2;
-    manifold.position.set(0, 0.12, 0.04);
-    group.add(manifold);
 
     group.userData.radius = 0.85;
     return group;
@@ -415,31 +447,42 @@ export class CollectibleFactory3D {
 
     group.add(this.createEnergyBubble("cyan"));
 
-    // Glowing Hexagonal Energy Shield Emitter
-    const shieldMesh = new THREE.Mesh(this.geometries.shieldHex, this.materials.shieldCyan);
-    shieldMesh.rotation.x = Math.PI / 2;
-    group.add(shieldMesh);
+    if (assetLoader.has("pickup_shield_bubble")) {
+      const shieldModel = assetLoader.createInstance("pickup_shield_bubble", {
+        targetHeight: 0.9,
+        targetWidth: 0.9
+      });
+      if (shieldModel) {
+        shieldModel.position.set(0, 0, 0);
+        group.add(shieldModel);
+      }
+    } else {
+      // Glowing Hexagonal Energy Shield Emitter
+      const shieldMesh = new THREE.Mesh(this.geometries.shieldHex, this.materials.shieldCyan);
+      shieldMesh.rotation.x = Math.PI / 2;
+      group.add(shieldMesh);
 
-    // Raised Chrome Bezel Outer Ring
-    const ring = new THREE.Mesh(this.geometries.shieldRing, this.materials.chromeSilver);
-    group.add(ring);
+      // Raised Chrome Bezel Outer Ring
+      const ring = new THREE.Mesh(this.geometries.shieldRing, this.materials.chromeSilver);
+      group.add(ring);
 
-    // Radial Circuit Traces
-    for (let angle of [0, Math.PI / 3, (2 * Math.PI) / 3]) {
-      const trace = new THREE.Mesh(this.geometries.shieldTrace, this.materials.chromeSilver);
-      trace.rotation.z = angle;
-      group.add(trace);
+      // Radial Circuit Traces
+      for (let angle of [0, Math.PI / 3, (2 * Math.PI) / 3]) {
+        const trace = new THREE.Mesh(this.geometries.shieldTrace, this.materials.chromeSilver);
+        trace.rotation.z = angle;
+        group.add(trace);
+      }
+
+      // Gleaming 3D Faceted Aegis Star
+      const star = new THREE.Mesh(this.geometries.shieldStar, this.materials.chromeSilver);
+      star.position.z = 0.06;
+      group.add(star);
+
+      // Glowing Central Cybernetic Node
+      const coreNode = new THREE.Mesh(this.geometries.coinCenterDot, this.materials.emblemCore);
+      coreNode.position.z = 0.08;
+      group.add(coreNode);
     }
-
-    // Gleaming 3D Faceted Aegis Star
-    const star = new THREE.Mesh(this.geometries.shieldStar, this.materials.chromeSilver);
-    star.position.z = 0.06;
-    group.add(star);
-
-    // Glowing Central Cybernetic Node
-    const coreNode = new THREE.Mesh(this.geometries.coinCenterDot, this.materials.emblemCore);
-    coreNode.position.z = 0.08;
-    group.add(coreNode);
 
     group.userData.radius = 0.85;
     return group;
@@ -456,26 +499,71 @@ export class CollectibleFactory3D {
 
     group.add(this.createEnergyBubble("amber"));
 
-    // Multi-Tiered Golden Sunburst Medallion
-    const crest = new THREE.Mesh(this.geometries.multiplierCrest, this.materials.multiplierGold);
-    crest.rotation.x = Math.PI / 2;
-    group.add(crest);
+    if (assetLoader.has("pickup_multiplier_star")) {
+      const starModel = assetLoader.createInstance("pickup_multiplier_star", {
+        targetHeight: 0.9,
+        targetWidth: 0.9
+      });
+      if (starModel) {
+        starModel.position.set(0, 0, 0);
+        group.add(starModel);
+      }
+    } else {
+      // Multi-Tiered Golden Sunburst Medallion
+      const crest = new THREE.Mesh(this.geometries.multiplierCrest, this.materials.multiplierGold);
+      crest.rotation.x = Math.PI / 2;
+      group.add(crest);
 
-    // Raised Diamond-Cut Outer Ring
-    const ring = new THREE.Mesh(this.geometries.multiplierRing, this.materials.goldTrim);
-    group.add(ring);
+      // Raised Diamond-Cut Outer Ring
+      const ring = new THREE.Mesh(this.geometries.multiplierRing, this.materials.goldTrim);
+      group.add(ring);
 
-    // 8 Radial Notches
-    for (let angle of [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4]) {
-      const rib = new THREE.Mesh(this.geometries.coinRib, this.materials.goldArmor);
-      rib.rotation.z = angle;
-      group.add(rib);
+      // 8 Radial Notches
+      for (let angle of [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4]) {
+        const rib = new THREE.Mesh(this.geometries.coinRib, this.materials.goldArmor);
+        rib.rotation.z = angle;
+        group.add(rib);
+      }
     }
 
-    // Floating 3D Embossed "2X" Emblem Label
-    const label = new THREE.Mesh(this.geometries.multiplierLabel, this.multiplierMaterial);
-    label.position.z = 0.06;
-    group.add(label);
+    // Full 3D Sculptural "2X" Emblem (True 3D Relief Catching Real-Time Specular Reflections)
+    // 1. 3D "2" Glyph
+    const bar2Top = new THREE.Mesh(this.geometries.numBarH, this.materials.goldTrim);
+    bar2Top.position.set(-0.14, 0.12, 0.07);
+    group.add(bar2Top);
+
+    const bar2Right = new THREE.Mesh(this.geometries.numBarV, this.materials.goldTrim);
+    bar2Right.position.set(-0.065, 0.06, 0.07);
+    group.add(bar2Right);
+
+    const bar2Diag = new THREE.Mesh(this.geometries.numBarDiag, this.materials.goldTrim);
+    bar2Diag.position.set(-0.14, -0.01, 0.07);
+    bar2Diag.rotation.z = 0.55;
+    group.add(bar2Diag);
+
+    const bar2Base = new THREE.Mesh(this.geometries.numBarH, this.materials.goldTrim);
+    bar2Base.position.set(-0.14, -0.10, 0.07);
+    group.add(bar2Base);
+
+    // 2. 3D "X" Glyph
+    const barX1 = new THREE.Mesh(this.geometries.xBarDiag, this.materials.goldTrim);
+    barX1.position.set(0.14, 0.01, 0.07);
+    barX1.rotation.z = Math.PI / 4;
+    group.add(barX1);
+
+    const barX2 = new THREE.Mesh(this.geometries.xBarDiag, this.materials.goldTrim);
+    barX2.position.set(0.14, 0.01, 0.07);
+    barX2.rotation.z = -Math.PI / 4;
+    group.add(barX2);
+
+    // Glowing Neon Central Core Nodes
+    const coreNodeL = new THREE.Mesh(this.geometries.emblemCoreSphere, this.materials.neonCyanCore);
+    coreNodeL.position.set(-0.14, 0.01, 0.08);
+    group.add(coreNodeL);
+
+    const coreNodeR = new THREE.Mesh(this.geometries.emblemCoreSphere, this.materials.neonCyanCore);
+    coreNodeR.position.set(0.14, 0.01, 0.08);
+    group.add(coreNodeR);
 
     group.userData.radius = 0.85;
     return group;

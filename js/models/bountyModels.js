@@ -1,11 +1,11 @@
 /**
- * PRABHAS: KASI 2898 AD (3D Runner - Bounty Hunter System)
+ * PRABHAS: WASTELAND 2898 AD (3D Runner - Bounty Hunter System)
  * 3D Models: Live Bounty Targets, Crates, Harpoon, Boss Skiff & Extraction Beacon
  * High-performance shared geometries and PBR materials
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "../config.js?v=20260919_triangle_neon_v38";
+import { CONFIG } from "../config.js?v=20261011_production_v60";
 
 export class BountyModelFactory {
   constructor() {
@@ -27,14 +27,23 @@ export class BountyModelFactory {
       skiffNose: new THREE.ConeGeometry(0.8, 1.2, 4),
       thrusterPod: new THREE.CylinderGeometry(0.18, 0.22, 0.6, 12),
       thrusterGlow: new THREE.ConeGeometry(0.16, 0.45, 12),
+      speederCanopy: new THREE.SphereGeometry(0.45, 12, 12),
+      speederWing: new THREE.BoxGeometry(0.6, 0.08, 1.8),
       droidSphere: new THREE.SphereGeometry(0.55, 16, 16),
+      droidEye: new THREE.SphereGeometry(0.18, 12, 12),
       droidRing: new THREE.TorusGeometry(0.7, 0.04, 8, 20),
+      bossHull: new THREE.BoxGeometry(3.2, 0.9, 5.5),
+      bossBridge: new THREE.BoxGeometry(1.6, 0.8, 2.2),
+      bossEye: new THREE.BoxGeometry(1.4, 0.2, 0.08),
+      bossCannon: new THREE.CylinderGeometry(0.12, 0.12, 1.6, 10),
+      bossFlame: new THREE.ConeGeometry(0.35, 1.2, 12),
       crateBox: new THREE.BoxGeometry(1.4, 1.2, 1.4),
       crateTrim: new THREE.BoxGeometry(1.44, 0.15, 1.44),
       harpoonTip: new THREE.ConeGeometry(0.2, 0.7, 8),
       harpoonShaft: new THREE.CylinderGeometry(0.06, 0.06, 1.2, 8),
       targetBracket: new THREE.BoxGeometry(1.8, 1.8, 1.8),
-      beaconRing: new THREE.RingGeometry(1.2, 2.6, 24)
+      beaconRing: new THREE.RingGeometry(1.2, 2.6, 24),
+      beaconColumn: new THREE.CylinderGeometry(2.0, 2.0, 8.0, 16, 1, true)
     };
   }
 
@@ -89,12 +98,12 @@ export class BountyModelFactory {
     body.castShadow = true;
     group.add(body);
 
-    const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.45, 12, 12), this.materials.goldTrim);
+    const canopy = new THREE.Mesh(this.geometries.speederCanopy, this.materials.goldTrim);
     canopy.position.set(0, 0.95, 0.2);
     group.add(canopy);
 
     for (let x of [-0.85, 0.85]) {
-      const wing = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.08, 1.8), this.materials.chromeAlloy);
+      const wing = new THREE.Mesh(this.geometries.speederWing, this.materials.chromeAlloy);
       wing.position.set(x, 0.65, -0.2);
       group.add(wing);
 
@@ -123,7 +132,7 @@ export class BountyModelFactory {
     core.castShadow = true;
     group.add(core);
 
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), this.materials.redSensor);
+    const eye = new THREE.Mesh(this.geometries.droidEye, this.materials.redSensor);
     eye.position.set(0, 1.35, 0.48);
     group.add(eye);
 
@@ -147,22 +156,22 @@ export class BountyModelFactory {
     const name = isCommander ? "Elite Complex Commander" : "Manas Enforcer Skiff";
     group.userData = { type: "bounty_boss", targetTier: isCommander ? 5 : 4, rewardUnits: units, targetName: name, isBoss: true };
 
-    const hull = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.9, 5.5), isCommander ? this.materials.darkCarbon : this.materials.rustMetal);
+    const hull = new THREE.Mesh(this.geometries.bossHull, isCommander ? this.materials.darkCarbon : this.materials.rustMetal);
     hull.position.y = 1.8;
     hull.castShadow = true;
     group.add(hull);
 
-    const bridge = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.8, 2.2), this.materials.chromeAlloy);
+    const bridge = new THREE.Mesh(this.geometries.bossBridge, this.materials.chromeAlloy);
     bridge.position.set(0, 2.45, -0.4);
     group.add(bridge);
 
-    const eye = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.2, 0.08), this.materials.redSensor);
+    const eye = new THREE.Mesh(this.geometries.bossEye, this.materials.redSensor);
     eye.position.set(0, 2.45, 0.72);
     group.add(eye);
 
     // Front Heavy Turret Laser Cannons
     for (let x of [-1.2, 1.2]) {
-      const cannon = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.6, 10), this.materials.darkCarbon);
+      const cannon = new THREE.Mesh(this.geometries.bossCannon, this.materials.darkCarbon);
       cannon.rotation.x = Math.PI / 2;
       cannon.position.set(x, 1.6, 2.4);
       group.add(cannon);
@@ -170,7 +179,7 @@ export class BountyModelFactory {
 
     // Heavy Thrusters
     for (let x of [-1.1, 0, 1.1]) {
-      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.2, 12), this.materials.amberEnergy);
+      const flame = new THREE.Mesh(this.geometries.bossFlame, this.materials.amberEnergy);
       flame.rotation.x = -Math.PI / 2;
       flame.position.set(x, 1.8, -3.2);
       group.add(flame);
@@ -223,7 +232,7 @@ export class BountyModelFactory {
     ring.position.y = 0.08;
     group.add(ring);
 
-    const column = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.0, 8.0, 16, 1, true), this.materials.cyanEnergy);
+    const column = new THREE.Mesh(this.geometries.beaconColumn, this.materials.cyanEnergy);
     column.position.y = 4.0;
     group.add(column);
 

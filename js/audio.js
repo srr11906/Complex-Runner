@@ -11,37 +11,27 @@ export class AudioManager3D {
     this.jetpackOsc = null;
     this.jetpackGain = null;
 
-    // Main Menu Background Music (Disabled per request)
+    // High-Fidelity Music Track (Zero range socket leaks, decoded via Web Audio)
     this.menuMusic = null;
-
-    // In-Game Background Music Track (assets/audio/bgm.mp3 with fallbacks, increased by +15% to 0.65)
     this.bgMusic = null;
-    const bgmPaths = ["assets/audio/bgm.mp3", "bgm.mp3"];
-    this.initAudioElement("bgMusic", bgmPaths, 0.65);
+    this.bgmAudioBuffer = null;
+    this.bgmSource = null;
+    this._bgmBufferLoading = false;
+
+    // Train Audio Sound Effects (Powered by high-precision Web Audio Synthesizers)
+    this.trainHornAudio = null;
+    this.trainPassAudio = null;
 
     // Procedural Web Audio Music Synthesizer (100% Royalty Free, Zero Lag, Speed Adaptive fallback)
     this.isBgmSynthesizing = false;
     this.bgmTimer = null;
     this.bgmStep = 0;
-    this.bgmTempo = 128; // BPM
+    this.bgmTempo = 134; // BPM
     this.bgmMasterGain = null;
-  }
 
-  initAudioElement(propName, pathList, volume = 0.65) {
-    let index = 0;
-    const tryNext = () => {
-      if (index >= pathList.length) return;
-      const path = pathList[index++];
-      const audio = new Audio(path);
-      audio.loop = true;
-      audio.preload = "auto";
-      audio.volume = volume;
-      audio.addEventListener("error", () => {
-        tryNext();
-      }, { once: true });
-      this[propName] = audio;
-    };
-    tryNext();
+    // Subway Surfers Consecutive Coin Streak Pitch Arpeggio
+    this.lastCoinTime = 0;
+    this.consecutiveCoins = 0;
   }
 
   init() {
@@ -51,12 +41,24 @@ export class AudioManager3D {
       if (AudioContextClass) {
         this.ctx = new AudioContextClass();
         this.bgmMasterGain = this.ctx.createGain();
-        this.bgmMasterGain.gain.setValueAtTime(0.65, this.ctx.currentTime); // In-game synth volume +15% (0.65)
+        this.bgmMasterGain.gain.setValueAtTime(0.95, this.ctx.currentTime); // Master music punch
         this.bgmMasterGain.connect(this.ctx.destination);
+
+        // Pre-generate reusable noise buffers to prevent per-beat buffer GC allocations
+        const snareSize = Math.floor(this.ctx.sampleRate * 0.12);
+        this._snareBuffer = this.ctx.createBuffer(1, snareSize, this.ctx.sampleRate);
+        const sData = this._snareBuffer.getChannelData(0);
+        for (let i = 0; i < snareSize; i++) sData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (snareSize * 0.35));
+
+        const hihatSize = Math.floor(this.ctx.sampleRate * 0.035);
+        this._hihatBuffer = this.ctx.createBuffer(1, hihatSize, this.ctx.sampleRate);
+        const hData = this._hihatBuffer.getChannelData(0);
+        for (let i = 0; i < hihatSize; i++) hData[i] = (Math.random() * 2 - 1);
+
         this.isInitialized = true;
       }
     } catch (e) {
-      console.warn("AudioContext init error:", e);
+      // AudioContext unavailable
     }
   }
 
@@ -73,76 +75,92 @@ export class AudioManager3D {
     }
   }
 
+  async loadBgmBuffer() {
+    if (this.bgmAudioBuffer || this._bgmBufferLoading || !this.ctx) return;
+    this._bgmBufferLoading = true;
+    try {
+      const resp = await fetch("assets/audio/bgm.mp3");
+      if (resp.ok) {
+        const ab = await resp.arrayBuffer();
+        if (this.ctx) {
+          this.bgmAudioBuffer = await this.ctx.decodeAudioData(ab);
+        }
+      }
+    } catch (e) {
+      // Fallback handled seamlessly by procedural synth
+    } finally {
+      this._bgmBufferLoading = false;
+    }
+  }
+
+  _startBufferPlayback() {
+    if (this.isMuted || !this.ctx || !this.bgmAudioBuffer) return false;
+    this.stopBgmBuffer();
+    try {
+      this.bgmSource = this.ctx.createBufferSource();
+      this.bgmSource.buffer = this.bgmAudioBuffer;
+      this.bgmSource.loop = true;
+      this.bgmSource.connect(this.bgmMasterGain);
+      this.bgmSource.start(0);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  stopBgmBuffer() {
+    if (this.bgmSource) {
+      try {
+        this.bgmSource.stop();
+        this.bgmSource.disconnect();
+      } catch (e) {}
+      this.bgmSource = null;
+    }
+  }
+
   playMenuMusic() {
     if (this.isMuted) return;
     this.ensureContext();
-    this.stopMusic(); // Stop in-game music if playing
+    this.stopMusic();
 
-    if (this.menuMusic) {
-      try {
-        this.menuMusic.currentTime = this.menuMusic.currentTime || 0;
-        const playPromise = this.menuMusic.play();
-        if (playPromise !== undefined) {
-          playPromise.catch((err) => {
-            console.log("Menu audio autoplay waiting for user interaction:", err);
-          });
-        }
-      } catch (e) {
-        console.warn("Could not play menu music:", e);
-      }
+    if (this.bgmAudioBuffer) {
+      this._startBufferPlayback();
+    } else {
+      this.startProceduralBgm();
+      this.loadBgmBuffer();
     }
   }
 
   pauseMenuMusic() {
-    if (this.menuMusic) {
-      try { this.menuMusic.pause(); } catch (e) {}
-    }
+    this.stopBgmBuffer();
+    this.stopProceduralBgm();
   }
 
   stopMenuMusic() {
-    if (this.menuMusic) {
-      try {
-        this.menuMusic.pause();
-        this.menuMusic.currentTime = 0;
-      } catch (e) {}
-    }
+    this.stopBgmBuffer();
+    this.stopProceduralBgm();
   }
 
   playMusic() {
     if (this.isMuted) return;
     this.ensureContext();
-    this.stopMenuMusic(); // Stop main menu music when in-game run starts
+    this.stopMenuMusic();
 
-    // Check if custom audio file is playable, else play procedural synthesized BGM
-    if (this.bgMusic && this.bgMusic.src && !this.bgMusic.error) {
-      this.bgMusic.currentTime = this.bgMusic.currentTime || 0;
-      const playPromise = this.bgMusic.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // Fallback to built-in procedural synthesizer
-          this.startProceduralBgm();
-        });
-      }
+    if (this.bgmAudioBuffer) {
+      this._startBufferPlayback();
     } else {
       this.startProceduralBgm();
+      this.loadBgmBuffer();
     }
   }
 
   pauseMusic() {
-    if (this.bgMusic) {
-      try { this.bgMusic.pause(); } catch (e) {}
-    }
+    this.stopBgmBuffer();
     this.stopProceduralBgm();
   }
 
   stopMusic() {
-    if (this.bgMusic) {
-      try {
-        this.bgMusic.pause();
-        this.bgMusic.currentTime = 0;
-        this.bgMusic.playbackRate = 1.0;
-      } catch (e) {}
-    }
+    this.stopBgmBuffer();
     this.stopProceduralBgm();
   }
 
@@ -151,8 +169,10 @@ export class AudioManager3D {
    */
   updateSpeed(currentSpeed, initialSpeed, maxSpeed) {
     const speedRatio = Math.max(0, Math.min(1, (currentSpeed - initialSpeed) / (maxSpeed - initialSpeed)));
-    if (this.bgMusic) {
-      this.bgMusic.playbackRate = 1.0 + speedRatio * 0.18;
+    if (this.bgmSource && this.ctx) {
+      try {
+        this.bgmSource.playbackRate.setValueAtTime(1.0 + speedRatio * 0.18, this.ctx.currentTime);
+      } catch (e) {}
     }
     this.bgmTempo = 128 + speedRatio * 24; // 128 BPM to 152 BPM
   }
@@ -171,6 +191,13 @@ export class AudioManager3D {
     } else {
       if (this.bgmMasterGain && this.ctx) {
         this.bgmMasterGain.gain.setValueAtTime(0.65, this.ctx.currentTime);
+      }
+      if (window.gameEngine3D) {
+        if (window.gameEngine3D.state === "playing") {
+          this.playMusic();
+        } else if (window.gameEngine3D.state === "menu") {
+          this.playMenuMusic();
+        }
       }
     }
     return this.isMuted;
@@ -286,12 +313,9 @@ export class AudioManager3D {
 
   synthSnare(t, vol = 0.28) {
     try {
-      const bSize = this.ctx.sampleRate * 0.12;
-      const buf = this.ctx.createBuffer(1, bSize, this.ctx.sampleRate);
-      const data = buf.getChannelData(0);
-      for (let i = 0; i < bSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bSize * 0.35));
+      if (!this._snareBuffer) return;
       const noise = this.ctx.createBufferSource();
-      noise.buffer = buf;
+      noise.buffer = this._snareBuffer;
       const filter = this.ctx.createBiquadFilter();
       filter.type = "bandpass";
       filter.frequency.setValueAtTime(1800, t);
@@ -308,12 +332,9 @@ export class AudioManager3D {
 
   synthHiHat(t, vol = 0.08) {
     try {
-      const bSize = this.ctx.sampleRate * 0.035;
-      const buf = this.ctx.createBuffer(1, bSize, this.ctx.sampleRate);
-      const data = buf.getChannelData(0);
-      for (let i = 0; i < bSize; i++) data[i] = (Math.random() * 2 - 1);
+      if (!this._hihatBuffer) return;
       const noise = this.ctx.createBufferSource();
-      noise.buffer = buf;
+      noise.buffer = this._hihatBuffer;
       const filter = this.ctx.createBiquadFilter();
       filter.type = "highpass";
       filter.frequency.setValueAtTime(8000, t);
@@ -419,14 +440,41 @@ export class AudioManager3D {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = "sine";
-      osc.frequency.setValueAtTime(220, now);
-      osc.frequency.exponentialRampToValueAtTime(540, now + 0.16);
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+      osc.frequency.setValueAtTime(260, now);
+      osc.frequency.exponentialRampToValueAtTime(680, now + 0.14);
+      gain.gain.setValueAtTime(0.28, now);
+      gain.gain.exponentialRampToValueAtTime(0.005, now + 0.16);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start(now);
-      osc.stop(now + 0.2);
+      osc.stop(now + 0.18);
+    } catch (e) {}
+  }
+
+  playDive() {
+    if (this.isMuted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = "sawtooth";
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(1200, now);
+      filter.frequency.exponentialRampToValueAtTime(180, now + 0.16);
+
+      osc.frequency.setValueAtTime(540, now);
+      osc.frequency.exponentialRampToValueAtTime(95, now + 0.17);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.005, now + 0.18);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.20);
     } catch (e) {}
   }
 
@@ -436,47 +484,240 @@ export class AudioManager3D {
     if (!this.ctx) return;
     try {
       const now = this.ctx.currentTime;
-      const bufferSize = this.ctx.sampleRate * 0.3;
+      // 1. High-Performance Asphalt Friction Noise Scrape
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.32);
       const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
       const data = buffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.4));
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.45));
       }
       const noise = this.ctx.createBufferSource();
       noise.buffer = buffer;
       const filter = this.ctx.createBiquadFilter();
       filter.type = "bandpass";
-      filter.frequency.setValueAtTime(800, now);
-      filter.frequency.exponentialRampToValueAtTime(300, now + 0.28);
+      filter.frequency.setValueAtTime(1100, now);
+      filter.frequency.exponentialRampToValueAtTime(280, now + 0.30);
+      filter.Q.setValueAtTime(2.2, now);
       const gain = this.ctx.createGain();
-      gain.gain.setValueAtTime(0.35, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      gain.gain.setValueAtTime(0.42, now);
+      gain.gain.exponentialRampToValueAtTime(0.005, now + 0.32);
       noise.connect(filter);
       filter.connect(gain);
       gain.connect(this.ctx.destination);
       noise.start(now);
-      noise.stop(now + 0.32);
+      noise.stop(now + 0.34);
+
+      // 2. Aerodynamic Pitch-Drop Whoosh Layer (Subway Surfers air velocity duck)
+      const osc = this.ctx.createOscillator();
+      const oscGain = this.ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(75, now + 0.28);
+      oscGain.gain.setValueAtTime(0.18, now);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      osc.connect(oscGain);
+      oscGain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.30);
     } catch (e) {}
   }
 
+  /**
+   * Subway Surfers Trademark Consecutive Coin Pitch-Ramp Arpeggio:
+   * Rapid coin pickup chains within 320ms climb semitone by semitone up a bright melodic scale.
+   */
   playCoin(multiplier = 1) {
     if (this.isMuted) return;
     this.ensureContext();
     if (!this.ctx) return;
     try {
       const now = this.ctx.currentTime;
-      const baseFreq = 880 + Math.min(600, (multiplier - 1) * 80);
-      const osc = this.ctx.createOscillator();
+      if (now - this.lastCoinTime < 0.32) {
+        this.consecutiveCoins = Math.min(10, this.consecutiveCoins + 1);
+      } else {
+        this.consecutiveCoins = 0;
+      }
+      this.lastCoinTime = now;
+
+      // Pentatonic / Semitone step progression: 2^(step / 12)
+      const semitoneStep = this.consecutiveCoins;
+      const pitchMultiplier = Math.pow(2, semitoneStep / 12);
+      const baseFreq = (880 + Math.min(220, (multiplier - 1) * 35)) * pitchMultiplier;
+
+      // Crystal Dual-Tone Bell Chime: Primary fundamental + bell sparkle harmonic
+      const osc1 = this.ctx.createOscillator();
+      const osc2 = this.ctx.createOscillator();
+      const gain1 = this.ctx.createGain();
+      const gain2 = this.ctx.createGain();
+
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(baseFreq, now);
+      osc1.frequency.exponentialRampToValueAtTime(baseFreq * 1.04, now + 0.08);
+
+      osc2.type = "triangle";
+      osc2.frequency.setValueAtTime(baseFreq * 2.0, now);
+      osc2.frequency.exponentialRampToValueAtTime(baseFreq * 2.5, now + 0.05);
+
+      const vol = 0.14;
+      gain1.gain.setValueAtTime(vol, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+
+      gain2.gain.setValueAtTime(vol * 0.40, now);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+      osc1.connect(gain1);
+      gain1.connect(this.ctx.destination);
+      osc2.connect(gain2);
+      gain2.connect(this.ctx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.14);
+      osc2.stop(now + 0.09);
+    } catch (e) {}
+  }
+
+  /**
+   * Futuristic Maglev Cargo Train Warning Horn:
+   * Dual-harmonic resonant horn synthesized via Web Audio when an oncoming train approaches.
+   */
+  /**
+   * Futuristic Maglev Cargo Train Warning Horn:
+   * Plays recorded train horn audio file or synthesizes via Web Audio when an oncoming train approaches.
+   */
+  playTrainHorn() {
+    if (this.isMuted) return;
+    this.ensureContext();
+
+    if (this.trainHornAudio) {
+      try {
+        const sound = this.trainHornAudio.cloneNode();
+        sound.volume = 0.95;
+        const p = sound.play();
+        if (p !== undefined) {
+          p.catch(() => this.synthTrainHorn());
+        }
+        return;
+      } catch (e) {}
+    }
+    this.synthTrainHorn();
+  }
+
+  synthTrainHorn() {
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      // Dual resonant horn frequencies: 155Hz and 233Hz (Dystopian 5th chord)
+      const osc1 = this.ctx.createOscillator();
+      const osc2 = this.ctx.createOscillator();
+      const filter = this.ctx.createBiquadFilter();
       const gain = this.ctx.createGain();
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(baseFreq, now);
-      osc.frequency.setValueAtTime(baseFreq * 1.5, now + 0.05);
-      gain.gain.setValueAtTime(0.16, now); // Gentle, soothing volume (avoids ear fatigue)
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
-      osc.connect(gain);
+
+      osc1.type = "sawtooth";
+      osc2.type = "sawtooth";
+      osc1.frequency.setValueAtTime(155, now);
+      osc2.frequency.setValueAtTime(233, now);
+      osc1.frequency.linearRampToValueAtTime(152, now + 0.65);
+      osc2.frequency.linearRampToValueAtTime(228, now + 0.65);
+
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(950, now);
+      filter.frequency.linearRampToValueAtTime(500, now + 0.65);
+      filter.Q.setValueAtTime(3.5, now);
+
+      gain.gain.setValueAtTime(0.01, now);
+      gain.gain.linearRampToValueAtTime(0.45, now + 0.08); // Punchy horn attack
+      gain.gain.setValueAtTime(0.45, now + 0.45);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.70); // Smooth decay
+
+      osc1.connect(filter);
+      osc2.connect(filter);
+      filter.connect(gain);
       gain.connect(this.ctx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.72);
+      osc2.stop(now + 0.72);
+    } catch (e) {}
+  }
+
+  /**
+   * Train Rush & Track Flyby Sound Effect:
+   * Heavy 45Hz sub-bass roar, metal rail friction, and Doppler whoosh as train speeds past.
+   */
+  playTrainPass() {
+    if (this.isMuted) return;
+    this.ensureContext();
+
+    if (this.trainPassAudio) {
+      try {
+        const sound = this.trainPassAudio.cloneNode();
+        sound.volume = 0.90;
+        const p = sound.play();
+        if (p !== undefined) {
+          p.catch(() => this.synthTrainPass());
+        }
+        return;
+      } catch (e) {}
+    }
+    this.synthTrainPass();
+  }
+
+  synthTrainPass() {
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      // 1. Heavy sub-bass rumble
+      const osc = this.ctx.createOscillator();
+      const oscGain = this.ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(45, now);
+      osc.frequency.exponentialRampToValueAtTime(35, now + 1.2);
+
+      const oscFilt = this.ctx.createBiquadFilter();
+      oscFilt.type = "lowpass";
+      oscFilt.frequency.setValueAtTime(140, now);
+
+      oscGain.gain.setValueAtTime(0.01, now);
+      oscGain.gain.linearRampToValueAtTime(0.55, now + 0.35);
+      oscGain.gain.exponentialRampToValueAtTime(0.005, now + 1.2);
+
+      osc.connect(oscFilt);
+      oscFilt.connect(oscGain);
+      oscGain.connect(this.ctx.destination);
+
       osc.start(now);
-      osc.stop(now + 0.12);
+      osc.stop(now + 1.25);
+
+      // 2. Whoosh noise buffer
+      const bufferSize = Math.floor(this.ctx.sampleRate * 1.2);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1);
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const noiseFilt = this.ctx.createBiquadFilter();
+      noiseFilt.type = "bandpass";
+      noiseFilt.frequency.setValueAtTime(350, now);
+      noiseFilt.frequency.linearRampToValueAtTime(800, now + 0.35);
+      noiseFilt.frequency.linearRampToValueAtTime(220, now + 1.2);
+      noiseFilt.Q.setValueAtTime(2.0, now);
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.01, now);
+      noiseGain.gain.linearRampToValueAtTime(0.50, now + 0.35);
+      noiseGain.gain.exponentialRampToValueAtTime(0.005, now + 1.2);
+
+      noise.connect(noiseFilt);
+      noiseFilt.connect(noiseGain);
+      noiseGain.connect(this.ctx.destination);
+
+      noise.start(now);
+      noise.stop(now + 1.25);
     } catch (e) {}
   }
 

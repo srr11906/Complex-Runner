@@ -10,7 +10,8 @@
  */
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { CONFIG } from "../config.js?v=20260919_triangle_neon_v38";
+import { CONFIG } from "../config.js?v=20261012_audio_atomic_v70";
+import { assetLoader } from "./assetLoader3D.js?v=20261012_audio_atomic_v70";
 
 const _tempVec = new THREE.Vector3();
 const _dir = new THREE.Vector3();
@@ -49,6 +50,7 @@ export class MonsterRobotModel {
     this.hpFillMesh = null;
     this.bountyBeacon = null;
     this._hasActiveDroppedCoins = false;
+    this.vacuumPulseTimer = 0;
 
     this.scaleFactor = CONFIG.MONSTER_ROBOT?.SCALE || 1.5;
 
@@ -539,6 +541,35 @@ export class MonsterRobotModel {
     this.position.set(this.targetX, 14.0, zPos);
     this.root.position.copy(this.position);
     this.parts.main.scale.set(this.scaleFactor, this.scaleFactor, this.scaleFactor);
+
+    // 3D GLB Integration for Robots: R1 (robot_security_patrol for Apex), R3 (robot_quadruped_scout for Mini), R2 fallback
+    const glbKey = variant === "apex" ? "robot_security_patrol" : (assetLoader.has("robot_quadruped_scout") ? "robot_quadruped_scout" : "robot_tracked_ugv");
+    if (assetLoader.has(glbKey)) {
+      if (!this.parts.customGlbMesh || this.parts.customGlbKey !== glbKey) {
+        if (this.parts.customGlbMesh) {
+          this.parts.main.remove(this.parts.customGlbMesh);
+        }
+        const meshInstance = assetLoader.createInstance(glbKey, {
+          targetHeight: 2.4,
+          targetWidth: 1.8
+        });
+        if (meshInstance) {
+          meshInstance.position.set(0, 0, 0);
+          this.parts.main.add(meshInstance);
+          this.parts.customGlbMesh = meshInstance;
+          this.parts.customGlbKey = glbKey;
+          // Hide procedural body meshes while keeping rigged bones for math
+          if (this.parts.hips) this.parts.hips.visible = false;
+        }
+      }
+      if (this.parts.customGlbMesh) {
+        this.parts.customGlbMesh.visible = true;
+      }
+    } else {
+      if (this.parts.customGlbMesh) this.parts.customGlbMesh.visible = false;
+      if (this.parts.hips) this.parts.hips.visible = true;
+    }
+
     this.root.visible = true;
     this.velocityY = -35.0;
     this.isGrounded = false;
@@ -691,6 +722,13 @@ export class MonsterRobotModel {
     if (!this.active) return;
 
     this.lifetime += dt;
+
+    if (this.vacuumPulseTimer > 0) {
+      this.vacuumPulseTimer -= dt;
+      if (this.vacuumPulseTimer <= 0 && this.parts.vacuumCore) {
+        this.parts.vacuumCore.scale.set(1, 1, 1);
+      }
+    }
 
     // Never auto-despawn while ahead. Only despawn if player bypassed far behind or glitch complete
     if (this.position.z < playerZ - 20) {
@@ -965,7 +1003,7 @@ export class MonsterRobotModel {
       if (!obs || obs.destroyed || !obs.mesh || !obs.mesh.visible) continue;
       const oPos = obs.worldPos;
 
-      const isSameLane = Math.abs(oPos.x - this.targetX) < 1.5;
+      const isSameLane = Math.abs(oPos.x - this.targetX) < 1.4;
       if (!isSameLane) continue;
 
       const distZ = oPos.z - this.position.z;
@@ -973,7 +1011,7 @@ export class MonsterRobotModel {
       // 1. Train Handling (Ramps & Solid Obstacles)
       if (obs.type === "train") {
         const hasRamp = obs.mesh && obs.mesh.userData && obs.mesh.userData.hasRamp;
-        const trainHalfLength = 12.0; // 24m train
+        const trainHalfLength = (obs.mesh && obs.mesh.userData && obs.mesh.userData.trainLength) ? obs.mesh.userData.trainLength / 2 : 12.0;
         const trainTopY = 4.15;
 
         if (hasRamp) {
@@ -988,23 +1026,36 @@ export class MonsterRobotModel {
             targetGround = Math.max(targetGround, trainTopY);
           }
         } else {
-          if (distZ > 0 && distZ < 26.0) {
-            this.switchLaneAvoidance();
-          } else if (Math.abs(distZ) <= trainHalfLength + 2.0) {
-            this.switchLaneAvoidance();
+          // Flat/Oncoming train: Must change lane!
+          if (distZ > 0 && distZ < 28.0) {
+            this.switchLaneAvoidance(obstacles);
+          } else if (Math.abs(distZ) <= trainHalfLength + 1.2) {
+            this.handleObstacleImpact(obs, obstacles);
           }
         }
       }
-      // 2. Slide Gate Handling
+      // 2. Tall Lane-Change Blocker (Detour Barrier)
+      else if (obs.type === "blocker") {
+        if (distZ > 0 && distZ < 28.0) {
+          this.switchLaneAvoidance(obstacles);
+        } else if (Math.abs(distZ) <= 1.8) {
+          this.handleObstacleImpact(obs, obstacles);
+        }
+      }
+      // 3. Slide Gate Handling
       else if (obs.type === "laser_gate") {
         if (distZ > -2.0 && distZ < 20.0) {
           this.slide();
+        } else if (Math.abs(distZ) < 1.2 && this.state !== "sliding") {
+          this.handleObstacleImpact(obs, obstacles);
         }
       }
-      // 3. Jump Hurdle Handling
+      // 4. Jump Hurdle Handling
       else if (obs.type === "hurdle") {
-        if (distZ > 0.5 && distZ < 14.0 && this.isGrounded && this.state !== "jumping") {
+        if (distZ > 1.0 && distZ < 16.0 && this.isGrounded && this.state !== "jumping") {
           this.jump();
+        } else if (Math.abs(distZ) < 1.0 && this.position.y < 0.95) {
+          this.handleObstacleImpact(obs, obstacles);
         }
       }
     }
@@ -1012,11 +1063,62 @@ export class MonsterRobotModel {
     this.groundElevation = targetGround;
   }
 
-  switchLaneAvoidance() {
-    if (this.laneSwitchCooldown > 0) return;
-    this.laneSwitchCooldown = 0.85;
-    const offset = Math.random() < 0.5 ? 1 : 2;
-    this.laneIndex = (this.laneIndex + offset) % 3;
+  handleObstacleImpact(obs, obstacles = []) {
+    // Physical Impact: Monster cannot phase through solid barriers!
+    this.recoilTimer = 0.35;
+    this.position.z -= 1.2; // Halt forward penetration
+    if (this.parts && this.parts.torso) {
+      this.parts.torso.rotation.x = -0.35; // Recoil backward
+    }
+    this.takeLaserHit(1); // Takes impact damage
+    if (window.gameEngine3D) {
+      window.gameEngine3D.safeAudio("playHit");
+      window.gameEngine3D.cameraManager.shake(0.25);
+    }
+    // Immediately evade into open adjacent lane
+    this.switchLaneAvoidance(obstacles, true);
+  }
+
+  switchLaneAvoidance(obstacles = [], force = false) {
+    if (this.laneSwitchCooldown > 0 && !force) return;
+    this.laneSwitchCooldown = 0.40;
+
+    // Smart Lane Scouting: Inspect obstacles in left and right lanes ahead (32m window)
+    const botZ = this.position.z;
+    const currentLane = this.laneIndex;
+    const laneHazardScores = [0, 0, 0];
+
+    for (let i = 0; i < obstacles.length; i++) {
+      const obs = obstacles[i];
+      if (!obs || obs.destroyed || !obs.mesh || !obs.mesh.visible) continue;
+      const oPos = obs.worldPos;
+      const distZ = oPos.z - botZ;
+      if (distZ < -2.0 || distZ > 32.0) continue;
+
+      // Identify lane of obstacle
+      for (let l = 0; l < 3; l++) {
+        if (Math.abs(oPos.x - CONFIG.LANES[l]) < 1.3) {
+          if (obs.type === "blocker") laneHazardScores[l] += 10;
+          else if (obs.type === "train" && !obs.mesh.userData?.hasRamp) laneHazardScores[l] += 10;
+          else if (obs.type === "train") laneHazardScores[l] += 2;
+          else laneHazardScores[l] += 1;
+        }
+      }
+    }
+
+    // Find candidate lane with lowest hazard score
+    let bestLane = (currentLane === 1) ? (Math.random() < 0.5 ? 0 : 2) : 1;
+    let lowestScore = 999;
+
+    for (let l = 0; l < 3; l++) {
+      if (l === currentLane) continue;
+      if (laneHazardScores[l] < lowestScore) {
+        lowestScore = laneHazardScores[l];
+        bestLane = l;
+      }
+    }
+
+    this.laneIndex = bestLane;
     this.currentLane = this.laneIndex;
     this.targetX = CONFIG.LANES[this.laneIndex];
   }
@@ -1059,9 +1161,7 @@ export class MonsterRobotModel {
 
           if (this.parts.vacuumCore) {
             this.parts.vacuumCore.scale.set(1.2, 1.2, 1.2);
-            setTimeout(() => {
-              if (this.parts.vacuumCore) this.parts.vacuumCore.scale.set(1, 1, 1);
-            }, 60);
+            this.vacuumPulseTimer = 0.08;
           }
         }
       }
@@ -1098,9 +1198,7 @@ export class MonsterRobotModel {
 
         if (this.parts.vacuumCore) {
           this.parts.vacuumCore.scale.set(1.4, 1.4, 1.4);
-          setTimeout(() => {
-            if (this.parts.vacuumCore) this.parts.vacuumCore.scale.set(1, 1, 1);
-          }, 80);
+          this.vacuumPulseTimer = 0.08;
         }
       }
     }
@@ -1112,6 +1210,23 @@ export class MonsterRobotModel {
 
     if (vacuumCore) {
       vacuumCore.rotation.z += 12.0 * dt;
+    }
+
+    if (this.parts.customGlbMesh && this.parts.customGlbMesh.visible) {
+      if (this.state === "sliding") {
+        this.parts.customGlbMesh.position.y = 0.2;
+        this.parts.customGlbMesh.rotation.x = -0.35;
+        this.parts.customGlbMesh.scale.y = 0.65;
+      } else if (this.state === "jumping") {
+        this.parts.customGlbMesh.position.y = 0.4;
+        this.parts.customGlbMesh.rotation.x = -0.15;
+        this.parts.customGlbMesh.scale.y = 1.0;
+      } else {
+        this.parts.customGlbMesh.position.y = Math.abs(Math.sin(time * 14 * speedRatio)) * 0.12;
+        this.parts.customGlbMesh.rotation.x = 0.08;
+        this.parts.customGlbMesh.rotation.y = Math.sin(time * 7) * 0.06;
+        this.parts.customGlbMesh.scale.y = 1.0;
+      }
     }
 
     if (this.state === "sliding") {
